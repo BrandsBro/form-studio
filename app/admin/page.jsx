@@ -16,7 +16,7 @@ export default function AdminLogin() {
     setLoading(true);
     await new Promise((r) => setTimeout(r, 600));
 
-    if (password === process.env.NEXT_PUBLIC_ADMIN_PASSWORD) {
+    if (password === (process.env.NEXT_PUBLIC_ADMIN_PASSWORD || "admin1234")) {
       sessionStorage.setItem("admin_auth", "true");
       router.push("/admin/dashboard");
     } else {
