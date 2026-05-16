@@ -301,8 +301,7 @@ export default function Employees() {
   const [deptFilter, setDeptFilter] = useState("All");
   const [modalEmp, setModalEmp] = useState(null);
   const [showModal, setShowModal] = useState(false);
-  const [confirmState, setConfirmState] = useState(null);
-  const [selectedEmp, setSelectedEmp] = useState(null);
+    const [selectedEmp, setSelectedEmp] = useState(null);
 
   useEffect(() => {
     const stored = localStorage.getItem("employees");
@@ -429,7 +428,6 @@ export default function Employees() {
         </div>
       )}
 
-      {confirmState && <ConfirmModal {...confirmState} onClose={()=>setConfirmState(null)}/>}
       {showModal && <EmployeeModal emp={modalEmp} employees={employees} onSave={handleSave} onClose={()=>setShowModal(false)}/>}
     </div>
   );

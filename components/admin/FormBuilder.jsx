@@ -162,7 +162,7 @@ export default function FormBuilder({ editForm, onSaved }) {
       setTimeout(() => setSaved(false), 2500);
     }
   }
-  function reset(){ setConfirmState({ title:"Reset Form", message:"All questions and settings will be restored to default. This cannot be undone.", confirmLabel:"Reset", icon:"⚠️", confirmColor:"#F59E0B", onConfirm:()=>{ setConfig(DEFAULT_CONFIG); localStorage.removeItem("form_config"); } }); }
+  function reset(){ setConfig(DEFAULT_CONFIG); localStorage.removeItem("form_config"); }
   function updateMeta(key, value) { setConfig(c=>({...c,[key]:value})); }
   function addField(type) { const id=`f${Date.now()}`; setConfig(c=>({...c,fields:[...c.fields,{id,type,label:"New question — click to edit.",required:false}]})); setAddingType(false); }
   function updateField(id, key, value) { setConfig(c=>({...c,fields:c.fields.map(f=>f.id===id?{...f,[key]:value}:f)})); }
@@ -359,7 +359,7 @@ export default function FormBuilder({ editForm, onSaved }) {
 
   return (
     <div style={{ display:"flex", flexDirection:"column", height:"100%", gap:16 }}>
-      {confirmState && <ConfirmModal {...confirmState} onClose={()=>setConfirmState(null)}/>}
+      
       <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", flexWrap:"wrap", gap:10 }}>
         <div>
           <h3 style={{ color:"white", fontWeight:700, margin:0, fontSize:16 }}>Form Builder</h3>
@@ -382,8 +382,8 @@ export default function FormBuilder({ editForm, onSaved }) {
 
       
       {!editForm && formsList.length > 0 && (
-        <div style={{background:"#161B22",border:"1px solid #21262D",borderRadius:10,padding:"12px 16px",display:"flex",alignItems:"center",gap:12,flexWrap:"wrap"}}>
-          <p style={{color:"#6b7280",fontSize:12,margin:0,whiteSpace:"nowrap"}}>Editing form:</p>
+        <div style={{background:"#161B22",border:"1px solid #21262D",borderRadius:12,padding:"14px 18px",display:"flex",alignItems:"center",gap:12,flexWrap:"wrap"}}>
+          <span style={{fontSize:13,color:"#9ca3af",fontWeight:500,whiteSpace:"nowrap"}}>📄 Editing:</span>
           <select
             value={targetFormId||""}
             onChange={e=>{
@@ -400,12 +400,12 @@ export default function FormBuilder({ editForm, onSaved }) {
                 fields:form.fields?.length?form.fields:DEFAULT_CONFIG.fields,
               });
             }}
-            style={{flex:1,minWidth:200,background:"#0D1117",border:"1px solid #21262D",borderRadius:8,padding:"8px 12px",color:"white",fontSize:13,outline:"none",cursor:"pointer"}}>
+            style={{flex:1,minWidth:220,background:"#0D1117",border:"1px solid #30363D",borderRadius:9,padding:"9px 14px",color:"white",fontSize:14,fontWeight:500,outline:"none",cursor:"pointer"}}>
             {formsList.map(f=>(
               <option key={f.id} value={f.id} style={{background:"#0D1117"}}>{f.name}{f.active?"":" (inactive)"}</option>
             ))}
           </select>
-          <span style={{fontSize:11,color:"#4b5563"}}>Changes will update this form in the Forms list.</span>
+          <span style={{fontSize:11,color:"#4b5563",whiteSpace:"nowrap"}}>Switch forms without going back ✓</span>
         </div>
       )}
 

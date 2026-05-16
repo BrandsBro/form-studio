@@ -121,8 +121,7 @@ function Modal({ exec, onSave, onClose }) {
 export default function Executives() {
   const [execs, setExecs] = useState(DEFAULT_EXECS);
   const [showModal, setShowModal] = useState(false);
-  const [confirmState, setConfirmState] = useState(null);
-  const [editing, setEditing] = useState(null);
+    const [editing, setEditing] = useState(null);
 
   useEffect(() => {
     const stored = localStorage.getItem("executives");
@@ -228,7 +227,6 @@ export default function Executives() {
         </div>
       )}
 
-      {confirmState && <ConfirmModal {...confirmState} onClose={()=>setConfirmState(null)}/>}
       {showModal && <Modal exec={editing} onSave={handleSave} onClose={()=>{ setShowModal(false); setEditing(null); }}/>}
     </div>
   );

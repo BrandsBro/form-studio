@@ -28,44 +28,7 @@ function Modal({ onClose, children, width = 500 }) {
 }
 
 
-// ── Confirm Modal ─────────────────────────────────────────────────────────────
-function ConfirmModal({ title, message, confirmLabel = "Delete", confirmColor = "#ef4444", onConfirm, onClose }) {
-  useEffect(() => {
-    const handler = e => e.key === "Escape" && onClose();
-    window.addEventListener("keydown", handler);
-    return () => window.removeEventListener("keydown", handler);
-  }, []);
 
-  return (
-    <div style={{ position:"fixed", inset:0, zIndex:400, display:"flex", alignItems:"center", justifyContent:"center", padding:20 }}>
-      <div onClick={onClose} style={{ position:"absolute", inset:0, background:"rgba(0,0,0,0.85)", backdropFilter:"blur(8px)" }}/>
-      <div style={{ position:"relative", width:"min(400px,100%)", background:"linear-gradient(180deg,#12181F 0%,#0D1117 100%)", border:"1px solid #21262D", borderRadius:20, overflow:"hidden", boxShadow:"0 32px 100px rgba(0,0,0,0.7), 0 0 0 1px rgba(255,255,255,0.04) inset" }}>
-        <div style={{ height:3, background:"linear-gradient(90deg,"+confirmColor+","+confirmColor+"44,transparent)" }}/>
-        <div style={{ padding:"28px 28px 24px", textAlign:"center" }}>
-          <div style={{ width:52, height:52, borderRadius:14, background:confirmColor+"15", border:"1px solid "+confirmColor+"33", display:"flex", alignItems:"center", justifyContent:"center", margin:"0 auto 16px", fontSize:24 }}>
-            🗑️
-          </div>
-          <h3 style={{ color:"white", fontWeight:700, margin:"0 0 8px", fontSize:17 }}>{title}</h3>
-          <p style={{ color:"#6b7280", fontSize:13, margin:0, lineHeight:1.6 }}>{message}</p>
-        </div>
-        <div style={{ padding:"0 24px 24px", display:"flex", gap:10 }}>
-          <button onClick={onClose}
-            style={{ flex:1, padding:"11px 0", borderRadius:10, border:"1px solid #21262D", background:"transparent", color:"#6b7280", fontSize:13, cursor:"pointer", fontFamily:"inherit", transition:"all 0.2s" }}
-            onMouseOver={e=>{ e.currentTarget.style.background="#161B22"; e.currentTarget.style.color="white"; }}
-            onMouseOut={e=>{ e.currentTarget.style.background="transparent"; e.currentTarget.style.color="#6b7280"; }}>
-            Cancel
-          </button>
-          <button onClick={()=>{ onConfirm(); onClose(); }}
-            style={{ flex:1, padding:"11px 0", borderRadius:10, border:"none", background:"linear-gradient(135deg,"+confirmColor+"cc,"+confirmColor+")", color:"white", fontSize:13, fontWeight:700, cursor:"pointer", fontFamily:"inherit", transition:"all 0.2s" }}
-            onMouseOver={e=>e.currentTarget.style.opacity="0.85"}
-            onMouseOut={e=>e.currentTarget.style.opacity="1"}>
-            {confirmLabel}
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
 
 // ── Rename Modal ──────────────────────────────────────────────────────────────
 function RenameModal({ form, onSave, onClose }) {
@@ -366,8 +329,7 @@ export default function FormsList({ onEdit, onOpenConnections }) {
   const [forms, setForms] = useState([]);
   const [selected, setSelected] = useState(null);
   const [renamingForm, setRenamingForm] = useState(null);
-  const [confirmState, setConfirmState] = useState(null);
-  const [employees, setEmployees] = useState([]);
+    const [employees, setEmployees] = useState([]);
   const [executives, setExecutives] = useState([]);
 
   useEffect(() => {
@@ -388,7 +350,7 @@ export default function FormsList({ onEdit, onOpenConnections }) {
   function handleRename(updated) { saveForms(forms.map(f=>f.id===updated.id?updated:f)); setRenamingForm(null); }
   function createForm() { const nf={...EF,id:"form_"+Date.now(),name:"New Form "+(forms.length+1),description:"",createdAt:new Date().toISOString().slice(0,10),fields:[]}; saveForms([...forms,nf]); }
   function dupForm(form) { saveForms([...forms,{...form,id:"form_"+Date.now(),name:form.name+" (Copy)",createdAt:new Date().toISOString().slice(0,10)}]); }
-  function delForm(id) { setConfirmState({ title:"Delete Form", message:"This form and all its connections will be permanently removed. This cannot be undone.", confirmLabel:"Delete Form", onConfirm:()=>saveForms(forms.filter(f=>f.id!==id)) }); }
+  function delForm(id) { saveForms(forms.filter(f=>f.id!==id)); }
   function toggleActive(id) { saveForms(forms.map(f=>f.id===id?{...f,active:!f.active}:f)); }
 
   if (selected) {
@@ -492,7 +454,6 @@ export default function FormsList({ onEdit, onOpenConnections }) {
         </div>
       )}
 
-      {confirmState && <ConfirmModal {...confirmState} onClose={()=>setConfirmState(null)}/>}
       {renamingForm && <RenameModal form={renamingForm} onSave={handleRename} onClose={()=>setRenamingForm(null)}/>}
     </div>
   );

@@ -1,20 +1,26 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, Fragment } from "react";
 import { useRouter } from "next/navigation";
 import { ChevronDown, ChevronUp, Download, Search } from "lucide-react";
 import StatsCard from "@/components/admin/StatsCard";
 import FormBuilder from "@/components/admin/FormBuilder";
 import FormsList from "@/components/admin/FormsList";
-import Employees from "@/components/admin/Employees";
-import Executives from "@/components/admin/Executives";
+import People from "@/components/admin/People";
+import Marking from "@/components/admin/Marking";
+import Leaderboard from "@/components/admin/Leaderboard";
+import ReReview from "@/components/admin/ReReview";
+import Performance from "@/components/admin/Performance";
 import Connections from "@/components/admin/Connections";
 
 const TABS = [
   { id:"overview",    label:"Overview",     icon:"📊" },
+  { id:"marking",     label:"Marking",      icon:"📊" },
+  { id:"leaderboard", label:"Leaderboard",  icon:"🏆" },
+  { id:"rereview",    label:"Re-Review",    icon:"⚠️" },
+  { id:"performance",  label:"Performance",  icon:"📈" },
   { id:"submissions", label:"Submissions",  icon:"📋" },
-  { id:"analytics",   label:"Analytics",    icon:"📈" },
-  { id:"employees",   label:"Employees",    icon:"👥" },
-  { id:"executives",  label:"Executives",   icon:"👔" },
+
+  { id:"people",      label:"People",       icon:"👥" },
   { id:"connections", label:"Connections",  icon:"🔗" },
   { id:"formslist",   label:"Forms",        icon:"📄" },
   { id:"formbuilder", label:"Form Builder", icon:"🔧" },
@@ -96,7 +102,7 @@ export default function AdminDashboard() {
 
   // Reload forms when switching to data tabs
   useEffect(() => {
-    if (["overview","submissions","analytics"].includes(tab)) {
+    if (["overview","submissions"].includes(tab)) {
       const sf = localStorage.getItem("forms_list");
       if (sf) { try { const fl=JSON.parse(sf); setForms(fl); if(!selectedFormId&&fl.length) setSelectedFormId(fl[0].id); } catch {} }
     }
@@ -135,7 +141,7 @@ export default function AdminDashboard() {
         </div>
         <nav style={{flex:1,display:"flex",flexDirection:"column",gap:3}}>
           {TABS.map(t=>(
-            <button key={t.id} onClick={()=>setTab(t.id)}
+            <button key={t.id} onClick={()=>{ if(t.id==="formbuilder") setEditingForm(null); setTab(t.id); }}
               style={{width:"100%",display:"flex",alignItems:"center",gap:10,padding:"10px 12px",borderRadius:9,border:tab===t.id?"1px solid rgba(245,158,11,0.2)":"1px solid transparent",cursor:"pointer",textAlign:"left",background:tab===t.id?"rgba(245,158,11,0.08)":"transparent",color:tab===t.id?"#F59E0B":"#6b7280",fontSize:13,fontWeight:tab===t.id?500:400}}>
               {t.icon} {t.label}
             </button>
@@ -247,8 +253,8 @@ export default function AdminDashboard() {
                       const isOpen=expandedRow===s.id;
                       const color=avg>=4?"#22c55e":avg>=3?"#F59E0B":"#ef4444";
                       return(
-                        <>
-                          <tr key={s.id} onClick={()=>setExpandedRow(isOpen?null:s.id)} style={{borderBottom:"1px solid #21262D",cursor:"pointer"}}
+                        <Fragment key={s.id}>
+                          <tr onClick={()=>setExpandedRow(isOpen?null:s.id)} style={{borderBottom:"1px solid #21262D",cursor:"pointer"}}
                             onMouseOver={e=>e.currentTarget.style.background="#1C2333"}
                             onMouseOut={e=>e.currentTarget.style.background="transparent"}>
                             <td style={{padding:"12px 16px",color:"#9ca3af"}}>{s.submittedAt}</td>
@@ -276,7 +282,7 @@ export default function AdminDashboard() {
                               </td>
                             </tr>
                           )}
-                        </>
+                        </Fragment>
                       );
                     })}
                     {!filtered.length&&<tr><td colSpan={5} style={{padding:"40px 16px",textAlign:"center",color:"#4b5563"}}>No submissions found.</td></tr>}
@@ -287,88 +293,92 @@ export default function AdminDashboard() {
           )}
 
           {/* ── ANALYTICS ── */}
-          {tab==="analytics" && (
-            <div style={{display:"flex",flexDirection:"column",gap:16}}>
-              <FormSelector forms={forms} selectedId={selectedFormId} onChange={setSelectedFormId}/>
-              {!selectedForm ? (
-                <div style={{textAlign:"center",padding:"60px 0",color:"#4b5563",background:"#161B22",borderRadius:12,border:"1px solid #21262D"}}>
-                  <p style={{fontSize:32,margin:"0 0 10px"}}>📈</p>
-                  <p style={{margin:0,fontSize:14}}>Select a form to view analytics.</p>
-                </div>
-              ) : (
-                <>
-                  <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(280px,1fr))",gap:16}}>
-                    {/* Score by leader */}
-                    <div style={{background:"#161B22",border:"1px solid #21262D",borderRadius:12,padding:20}}>
-                      <h3 style={{color:"white",fontSize:14,fontWeight:600,margin:"0 0 16px"}}>Score by Leader</h3>
-                      {Array.from(new Set(submissions.map(s=>s.leaderName))).map(leader=>{
-                        const subs=submissions.filter(s=>s.leaderName===leader);
-                        const avg=subs.length?(subs.flatMap(s=>ratingFields.map(f=>s.fieldValues?.[f.id]||0)).reduce((a,b)=>a+b,0)/(subs.length*Math.max(ratingFields.length,1))).toFixed(2):0;
-                        const color=avg>=4?"#22c55e":avg>=3?"#F59E0B":"#ef4444";
-                        return(
-                          <div key={leader} style={{marginBottom:14}}>
-                            <div style={{display:"flex",justifyContent:"space-between",marginBottom:5}}>
-                              <span style={{fontSize:13,color:"#d1d5db"}}>{leader}</span>
-                              <span style={{fontSize:13,fontWeight:600,color}}>{avg}/5 · {subs.length} reviews</span>
-                            </div>
-                            <div style={{height:8,background:"#21262D",borderRadius:999,overflow:"hidden"}}>
-                              <div style={{height:"100%",borderRadius:999,background:color,width:(avg/5*100)+"%"}}/>
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
 
-                    {/* Rating distribution */}
-                    <div style={{background:"#161B22",border:"1px solid #21262D",borderRadius:12,padding:20}}>
-                      <h3 style={{color:"white",fontSize:14,fontWeight:600,margin:"0 0 16px"}}>Rating Distribution</h3>
-                      {[5,4,3,2,1].map(rating=>{
-                        const allVals=submissions.flatMap(s=>ratingFields.map(f=>s.fieldValues?.[f.id]||0));
-                        const count=allVals.filter(v=>v===rating).length;
-                        const pct=allVals.length?((count/allVals.length)*100).toFixed(0):0;
-                        return(
-                          <div key={rating} style={{display:"flex",alignItems:"center",gap:10,marginBottom:10}}>
-                            <span style={{fontSize:12,color:"#6b7280",width:30}}>{rating} ★</span>
-                            <div style={{flex:1,height:8,background:"#21262D",borderRadius:999,overflow:"hidden"}}>
-                              <div style={{height:"100%",background:"#F59E0B",borderRadius:999,width:pct+"%"}}/>
-                            </div>
-                            <span style={{fontSize:11,color:"#6b7280",width:30,textAlign:"right"}}>{pct}%</span>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
 
-                  {/* All questions breakdown */}
-                  <div style={{background:"#161B22",border:"1px solid #21262D",borderRadius:12,padding:20}}>
-                    <h3 style={{color:"white",fontSize:14,fontWeight:600,margin:"0 0 20px"}}>All Questions — Average Score</h3>
-                    {ratingFields.map((f,i)=>{
-                      const vals=submissions.map(s=>s.fieldValues?.[f.id]||0).filter(Boolean);
-                      const avg=vals.length?(vals.reduce((a,b)=>a+b,0)/vals.length).toFixed(2):0;
-                      const color=avg>=4?"#22c55e":avg>=3?"#F59E0B":"#ef4444";
-                      return(
-                        <div key={f.id} style={{marginBottom:14}}>
-                          <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:5,gap:12}}>
-                            <p style={{color:"#9ca3af",fontSize:12,margin:0,flex:1,lineHeight:1.4}}>
-                              <span style={{color:"#F59E0B",fontWeight:600,marginRight:6}}>Q{i+1}.</span>
-                              {f.label}
-                            </p>
-                            <span style={{fontSize:13,fontWeight:700,color,flexShrink:0}}>{avg}/5</span>
-                          </div>
-                          <div style={{height:8,background:"#21262D",borderRadius:999,overflow:"hidden"}}>
-                            <div style={{height:"100%",borderRadius:999,background:color,width:(avg/5*100)+"%",transition:"width 0.6s ease"}}/>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </>
-              )}
-            </div>
-          )}
 
-          {tab==="employees"   && <Employees/>}
-          {tab==="executives"  && <Executives/>}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+          {tab==="marking" && <Marking/>}
+          {tab==="leaderboard" && <Leaderboard/>}
+          {tab==="rereview" && <ReReview/>}
+          {tab==="performance" && <Performance/>}
+
+          {tab==="people" && <People/>}
           {tab==="connections" && <Connections defaultFormId={connectionFormId}/>}
           {tab==="formslist"   && <FormsList onEdit={(form)=>{ setEditingForm(form); setTab("formbuilder"); }} onOpenConnections={(id)=>{ setConnectionFormId(id); setTab("connections"); }}/>}
           {tab==="formbuilder" && (

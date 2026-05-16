@@ -1,6 +1,6 @@
 "use client";
 import { useState, useEffect } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useSearchParams } from "next/navigation";
 import { ChevronRight, ChevronLeft, Star, Check } from "lucide-react";
 import ProgressBar from "@/components/form/ProgressBar";
 import QuestionCard from "@/components/form/QuestionCard";
@@ -17,144 +17,212 @@ function gc(n=""){const c=["#F59E0B","#3B82F6","#10B981","#F43F5E","#8B5CF6","#0
 function Av({name="",size=40}){const color=gc(name);return <div style={{width:size,height:size,borderRadius:"50%",background:color+"18",border:"2px solid "+color+"55",display:"flex",alignItems:"center",justifyContent:"center",fontSize:size*0.33,fontWeight:700,color,flexShrink:0}}>{gi(name)}</div>;}
 function getMY(){return new Date().toLocaleDateString("en-US",{month:"long",year:"numeric"});}
 
-function StepName({form,onNext}){
-  const [name,setName]=useState("");
+// ── localStorage helpers ───────────────────────────────────────────────────────
+function getSubmissions(formId){
+  try{return JSON.parse(localStorage.getItem("submissions_"+formId)||"[]");}catch{return[];}
+}
+function saveSubmission(formId,reviewerEmail,personName,values){
+  const all=getSubmissions(formId);
+  const idx=all.findIndex(s=>s.reviewerEmail===reviewerEmail&&s.personName===personName);
+  const entry={reviewerEmail,personName,formId,values,updatedAt:new Date().toISOString()};
+  if(idx!==-1)all[idx]=entry;
+  else all.push(entry);
+  localStorage.setItem("submissions_"+formId,JSON.stringify(all));
+}
+function getPrevSubmission(formId,reviewerEmail,personName){
+  return getSubmissions(formId).find(s=>s.reviewerEmail===reviewerEmail&&s.personName===personName)||null;
+}
+function getReviewedNames(formId,reviewerEmail){
+  return getSubmissions(formId).filter(s=>s.reviewerEmail===reviewerEmail).map(s=>s.personName);
+}
+
+// ── Step: Enter Email ─────────────────────────────────────────────────────────
+function StepEmail({form,onNext}){
+  const [email,setEmail]=useState("");
   const [err,setErr]=useState("");
   const t=getTheme(form);
+  function handleNext(){
+    if(!email.trim()){setErr("Please enter your email.");return;}
+    if(!email.includes("@")){setErr("Please enter a valid email.");return;}
+    const conn=(form?.connections||[]).find(c=>c.reviewerEmail.toLowerCase()===email.toLowerCase().trim());
+    if(!conn){setErr("No review assigned to this email for this form.");return;}
+    onNext(email.trim(),conn);
+  }
   return(
     <div style={{minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",padding:24}}>
-      <div style={{width:"100%",maxWidth:400,textAlign:"center"}}>
-        <div style={{display:"inline-flex",alignItems:"center",gap:6,padding:"4px 14px",borderRadius:999,background:t.light,border:"1px solid "+t.border,marginBottom:16}}>
+      <div style={{width:"100%",maxWidth:420,textAlign:"center"}}>
+        <div style={{display:"inline-flex",alignItems:"center",gap:6,padding:"4px 14px",borderRadius:999,background:t.light,border:"1px solid "+t.border,marginBottom:20}}>
           <Star size={11} color={t.primary}/>
           <span style={{fontSize:10,color:t.primary,fontWeight:600,letterSpacing:"0.1em",textTransform:"uppercase"}}>{form.badgeLabel||"Review"} · {getMY()}</span>
         </div>
-        <h2 style={{color:"white",fontSize:22,fontWeight:700,margin:"0 0 8px",fontFamily:"var(--font-playfair)"}}>{form.name}</h2>
-        {form.quote&&<p style={{color:"#6b7280",fontSize:13,fontStyle:"italic",margin:"0 0 28px"}}>"{form.quote}"</p>}
-        <input value={name} onChange={e=>{setName(e.target.value);setErr("");}} onKeyDown={e=>e.key==="Enter"&&name.trim()&&onNext(name.trim())}
-          placeholder="Enter your full name" autoFocus
-          style={{width:"100%",background:"#161B22",border:"1px solid "+(err?"rgba(239,68,68,0.6)":t.border),borderRadius:12,padding:"13px 16px",color:"white",fontSize:15,outline:"none",boxSizing:"border-box",textAlign:"center",marginBottom:8}}
-          onFocus={e=>e.target.style.borderColor=t.primary} onBlur={e=>e.target.style.borderColor=err?"rgba(239,68,68,0.6)":t.border}/>
-        {err&&<p style={{color:"#ef4444",fontSize:12,margin:"0 0 8px"}}>{err}</p>}
-        <button onClick={()=>{if(!name.trim()){setErr("Please enter your name.");return;}onNext(name.trim());}}
-          style={{width:"100%",padding:"13px 0",borderRadius:12,border:"none",background:"linear-gradient(135deg,"+t.primary+"cc,"+t.primary+")",color:"#000",fontSize:15,fontWeight:700,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:8,marginTop:4}}>
-          Continue
-        </button>
+        <h2 style={{color:"white",fontSize:24,fontWeight:700,margin:"0 0 8px",fontFamily:"var(--font-playfair)"}}>{form.name}</h2>
+        {form.quote&&<p style={{color:"#6b7280",fontSize:13,fontStyle:"italic",margin:"0 0 32px"}}>"{form.quote}"</p>}
+        <div style={{background:"#161B22",border:"1px solid #21262D",borderRadius:14,padding:28,textAlign:"left"}}>
+          <label style={{fontSize:11,color:"#6b7280",display:"block",marginBottom:8,textTransform:"uppercase",letterSpacing:"0.07em"}}>Your Email Address</label>
+          <input value={email} onChange={e=>{setEmail(e.target.value);setErr("");}} onKeyDown={e=>e.key==="Enter"&&handleNext()}
+            placeholder="your@email.com" type="email" autoFocus
+            style={{width:"100%",background:"#0D1117",border:"1px solid "+(err?"rgba(239,68,68,0.6)":t.border),borderRadius:10,padding:"12px 16px",color:"white",fontSize:14,outline:"none",boxSizing:"border-box",marginBottom:err?8:16,transition:"border-color 0.2s"}}
+            onFocus={e=>e.target.style.borderColor=t.primary} onBlur={e=>e.target.style.borderColor=err?"rgba(239,68,68,0.6)":t.border}/>
+          {err&&<p style={{color:"#ef4444",fontSize:12,margin:"0 0 14px"}}>{err}</p>}
+          <button onClick={handleNext}
+            style={{width:"100%",padding:"13px 0",borderRadius:10,border:"none",background:"linear-gradient(135deg,"+t.primary+"cc,"+t.primary+")",color:"#000",fontSize:14,fontWeight:700,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:8}}>
+            Continue <ChevronRight size={18}/>
+          </button>
+        </div>
       </div>
     </div>
   );
 }
 
-function StepChoose({form,reviewerName,onNext,onBack}){
-  const [selected,setSelected]=useState([]);
+// ── Step: Review List (one-to-many) ───────────────────────────────────────────
+function StepReviewList({form,conn,reviewerEmail,onStart,onBack}){
   const t=getTheme(form);
-  const conn=(form?.connections||[]).find(c=>c.reviewerName.toLowerCase()===reviewerName.toLowerCase());
-  const assigned=conn?.revieweeNames||[];
-  const toggle=n=>setSelected(p=>p.includes(n)?p.filter(x=>x!==n):[...p,n]);
-  if(!assigned.length)return(
-    <div style={{minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",padding:24}}>
-      <div style={{textAlign:"center",maxWidth:400}}>
-        <p style={{fontSize:40,margin:"0 0 16px"}}>🔍</p>
-        <h2 style={{color:"white",fontSize:20,fontWeight:700,margin:"0 0 8px"}}>No Assignments Found</h2>
-        <p style={{color:"#6b7280",fontSize:14,margin:"0 0 24px"}}>Hi <strong style={{color:"white"}}>{reviewerName}</strong>, you have no assigned reviews for this form.</p>
-        <button onClick={onBack} style={{padding:"10px 24px",borderRadius:10,border:"1px solid #21262D",background:"transparent",color:"#9ca3af",fontSize:13,cursor:"pointer"}}>Back</button>
-      </div>
-    </div>
-  );
+  const reviewed=getReviewedNames(form.id,reviewerEmail);
+  const pending=conn.revieweeNames.filter(n=>!reviewed.includes(n));
+  const allDone=pending.length===0;
+
   return(
     <div style={{minHeight:"100vh",padding:"40px 24px"}}>
       <div style={{maxWidth:520,margin:"0 auto"}}>
-        <button onClick={onBack} style={{background:"none",border:"none",cursor:"pointer",color:"#6b7280",fontSize:13,marginBottom:24,display:"flex",alignItems:"center",gap:6,padding:0}}>Back</button>
-        <h2 style={{color:"white",fontSize:20,fontWeight:700,margin:"0 0 6px",fontFamily:"var(--font-playfair)"}}>Hi {reviewerName.split(" ")[0]} 👋</h2>
-        <p style={{color:"#6b7280",fontSize:14,margin:"0 0 20px"}}>Select who to review — <span style={{color:t.primary,fontWeight:600}}>one or multiple</span>.</p>
-        <div style={{display:"flex",flexDirection:"column",gap:10,marginBottom:20}}>
-          {assigned.map(name=>{
-            const sel=selected.includes(name);const c=gc(name);
+        <button onClick={onBack} style={{background:"none",border:"none",cursor:"pointer",color:"#6b7280",fontSize:13,marginBottom:24,display:"flex",alignItems:"center",gap:6,padding:0}}>
+          <ChevronLeft size={16}/> Back
+        </button>
+        <div style={{display:"inline-flex",alignItems:"center",gap:6,padding:"4px 14px",borderRadius:999,background:t.light,border:"1px solid "+t.border,marginBottom:16}}>
+          <Star size={11} color={t.primary}/>
+          <span style={{fontSize:10,color:t.primary,fontWeight:600,textTransform:"uppercase",letterSpacing:"0.1em"}}>{form.badgeLabel||"Review"} · {getMY()}</span>
+        </div>
+        <h2 style={{color:"white",fontSize:20,fontWeight:700,margin:"0 0 6px",fontFamily:"var(--font-playfair)"}}>Your Reviews</h2>
+        <p style={{color:"#6b7280",fontSize:14,margin:"0 0 20px"}}>
+          {allDone?"All reviews completed! You can edit any previous review below.":reviewed.length===0?"You have "+conn.revieweeNames.length+" people to review.":"Progress: "+reviewed.length+" of "+conn.revieweeNames.length+" completed."}
+        </p>
+
+        {/* Progress */}
+        {conn.revieweeNames.length>1&&(
+          <div style={{background:"#161B22",border:"1px solid #21262D",borderRadius:10,padding:"12px 16px",marginBottom:20}}>
+            <div style={{display:"flex",justifyContent:"space-between",marginBottom:6}}>
+              <span style={{fontSize:12,color:"#6b7280"}}>Progress</span>
+              <span style={{fontSize:12,color:t.primary,fontWeight:600}}>{reviewed.length}/{conn.revieweeNames.length}</span>
+            </div>
+            <div style={{height:6,background:"#21262D",borderRadius:999,overflow:"hidden"}}>
+              <div style={{height:"100%",background:t.primary,borderRadius:999,width:((reviewed.length/conn.revieweeNames.length)*100)+"%",transition:"width 0.5s ease"}}/>
+            </div>
+          </div>
+        )}
+
+        <div style={{display:"flex",flexDirection:"column",gap:10,marginBottom:24}}>
+          {conn.revieweeNames.map((name,i)=>{
+            const isDone=reviewed.includes(name);
+            const isNext=!isDone&&pending[0]===name;
+            const c=gc(name);
+            const prev=getPrevSubmission(form.id,reviewerEmail,name);
             return(
-              <button key={name} onClick={()=>toggle(name)}
-                style={{display:"flex",alignItems:"center",gap:14,padding:"14px 16px",borderRadius:12,border:"2px solid "+(sel?c+"88":"#21262D"),background:sel?c+"12":"#161B22",cursor:"pointer",textAlign:"left",transition:"all 0.2s"}}>
-                <Av name={name} size={44}/>
+              <button key={name} onClick={()=>onStart(name)}
+                style={{display:"flex",alignItems:"center",gap:14,padding:"14px 16px",borderRadius:12,border:"1px solid "+(isDone?"#22c55e33":isNext?c+"55":"#21262D"),background:isDone?"rgba(34,197,94,0.05)":isNext?c+"08":"#161B22",cursor:"pointer",textAlign:"left",transition:"all 0.2s",width:"100%"}}
+                onMouseOver={e=>e.currentTarget.style.borderColor=isDone?"#22c55e55":c+"77"}
+                onMouseOut={e=>e.currentTarget.style.borderColor=isDone?"#22c55e33":isNext?c+"55":"#21262D"}>
+                <div style={{width:36,height:36,borderRadius:"50%",background:isDone?"rgba(34,197,94,0.15)":isNext?c+"18":"#21262D",border:"2px solid "+(isDone?"#22c55e":isNext?c:"#374151"),display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+                  {isDone?<Check size={16} color="#22c55e"/>:<span style={{fontSize:13,fontWeight:700,color:isNext?c:"#6b7280"}}>{i+1}</span>}
+                </div>
+                <Av name={name} size={40}/>
                 <div style={{flex:1}}>
                   <p style={{color:"white",fontSize:15,fontWeight:600,margin:0}}>{name}</p>
-                  <p style={{color:"#6b7280",fontSize:12,margin:"3px 0 0"}}>Tap to {sel?"deselect":"select"}</p>
+                  <p style={{color:isDone?"#22c55e":isNext?c:"#4b5563",fontSize:12,margin:"3px 0 0",fontWeight:isNext?600:400}}>
+                    {isDone?"✓ Reviewed — click to edit":isNext?"Start →":"Pending"}
+                  </p>
                 </div>
-                <div style={{width:24,height:24,borderRadius:"50%",border:"2px solid "+(sel?c:"#374151"),background:sel?c:"transparent",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
-                  {sel&&<Check size={12} color="#000"/>}
+                <div style={{flexShrink:0}}>
+                  {isDone&&<span style={{fontSize:11,color:"#22c55e",background:"rgba(34,197,94,0.1)",padding:"4px 12px",borderRadius:999,fontWeight:600}}>Edit</span>}
+                  {isNext&&<span style={{fontSize:11,color:c,background:c+"18",padding:"4px 12px",borderRadius:999,fontWeight:600}}>Next →</span>}
+                  {!isDone&&!isNext&&<span style={{fontSize:11,color:"#4b5563",background:"#21262D",padding:"4px 12px",borderRadius:999}}>Pending</span>}
                 </div>
               </button>
             );
           })}
         </div>
-        {selected.length>0&&<div style={{background:"rgba(245,158,11,0.08)",border:"1px solid rgba(245,158,11,0.2)",borderRadius:10,padding:"12px 16px",marginBottom:14,fontSize:13,color:"#F59E0B"}}>
-          Reviewing {selected.length}: {selected.join(", ")}
-        </div>}
-        <button onClick={()=>selected.length&&onNext(selected)}
-          style={{width:"100%",padding:"13px 0",borderRadius:12,border:"none",background:selected.length?"linear-gradient(135deg,"+t.primary+"cc,"+t.primary+")":"#21262D",color:selected.length?"#000":"#4b5563",fontSize:15,fontWeight:700,cursor:selected.length?"pointer":"not-allowed",display:"flex",alignItems:"center",justifyContent:"center",gap:8}}>
-          Start Review{selected.length>1?"s":""}
-        </button>
+
+        {!allDone&&(
+          <button onClick={()=>onStart(pending[0])}
+            style={{width:"100%",padding:"14px 0",borderRadius:12,border:"none",background:"linear-gradient(135deg,"+t.primary+"cc,"+t.primary+")",color:"#000",fontSize:15,fontWeight:700,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:8}}>
+            {reviewed.length===0?"Start Reviews":"Continue Reviews"} <ChevronRight size={18}/>
+          </button>
+        )}
+        {allDone&&(
+          <div style={{textAlign:"center",padding:"20px 0",display:"flex",flexDirection:"column",gap:12,alignItems:"center"}}>
+            <p style={{color:"#22c55e",fontSize:14,fontWeight:600,margin:0}}>✓ All reviews completed!</p>
+            <a href="/" style={{display:"inline-flex",alignItems:"center",gap:8,padding:"10px 24px",borderRadius:10,border:"1px solid #21262D",background:"transparent",color:"#9ca3af",fontSize:13,textDecoration:"none"}}>
+              ← Back to Forms
+            </a>
+          </div>
+        )}
       </div>
     </div>
   );
 }
 
-function StepForm({form,reviewerName,leaders,onDone}){
-  const [idx,setIdx]=useState(0);
-  const [vals,setVals]=useState({});
+// ── Step: Fill form ───────────────────────────────────────────────────────────
+function StepForm({form,reviewerEmail,personName,isMulti,onDone,onBack}){
+  const prev=getPrevSubmission(form.id,reviewerEmail,personName);
+  const [vals,setVals]=useState(prev?.values||{});
   const [errors,setErrors]=useState({});
   const [loading,setLoading]=useState(false);
   const [progress,setProgress]=useState(0);
   const t=getTheme(form);
-  const currentLeader=leaders[idx];
   const rFields=(form.fields||[]).filter(f=>f.type==="rating"&&f.required);
-  useEffect(()=>{setVals({});setErrors({});setProgress(0);},[idx]);
+  const isEditing=!!prev;
+
   useEffect(()=>{setProgress((rFields.filter(f=>vals[f.id]).length/Math.max(rFields.length,1))*100);},[vals]);
+
   function change(id,val){setVals(p=>({...p,[id]:val}));setErrors(p=>({...p,[id]:false}));}
+
   async function submit(){
     const errs={};let hasErr=false;
     (form.fields||[]).forEach(f=>{if(f.required&&!vals[f.id]){errs[f.id]=true;hasErr=true;}});
     if(hasErr){setErrors(errs);return;}
     setLoading(true);
     await new Promise(r=>setTimeout(r,1200));
+    saveSubmission(form.id,reviewerEmail,personName,vals);
     setLoading(false);
-    if(idx<leaders.length-1)setIdx(i=>i+1);
-    else onDone();
+    onDone();
   }
+
   let qi=0;
   return(
     <>
       <ProgressBar progress={progress}/>
-      {leaders.length>1&&(
-        <div style={{position:"fixed",top:6,left:"50%",transform:"translateX(-50%)",zIndex:60,background:"rgba(13,17,23,0.92)",border:"1px solid #21262D",borderRadius:999,padding:"6px 16px",display:"flex",gap:8,alignItems:"center"}}>
-          {leaders.map((l,i)=>(
-            <div key={l} style={{display:"flex",alignItems:"center",gap:5}}>
-              <div style={{width:22,height:22,borderRadius:"50%",display:"flex",alignItems:"center",justifyContent:"center",fontSize:10,fontWeight:700,background:i<idx?"#22c55e":i===idx?t.primary:"#21262D",color:i<=idx?"#000":"#6b7280"}}>{i<idx?"v":i+1}</div>
-              {i<leaders.length-1&&<div style={{width:14,height:1,background:i<idx?"#22c55e":"#21262D"}}/>}
-            </div>
-          ))}
-          <span style={{fontSize:10,color:"#6b7280",marginLeft:4}}>{idx+1}/{leaders.length}</span>
-        </div>
-      )}
-      <main style={{minHeight:"100vh",padding:"80px 16px 40px",maxWidth:680,margin:"0 auto"}}>
-        <div style={{textAlign:"center",marginBottom:28}}>
+      <main style={{minHeight:"100vh",padding:"70px 16px 40px",maxWidth:680,margin:"0 auto"}}>
+
+        {/* Header */}
+        <div style={{textAlign:"center",marginBottom:24}}>
           <div style={{display:"inline-flex",alignItems:"center",gap:6,padding:"4px 14px",borderRadius:999,background:t.light,border:"1px solid "+t.border,marginBottom:12}}>
             <Star size={11} color={t.primary}/>
             <span style={{fontSize:10,color:t.primary,fontWeight:600,textTransform:"uppercase",letterSpacing:"0.1em"}}>{form.badgeLabel||"Review"} · {getMY()}</span>
           </div>
           <div style={{display:"flex",alignItems:"center",justifyContent:"center",gap:12,marginBottom:8}}>
-            <Av name={currentLeader} size={52}/>
+            <Av name={personName} size={52}/>
             <div style={{textAlign:"left"}}>
-              <p style={{color:"#6b7280",fontSize:11,margin:"0 0 3px"}}>Reviewing</p>
-              <h2 style={{color:"white",fontSize:22,fontWeight:700,margin:0,fontFamily:"var(--font-playfair)"}}>{currentLeader}</h2>
+              <p style={{color:"#6b7280",fontSize:11,margin:"0 0 3px"}}>{isEditing?"Editing review for":"Reviewing"}</p>
+              <h2 style={{color:"white",fontSize:22,fontWeight:700,margin:0,fontFamily:"var(--font-playfair)"}}>{personName}</h2>
             </div>
           </div>
+          {isEditing&&(
+            <div style={{display:"inline-flex",alignItems:"center",gap:6,background:"rgba(245,158,11,0.08)",border:"1px solid rgba(245,158,11,0.2)",borderRadius:999,padding:"4px 14px",fontSize:12,color:"#F59E0B"}}>
+              ✏️ Previous answers loaded — change what you want
+            </div>
+          )}
           <div style={{margin:"12px auto 0",width:40,height:1,background:"linear-gradient(90deg,transparent,"+t.primary+",transparent)"}}/>
         </div>
-        <div style={{background:"#161B22",border:"1px solid #21262D",borderRadius:12,padding:"12px 16px",marginBottom:16,display:"flex",alignItems:"center",gap:10}}>
-          <Av name={reviewerName} size={34}/>
-          <div><p style={{color:"white",fontSize:13,fontWeight:600,margin:0}}>{reviewerName}</p><p style={{color:"#6b7280",fontSize:11,margin:0}}>Reviewer</p></div>
-        </div>
+
+        {isMulti&&(
+          <button onClick={onBack} style={{display:"flex",alignItems:"center",gap:6,background:"none",border:"1px solid #21262D",borderRadius:8,cursor:"pointer",color:"#6b7280",padding:"6px 14px",fontSize:12,marginBottom:16,transition:"all 0.2s"}}
+            onMouseOver={e=>e.currentTarget.style.color="white"} onMouseOut={e=>e.currentTarget.style.color="#6b7280"}>
+            <ChevronLeft size={14}/> Back to list
+          </button>
+        )}
+
         <div style={{display:"flex",alignItems:"center",gap:8,margin:"16px 0"}}>
           <div style={{flex:1,height:1,background:"#21262D"}}/><span style={{fontSize:10,color:"#4b5563",textTransform:"uppercase",letterSpacing:"0.1em"}}>Questions</span><div style={{flex:1,height:1,background:"#21262D"}}/>
         </div>
+
         <div style={{display:"flex",flexDirection:"column",gap:12}}>
           {(form.fields||[]).map(field=>{
             if(field.type==="rating"){qi++;const n=qi;return(
@@ -165,8 +233,9 @@ function StepForm({form,reviewerName,leaders,onDone}){
             if(field.type==="textarea")return(
               <div key={field.id} style={{borderRadius:12,padding:20,background:"#161B22",border:"1px solid #21262D"}}>
                 <label style={{display:"block",fontSize:14,color:"#d1d5db",marginBottom:10}}>{field.label}{!field.required&&<span style={{color:"#4b5563",marginLeft:8,fontSize:12}}>(Optional)</span>}</label>
-                <textarea rows={4} maxLength={1000} placeholder="Share your thoughts..." onChange={e=>change(field.id,e.target.value)}
+                <textarea rows={4} maxLength={1000} defaultValue={vals[field.id]||""} onChange={e=>change(field.id,e.target.value)}
                   style={{width:"100%",background:"#0D1117",border:"1px solid #21262D",borderRadius:8,padding:"10px 12px",color:"white",fontSize:13,outline:"none",resize:"none",boxSizing:"border-box",fontFamily:"inherit"}}/>
+                <div style={{textAlign:"right",fontSize:11,color:"#4b5563",marginTop:4}}>{(vals[field.id]||"").length}/1000</div>
               </div>
             );
             if(field.type==="yesno")return(
@@ -181,65 +250,129 @@ function StepForm({form,reviewerName,leaders,onDone}){
             if(field.type==="text")return(
               <div key={field.id} style={{borderRadius:12,padding:20,background:"#161B22",border:"1px solid "+(errors[field.id]?"rgba(239,68,68,0.4)":"#21262D")}}>
                 <label style={{display:"block",fontSize:14,color:"#d1d5db",marginBottom:10}}>{field.label}{field.required&&<span style={{color:t.primary,marginLeft:4}}>*</span>}</label>
-                <input type="text" placeholder="Your answer..." onChange={e=>change(field.id,e.target.value)}
+                <input type="text" defaultValue={vals[field.id]||""} placeholder="Your answer..." onChange={e=>change(field.id,e.target.value)}
                   style={{width:"100%",background:"#0D1117",border:"1px solid #21262D",borderRadius:8,padding:"10px 12px",color:"white",fontSize:13,outline:"none",boxSizing:"border-box"}}/>
               </div>
             );
             return null;
           })}
         </div>
+
         <div style={{marginTop:24}}>
           <button onClick={submit} disabled={loading}
             style={{width:"100%",padding:"14px 0",borderRadius:12,border:"none",background:loading?"#374151":"linear-gradient(135deg,"+t.primary+"cc,"+t.primary+")",color:loading?"#9ca3af":"#000",fontSize:15,fontWeight:700,cursor:loading?"not-allowed":"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:8}}>
-            {loading?"Submitting...":idx<leaders.length-1?"Submit & Next":"Submit Review"}
+            {loading?"Saving...":(isEditing?"Update Review":"Submit Review")}
           </button>
-          <p style={{textAlign:"center",fontSize:11,color:"#4b5563",marginTop:10}}>Your response is confidential.</p>
+          <p style={{textAlign:"center",fontSize:11,color:"#4b5563",marginTop:10}}>Your response is saved privately.</p>
         </div>
       </main>
     </>
   );
 }
 
-function StepSuccess({reviewerName,leaders,form}){
+// ── Step: All Done ────────────────────────────────────────────────────────────
+function StepSuccess({form,conn,reviewerEmail,onEdit}){
   const t=getTheme(form);
+  const reviewed=getReviewedNames(form.id,reviewerEmail);
   return(
     <div style={{minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",padding:24}}>
-      <div style={{textAlign:"center",maxWidth:400}}>
+      <div style={{textAlign:"center",maxWidth:420}}>
         <div style={{width:80,height:80,borderRadius:"50%",background:t.light,border:"2px solid "+t.border,display:"flex",alignItems:"center",justifyContent:"center",margin:"0 auto 20px",fontSize:36}}>✓</div>
         <h2 style={{color:"white",fontSize:26,fontWeight:700,margin:"0 0 10px",fontFamily:"var(--font-playfair)"}}>All Done!</h2>
-        <p style={{color:"#9ca3af",fontSize:14,margin:"0 0 20px",lineHeight:1.6}}>Thank you <strong style={{color:"white"}}>{reviewerName}</strong>. You reviewed <strong style={{color:t.primary}}>{leaders.length}</strong> person{leaders.length>1?"s":""}.</p>
+        <p style={{color:"#9ca3af",fontSize:14,margin:"0 0 20px",lineHeight:1.6}}>
+          You have reviewed <strong style={{color:t.primary}}>{reviewed.length}</strong> person{reviewed.length>1?"s":""}.
+        </p>
         <div style={{display:"flex",flexDirection:"column",gap:8,marginBottom:24}}>
-          {leaders.map(l=><div key={l} style={{display:"flex",alignItems:"center",gap:10,background:"#161B22",border:"1px solid #21262D",borderRadius:10,padding:"10px 14px"}}>
-            <span style={{color:"#22c55e",fontSize:16}}>✓</span><Av name={l} size={28}/><p style={{color:"white",fontSize:13,margin:0}}>{l}</p>
-          </div>)}
+          {conn.revieweeNames.map(name=>(
+            <button key={name} onClick={()=>onEdit(name)}
+              style={{display:"flex",alignItems:"center",gap:10,background:"#161B22",border:"1px solid #21262D",borderRadius:10,padding:"10px 14px",cursor:"pointer",textAlign:"left",transition:"all 0.2s",width:"100%"}}
+              onMouseOver={e=>e.currentTarget.style.borderColor="#F59E0B44"}
+              onMouseOut={e=>e.currentTarget.style.borderColor="#21262D"}>
+              <span style={{color:"#22c55e",fontSize:16}}>✓</span>
+              <Av name={name} size={28}/>
+              <p style={{color:"white",fontSize:13,margin:0,flex:1}}>{name}</p>
+              <span style={{fontSize:11,color:"#6b7280",background:"#21262D",padding:"3px 10px",borderRadius:999}}>Edit</span>
+            </button>
+          ))}
         </div>
-        <p style={{color:"#4b5563",fontSize:12}}>You may close this window.</p>
+        <p style={{color:"#4b5563",fontSize:12}}>Click any name above to edit your review.</p>
       </div>
     </div>
   );
 }
 
+// ── Main ──────────────────────────────────────────────────────────────────────
 export default function FormPage(){
   const {formId}=useParams();
+  const searchParams=useSearchParams();
   const [form,setForm]=useState(null);
   const [loading,setLoading]=useState(true);
   const [notFound,setNotFound]=useState(false);
-  const [step,setStep]=useState("name");
-  const [reviewerName,setReviewerName]=useState("");
-  const [leaders,setLeaders]=useState([]);
+  const [step,setStep]=useState("email");
+  const [reviewerEmail,setReviewerEmail]=useState("");
+  const [conn,setConn]=useState(null);
+  const [currentPerson,setCurrentPerson]=useState(null);
 
   useEffect(()=>{
     const sf=localStorage.getItem("forms_list");
+    let found=null;
     if(sf){
       try{
         const forms=JSON.parse(sf);
-        const found=forms.find(f=>f.id===formId);
-        if(found&&found.active){setForm(found);}
-        else{setNotFound(true);}
-      }catch{setNotFound(true);}
-    }else{setNotFound(true);}
+        found=forms.find(f=>f.id===formId);
+        if(found&&found.active) setForm(found);
+        else setNotFound(true);
+      }catch{
+        setNotFound(true);
+      }
+    }else setNotFound(true);
+    // Check URL for pre-filled email
+    const urlEmail=searchParams.get("email");
+    if(urlEmail&&found&&found.active){
+      const connection=(found.connections||[]).find(c=>c.reviewerEmail.toLowerCase()===urlEmail.toLowerCase());
+      if(connection){
+        setReviewerEmail(urlEmail);
+        setConn(connection);
+        if(connection.type==="single"){setCurrentPerson(connection.revieweeNames[0]);setStep("form");}
+        else setStep("list");
+      }
+    }
     setLoading(false);
-  },[formId]);
+  },[formId, searchParams]);
+
+  function handleEmailNext(email,connection){
+    setReviewerEmail(email);
+    setConn(connection);
+    if(connection.type==="single"){
+      setCurrentPerson(connection.revieweeNames[0]);
+      setStep("form");
+    }else{
+      setStep("list");
+    }
+  }
+
+  function handleStartPerson(name){
+    setCurrentPerson(name);
+    setStep("form");
+  }
+
+  function handleFormDone(){
+    if(conn.type==="single"){
+      setStep("success");
+    }else{
+      // Check if all done
+      const reviewed=getReviewedNames(form.id,reviewerEmail);
+      const allNames=conn.revieweeNames;
+      const allDone=allNames.every(n=>reviewed.includes(n));
+      if(allDone)setStep("success");
+      else setStep("list");
+    }
+  }
+
+  function handleEditFromSuccess(name){
+    setCurrentPerson(name);
+    setStep("form");
+  }
 
   if(loading)return<div style={{minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",background:"#0D1117"}}><p style={{color:"#6b7280"}}>Loading...</p></div>;
   if(notFound)return(
@@ -257,10 +390,12 @@ export default function FormPage(){
   return(
     <div style={{background:"#0D1117",minHeight:"100vh"}}>
       <div style={{position:"fixed",top:0,left:"50%",transform:"translateX(-50%)",width:600,height:280,background:"radial-gradient(ellipse,"+t.glow+" 0%,transparent 70%)",pointerEvents:"none",zIndex:0}}/>
-      {step==="name"&&<StepName form={form} onNext={n=>{setReviewerName(n);setStep("choose");}}/>}
-      {step==="choose"&&<StepChoose form={form} reviewerName={reviewerName} onNext={l=>{setLeaders(l);setStep("form");}} onBack={()=>setStep("name")}/>}
-      {step==="form"&&<StepForm form={form} reviewerName={reviewerName} leaders={leaders} onDone={()=>setStep("success")}/>}
-      {step==="success"&&<StepSuccess reviewerName={reviewerName} leaders={leaders} form={form}/>}
+      <div style={{position:"relative",zIndex:1}}>
+        {step==="email"&&<StepEmail form={form} onNext={handleEmailNext}/>}
+        {step==="list"&&<StepReviewList form={form} conn={conn} reviewerEmail={reviewerEmail} onStart={handleStartPerson} onBack={()=>setStep("email")}/>}
+        {step==="form"&&<StepForm form={form} reviewerEmail={reviewerEmail} personName={currentPerson} isMulti={conn?.type==="multi"} onDone={handleFormDone} onBack={()=>setStep("list")}/>}
+        {step==="success"&&<StepSuccess form={form} conn={conn} reviewerEmail={reviewerEmail} onEdit={handleEditFromSuccess}/>}
+      </div>
     </div>
   );
 }
