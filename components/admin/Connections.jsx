@@ -166,7 +166,7 @@ function Skeleton({w="100%",h=20,r=8}){
 }
 
 
-function Skeleton({w="100%",h=20,r=8}){return <div style={{width:w,height:h,borderRadius:r,background:"linear-gradient(90deg,#161B22 25%,#21262D 50%,#161B22 75%)",backgroundSize:"200% 100%",animation:"shimmer 1.5s infinite"}}/>;}
+
 
 export default function Connections({defaultFormId}){
   const [forms,setForms]=useState([]);
