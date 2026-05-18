@@ -352,7 +352,13 @@ export default function FormsList({ onEdit, onOpenConnections }) {
   function handleUpdate(updated) { const list = forms.map(f=>f.id===updated.id?updated:f); saveForms(list); setSelected(updated); }
   function handleRename(updated) { persistForms(forms.map(f=>f.id===updated.id?updated:f)); setRenamingForm(null); }
   function createForm() { const nf={...EF,id:"form_"+Date.now(),name:"New Form "+(forms.length+1),description:"",createdAt:new Date().toISOString().slice(0,10),fields:[]}; persistForms([...forms,nf]); }
-  function dupForm(form) { persistForms([...forms,{...form,id:"form_"+Date.now(),name:form.name+" (Copy)",createdAt:new Date().toISOString().slice(0,10)}]); }
+  async function dupForm(form) {
+    const fresh = await getForms();
+    const copy = {...form,id:"form_"+Date.now(),name:form.name+" (Copy)",createdAt:new Date().toISOString().slice(0,10)};
+    const updated = [...fresh, copy];
+    setForms(updated);
+    saveForms(updated);
+  }
   async function delForm(id) {
     const updated = forms.filter(f=>f.id!==id);
     setForms(updated);
@@ -360,7 +366,12 @@ export default function FormsList({ onEdit, onOpenConnections }) {
     // Reload from Sheets to confirm
     getForms().then(data=>setForms(data));
   }
-  function toggleActive(id) { persistForms(forms.map(f=>f.id===id?{...f,active:!f.active}:f)); }
+  async function toggleActive(id) {
+    const fresh = await getForms();
+    const updated = fresh.map(f=>f.id===id?{...f,active:!f.active}:f);
+    setForms(updated);
+    saveForms(updated);
+  }
 
   if (selected) {
     const fresh = forms.find(f=>f.id===selected.id)||selected;
