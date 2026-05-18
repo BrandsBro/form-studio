@@ -165,20 +165,25 @@ function Skeleton({w="100%",h=20,r=8}){
   return <div style={{width:w,height:h,borderRadius:r,background:"linear-gradient(90deg,#161B22,#21262D,#161B22)",backgroundSize:"200% 100%",animation:"shimmer 1.5s infinite"}} />;
 }
 
+
+function Skeleton({w="100%",h=20,r=8}){return <div style={{width:w,height:h,borderRadius:r,background:"linear-gradient(90deg,#161B22 25%,#21262D 50%,#161B22 75%)",backgroundSize:"200% 100%",animation:"shimmer 1.5s infinite"}}/>;}
+
 export default function Connections({defaultFormId}){
   const [forms,setForms]=useState([]);
   const [people,setPeople]=useState([]);
   const [selectedFormId,setSelectedFormId]=useState(null);
   const [showModal,setShowModal]=useState(false);
+  const [loading,setLoading]=useState(true);
   const [editingConn,setEditingConn]=useState(null);
 
   useEffect(()=>{
-    getForms().then(fl=>{
+    Promise.all([getForms(), getPeople()]).then(([fl, p])=>{
       setForms(fl);
+      setPeople(p);
       if(defaultFormId&&fl.find(f=>f.id===defaultFormId))setSelectedFormId(defaultFormId);
       else if(fl.length)setSelectedFormId(fl[0].id);
+      setLoading(false);
     });
-    getPeople().then(p=>setPeople(p));
   },[defaultFormId]);
 
   const selectedForm=forms.find(f=>f.id===selectedFormId);
@@ -217,6 +222,25 @@ export default function Connections({defaultFormId}){
   const totalConns=forms.reduce((a,f)=>a+(f.connections?.length||0),0);
   const totalReviewees=forms.reduce((a,f)=>a+(f.connections?.reduce((b,c)=>b+c.revieweeNames.length,0)||0),0);
 
+  if(loading) return(
+    <div style={{display:"flex",flexDirection:"column",gap:20}}>
+      <style>{"@keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}"}</style>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+        <div style={{display:"flex",flexDirection:"column",gap:8}}><Skeleton w={200} h={24}/><Skeleton w={300} h={14}/></div>
+        <Skeleton w={160} h={38} r={10}/>
+      </div>
+      <div style={{display:"flex",gap:8}}>{[1,2,3].map(i=><Skeleton key={i} w={120} h={34} r={10}/>)}</div>
+      <div style={{background:"#161B22",border:"1px solid #21262D",borderRadius:14,padding:20,display:"flex",flexDirection:"column",gap:12}}>
+        {[1,2,3].map(i=>(
+          <div key={i} style={{display:"flex",alignItems:"center",gap:14,padding:16,background:"#0D1117",borderRadius:12}}>
+            <Skeleton w={44} h={44} r={50}/>
+            <div style={{flex:1,display:"flex",flexDirection:"column",gap:6}}><Skeleton w="40%" h={16}/><Skeleton w="20%" h={12}/></div>
+            <Skeleton w={80} h={28} r={8}/>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
   return(
     <div style={{display:"flex",flexDirection:"column",gap:20}}>
       <div style={{display:"flex",alignItems:"flex-start",justifyContent:"space-between",flexWrap:"wrap",gap:12}}>
