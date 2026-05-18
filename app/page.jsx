@@ -13,9 +13,9 @@ export default function Home(){
   const [allForms,setAllForms]=useState([]);
 
   useEffect(()=>{
-    // forms loaded from Sheets via getForms()
-    if(sf){try{setAllForms(JSON.parse(sf).filter(f=>f.active));}catch{}}
+    getForms().then(fl=>setAllForms(fl.filter(f=>f.active))).catch(()=>{});
   },[]);
+
 
   function handleFind(){
     if(!email.trim()){setErr("Please enter your email.");return;}
