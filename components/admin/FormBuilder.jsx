@@ -145,8 +145,7 @@ export default function FormBuilder({ editForm, onSaved }) {
       // Also update the target form in forms_list
       if (targetFormId) {
         try {
-          const fl = JSON.parse(localStorage.getItem("forms_list") || "[]");
-          const updated = fl.map(f => f.id === targetFormId ? {
+          const updated = formsList.map(f => f.id === targetFormId ? {
             ...f,
             name: config.title,
             description: config.description,
@@ -155,8 +154,8 @@ export default function FormBuilder({ editForm, onSaved }) {
             theme: config.theme,
             customColor: config.customColor,
             fields: config.fields,
-          } : f); sheetSaveForms(updated);
-          
+          } : f);
+          sheetSaveForms(updated);
           setFormsList(updated);
         } catch(e) {}
       }
