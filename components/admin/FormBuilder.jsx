@@ -26,7 +26,7 @@ function ConfirmModal({ title, message, confirmLabel="Delete", confirmColor="#ef
             onMouseOver={e=>e.currentTarget.style.opacity="0.85"} onMouseOut={e=>e.currentTarget.style.opacity="1"}>{confirmLabel}</button>
         </div>
       </div>
-    </></div>
+    </div>
   );
 }
 import { Trash2, PlusCircle, GripVertical, Save } from "lucide-react";
@@ -173,7 +173,7 @@ export default function FormBuilder({ editForm, onSaved }) {
   const lbl = { fontSize:11, color:"#6b7280", display:"block", marginBottom:6, textTransform:"uppercase", letterSpacing:"0.06em" };
 
   const Builder = (
-    <><style>{"@keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}"}</style><div style={{ display:"flex", flexDirection:"column", gap:10, height:"100%" }}>
+    <div style={{ display:"flex", flexDirection:"column", gap:10, height:"100%" }}>
       {/* Tabs */}
       <div style={{ display:"flex", background:"#0D1117", borderRadius:10, padding:3 }}>
         {[{id:"fields",label:"📋 Fields"},{id:"settings",label:"⚙️ Settings"}].map(t=>(
@@ -373,7 +373,7 @@ export default function FormBuilder({ editForm, onSaved }) {
           )}
           <button onClick={reset} style={{ padding:"7px 14px", fontSize:12, color:"#6b7280", background:"transparent", border:"1px solid #21262D", borderRadius:9, cursor:"pointer" }}>Reset</button>
           <button onClick={async()=>{await save();if(editForm&&onSaved)onSaved();}} style={{ padding:"7px 18px", fontSize:13, fontWeight:600, color:"#000", background:saved?"#16a34a":theme.primary, border:"none", borderRadius:9, cursor:"pointer", display:"flex", alignItems:"center", gap:6 }}>
-            {saving ? <svg style={{animation:"spin 1s linear infinite",width:14,height:14}} viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" opacity="0.25"/><path fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" opacity="0.75"/></svg> : <Save size={14}/>} {saving ? "Saving..." : saved ? "Saved! ✓" : editForm ? "Save & Return to Forms" : "Save & Publish"}
+            {saving ? <svg style={{width:14,height:14,transition:"transform 0.3s"}} viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" opacity="0.25"/><path fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" opacity="0.75"/></svg> : <Save size={14}/>} {saving ? "Saving..." : saved ? "Saved! ✓" : editForm ? "Save & Return to Forms" : "Save & Publish"}
           </button>
         </div>
       </div>
