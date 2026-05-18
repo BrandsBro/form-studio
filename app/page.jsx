@@ -11,14 +11,17 @@ export default function Home(){
   const [err,setErr]=useState("");
   const [myForms,setMyForms]=useState(null); // null=not searched, []=searched but none
   const [allForms,setAllForms]=useState([]);
+  const [finding,setFinding]=useState(false);
 
   useEffect(()=>{
     getForms().then(fl=>setAllForms(fl.filter(f=>f.active))).catch(()=>{});
   },[]);
 
 
-  function handleFind(){
+  async function handleFind(){
     if(!email.trim()){setErr("Please enter your email.");return;}
+    setFinding(true);
+    setErr("");
     if(!email.includes("@")){setErr("Please enter a valid email.");return;}
     const e=email.toLowerCase().trim();
     // Find all active forms where this email has a connection
@@ -51,7 +54,8 @@ export default function Home(){
           <div style={{display:"flex",gap:10}}>
             <input
               value={email}
-              onChange={e=>{setEmail(e.target.value);setErr("");setMyForms(null);}}
+              onChange={e=>{setEmail(e.target.value);setErr("");setMyForms(null);
+    setFinding(false);}}
               onKeyDown={e=>e.key==="Enter"&&handleFind()}
               placeholder="your@email.com"
               type="email"
@@ -60,7 +64,7 @@ export default function Home(){
               onFocus={e=>e.target.style.borderColor="#F59E0B"}
               onBlur={e=>e.target.style.borderColor=err?"rgba(239,68,68,0.5)":"#21262D"}
             />
-            <button onClick={handleFind}
+            <button onClick={handleFind} disabled={finding}
               style={{padding:"11px 20px",borderRadius:10,border:"none",background:"linear-gradient(135deg,#D97706,#F59E0B)",color:"#000",fontSize:14,fontWeight:700,cursor:"pointer",whiteSpace:"nowrap",display:"flex",alignItems:"center",gap:6}}>
               Find <ChevronRight size={16}/>
             </button>
