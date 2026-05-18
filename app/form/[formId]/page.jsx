@@ -319,11 +319,6 @@ export default function FormPage(){
       if(f) setForm(f);
       else setError("Form not found");
     });
-        else setNotFound(true);
-      }catch{
-        setNotFound(true);
-      }
-    }else setNotFound(true);
     // Check URL for pre-filled email
     const urlEmail=searchParams.get("email");
     if(urlEmail&&found&&found.active){
