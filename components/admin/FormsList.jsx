@@ -349,9 +349,9 @@ export default function FormsList({ onEdit, onOpenConnections }) {
   },[]);
 
   function persistForms(list) { setForms(list); saveForms(list); }
-  async function handleUpdate(updated) { const fresh=await getForms(); if(!fresh.length)return; const list=fresh.map(f=>f.id===updated.id?updated:f); setForms(list); saveForms(list); setSelected(updated); }
-  async function handleRename(updated) { const fresh=await getForms(); if(!fresh.length)return; const list=fresh.map(f=>f.id===updated.id?updated:f); setForms(list); saveForms(list); setRenamingForm(null); }
-  async function createForm() { const fresh=await getForms(); if(fresh===null) return; const nf={...EF,id:"form_"+Date.now(),name:"New Form "+(fresh.length+1),description:"",createdAt:new Date().toISOString().slice(0,10),fields:[]}; const updated=[...fresh,nf]; setForms(updated); saveForms(updated); }
+  function handleUpdate(updated) { const list=forms.map(f=>f.id===updated.id?updated:f); setForms(list); saveForms(list); setSelected(updated); }
+  async function handleRename(updated) { const list=forms.map(f=>f.id===updated.id?updated:f); setForms(list); await saveForms(list); setRenamingForm(null); }
+  async function createForm() { setCreating(true); const fresh=await getForms(); if(!fresh||!fresh.length&&forms.length>0){setCreating(false);return;} const nf={...EF,id:"form_"+Date.now(),name:"New Form "+(fresh.length+1),description:"",createdAt:new Date().toISOString().slice(0,10),fields:[]}; const updated=[...fresh,nf]; setForms(updated); await saveForms(updated); setCreating(false); }
   async function dupForm(form) {
     const fresh = await getForms();
     if(!fresh.length) return;
@@ -405,7 +405,7 @@ export default function FormsList({ onEdit, onOpenConnections }) {
           <h2 style={{ color:"white", fontSize:18, fontWeight:700, margin:0, fontFamily:"var(--font-playfair)" }}>Forms</h2>
           <p style={{ color:"#6b7280", fontSize:13, margin:"3px 0 0" }}>{forms.length} form{forms.length!==1?"s":""} · Edit to build questions, Connections to assign reviewers</p>
         </div>
-        <button onClick={createForm} style={{ display:"flex", alignItems:"center", gap:8, padding:"10px 20px", borderRadius:10, border:"none", background:"linear-gradient(135deg,#D97706,#F59E0B)", color:"#000", fontSize:13, fontWeight:700, cursor:"pointer" }}>
+        <button onClick={createForm} disabled={creating} style={{ display:"flex", alignItems:"center", gap:8, padding:"10px 20px", borderRadius:10, border:"none", background:"linear-gradient(135deg,#D97706,#F59E0B)", color:"#000", fontSize:13, fontWeight:700, cursor:"pointer" }}>
           <Plus size={16}/> New Form
         </button>
       </div>
