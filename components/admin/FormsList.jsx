@@ -1,4 +1,5 @@
 "use client";
+// spin keyframe added via style tag in JSX
 import { getForms, saveForms } from "@/lib/sheets";
 import { useState, useEffect } from "react";
 import { Plus, Trash2, X, ArrowRight, ArrowLeft, Copy, Check } from "lucide-react";
@@ -407,7 +408,7 @@ export default function FormsList({ onEdit, onOpenConnections }) {
           <p style={{ color:"#6b7280", fontSize:13, margin:"3px 0 0" }}>{forms.length} form{forms.length!==1?"s":""} · Edit to build questions, Connections to assign reviewers</p>
         </div>
         <button onClick={createForm} disabled={creating} style={{ display:"flex", alignItems:"center", gap:8, padding:"10px 20px", borderRadius:10, border:"none", background:"linear-gradient(135deg,#D97706,#F59E0B)", color:"#000", fontSize:13, fontWeight:700, cursor:"pointer" }}>
-          <Plus size={16}/> New Form
+          {creating ? <span style={{display:"flex",alignItems:"center",gap:6}}><svg style={{width:14,height:14,animation:"spin 1s linear infinite"}} viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" opacity="0.25"/><path fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"/></svg>Creating...</span> : <><Plus size={16}/> New Form</>}
         </button>
       </div>
 
