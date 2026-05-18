@@ -313,25 +313,26 @@ export default function FormPage(){
   const [conn,setConn]=useState(null);
   const [currentPerson,setCurrentPerson]=useState(null);
 
+
   useEffect(()=>{
     getForms().then(fl=>{
-      const f=fl.find(f=>f.id===params.formId);
-      if(f) setForm(f);
-      else setError("Form not found");
-    });
-    // Check URL for pre-filled email
-    const urlEmail=searchParams.get("email");
-    if(urlEmail&&found&&found.active){
-      const connection=(found.connections||[]).find(c=>c.reviewerEmail.toLowerCase()===urlEmail.toLowerCase());
-      if(connection){
-        setReviewerEmail(urlEmail);
-        setConn(connection);
-        if(connection.type==="single"){setCurrentPerson(connection.revieweeNames[0]);setStep("form");}
-        else setStep("list");
-      }
-    }
-    setLoading(false);
-  },[formId, searchParams]);
+      const f=fl.find(f=>f.id===formId);
+      if(f){
+        setForm(f);
+        const urlEmail=searchParams.get("email");
+        if(urlEmail&&f.active){
+          const connection=(f.connections||[]).find(c=>c.reviewerEmail&&c.reviewerEmail.toLowerCase()===urlEmail.toLowerCase());
+          if(connection){
+            setReviewerEmail(urlEmail);
+            setConn(connection);
+            if(connection.type==="single"){setCurrentPerson(connection.revieweeNames[0]);setStep("form");}
+            else setStep("list");
+          }
+        }
+      } else setError("Form not found");
+      setLoading(false);
+    }).catch(()=>{setError("Failed to load form.");setLoading(false);});
+  },[formId]);
 
   function handleEmailNext(email,connection){
     setReviewerEmail(email);
