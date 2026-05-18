@@ -20,7 +20,6 @@ export default function Overview(){
   const [people,setPeople]=useState([]);
   const [loading,setLoading]=useState(true);
   const [loadingSubs,setLoadingSubs]=useState(false);
-  const [loadingSubs,setLoadingSubs]=useState(false);
   const [allSubs,setAllSubs]=useState([]);
   
 
@@ -57,6 +56,29 @@ export default function Overview(){
   const overallAvg=subs.length&&rFields.length?(subs.flatMap(s=>rFields.map(f=>s.values?.[f.id]||0)).filter(v=>v>0).reduce((a,b)=>a+b,0)/(subs.filter(s=>rFields.some(f=>s.values?.[f.id]>0)).length*rFields.length)):0;
 
   const completionPct=allReviewers.length?Math.round(reviewerProgress.reduce((a,r)=>a+r.pct,0)/allReviewers.length):0;
+
+  if(loading) return(
+    <div style={{display:"flex",flexDirection:"column",gap:16}}>
+      <style>{"@keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}"}</style>
+      <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>{[1,2,3,4,5].map(i=><Skeleton key={i} w={180} h={36} r={10}/>)}</div>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(140px,1fr))",gap:12}}>
+        {[1,2,3,4,5,6].map(i=>(
+          <div key={i} style={{background:"#161B22",border:"1px solid #21262D",borderRadius:12,padding:16}}>
+            <Skeleton w={40} h={32} r={6}/>
+            <Skeleton w="60%" h={12} r={4}/>
+          </div>
+        ))}
+      </div>
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:16}}>
+        <div style={{background:"#161B22",border:"1px solid #21262D",borderRadius:12,padding:20,display:"flex",flexDirection:"column",gap:10}}>
+          {[1,2,3,4,5].map(i=><div key={i} style={{display:"flex",justifyContent:"space-between"}}><Skeleton w="70%" h={14}/><Skeleton w={50} h={14}/></div>)}
+        </div>
+        <div style={{background:"#161B22",border:"1px solid #21262D",borderRadius:12,padding:20,display:"flex",flexDirection:"column",gap:10}}>
+          {[1,2,3].map(i=><div key={i} style={{display:"flex",gap:10,alignItems:"center"}}><Skeleton w={36} h={36} r={50}/><Skeleton w="60%" h={14}/></div>)}
+        </div>
+      </div>
+    </div>
+  );
 
   return(
     <div style={{display:"flex",flexDirection:"column",gap:20}}>
