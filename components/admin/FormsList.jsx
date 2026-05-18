@@ -466,15 +466,3 @@ export default function FormsList({ onEdit, onOpenConnections }) {
     </div>
   );
 }
-
-export default function FormsList({ onEdit, onOpenConnections }) {
-  const [forms, setForms] = useState([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(()=>{
-    setLoading(true);
-    getForms().then(data=>{
-      setForms(data);
-      setLoading(false);
-    }).catch(()=>setLoading(false));
-  },[]);
