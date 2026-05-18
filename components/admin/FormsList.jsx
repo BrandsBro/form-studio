@@ -335,6 +335,7 @@ function Skeleton({w="100%",h=20,r=8}){
 export default function FormsList({ onEdit, onOpenConnections }) {
   const [forms, setForms] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [creating, setCreating] = useState(false);
   const [selected, setSelected] = useState(null);
   const [renamingForm, setRenamingForm] = useState(null);
     const [employees, setEmployees] = useState([]);
