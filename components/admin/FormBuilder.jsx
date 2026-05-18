@@ -6,7 +6,8 @@ function ConfirmModal({ title, message, confirmLabel="Delete", confirmColor="#ef
   useEffect(() => {
     const h = e => e.key==="Escape"&&onClose();
     window.addEventListener("keydown",h);
-    return ()=>window.removeEventListener("keydown",h);
+    return (<>
+  <style>{"@keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}"}</style>)=>window.removeEventListener("keydown",h);
   },[]);
   return (
     <div style={{position:"fixed",inset:0,zIndex:400,display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
@@ -27,7 +28,7 @@ function ConfirmModal({ title, message, confirmLabel="Delete", confirmColor="#ef
         </div>
       </div>
     </div>
-  );
+  </>);
 }
 
 
@@ -84,6 +85,7 @@ export default function FormBuilder({ editForm, onSaved }) {
   const [config, setConfig] = useState(DEFAULT_CONFIG);
   const [activeTab, setActiveTab] = useState("fields");
   const [saved, setSaved] = useState(false);
+  const [saving, setSaving] = useState(false);
   const [confirmState, setConfirmState] = useState(null);
   const [formsList, setFormsList] = useState([]);
   const [targetFormId, setTargetFormId] = useState(null);
@@ -119,6 +121,7 @@ export default function FormBuilder({ editForm, onSaved }) {
   const theme = { primary:primaryColor, light:`rgba(${rgb},0.12)`, border:`rgba(${rgb},0.3)`, glow:`rgba(${rgb},0.2)` };
 
   async function save() {
+    setSaving(true);
     if (editForm) {
       try {
         const freshForms = await getForms();
@@ -373,7 +376,7 @@ export default function FormBuilder({ editForm, onSaved }) {
           )}
           <button onClick={reset} style={{ padding:"7px 14px", fontSize:12, color:"#6b7280", background:"transparent", border:"1px solid #21262D", borderRadius:9, cursor:"pointer" }}>Reset</button>
           <button onClick={async()=>{await save();if(editForm&&onSaved)onSaved();}} style={{ padding:"7px 18px", fontSize:13, fontWeight:600, color:"#000", background:saved?"#16a34a":theme.primary, border:"none", borderRadius:9, cursor:"pointer", display:"flex", alignItems:"center", gap:6 }}>
-            <Save size={14}/> {saved ? "Saved!" : editForm ? "Save & Return to Forms" : "Save & Publish"}
+            {saving ? <svg style={{animation:"spin 1s linear infinite",width:14,height:14}} viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" opacity="0.25"/><path fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" opacity="0.75"/></svg> : <Save size={14}/>} {saving ? "Saving..." : saved ? "Saved! ✓" : editForm ? "Save & Return to Forms" : "Save & Publish"}
           </button>
         </div>
       </div>
