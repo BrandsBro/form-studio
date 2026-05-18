@@ -181,6 +181,7 @@ function StepForm({form,reviewerEmail,personName,isMulti,onDone,onBack,allSubs=[
     }catch(err){
       console.error("Sheets save error:",err);
     }
+try{ const freshS=await getSubmissions(form.id); onSubsUpdate&&onSubsUpdate(freshS); }catch(e){}
     setLoading(false);
     onDone();
   }
