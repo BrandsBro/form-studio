@@ -373,7 +373,7 @@ export default function FormBuilder({ editForm, onSaved }) {
           )}
           <button onClick={reset} style={{ padding:"7px 14px", fontSize:12, color:"#6b7280", background:"transparent", border:"1px solid #21262D", borderRadius:9, cursor:"pointer" }}>Reset</button>
           <button onClick={async()=>{await save();if(editForm&&onSaved)onSaved();}} style={{ padding:"7px 18px", fontSize:13, fontWeight:600, color:"#000", background:saved?"#16a34a":theme.primary, border:"none", borderRadius:9, cursor:"pointer", display:"flex", alignItems:"center", gap:6 }}>
-            {saving ? <svg style={{width:14,height:14,transition:"transform 0.3s"}} viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" opacity="0.25"/><path fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" opacity="0.75"/></svg> : <Save size={14}/>} {saving ? "Saving..." : saved ? "Saved! ✓" : editForm ? "Save & Return to Forms" : "Save & Publish"}
+            <Save size={14}/> {saving ? "⏳ Saving..." : saved ? "✓ Saved!" : editForm ? "Save & Return to Forms" : "Save & Publish"}
           </button>
         </div>
       </div>
