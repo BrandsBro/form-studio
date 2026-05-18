@@ -112,7 +112,6 @@ export default function FormBuilder({ editForm, onSaved }) {
         fields: editForm.fields?.length ? editForm.fields : prev.fields,
       }));
     }
-    }
   }, [editForm?.id]);
 
   const primaryColor = config.customColor || PRESET_THEMES[config.theme]?.primary || "#F59E0B";
