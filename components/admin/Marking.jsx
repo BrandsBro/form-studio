@@ -13,7 +13,7 @@ const EMPTY_CONFIG={
 };
 
 function getSubmissionsForForm(formId){
-  try{return JSON.parse(localStorage.getItem("submissions_"+formId)||"[]");}catch{return[];}
+  try{return JSON.parse(localStorage.getItem("submissions_"+formId)||"[]");}catch(e){return[];}
 }
 
 // Calculate average score for a person on a form across all reviewers
@@ -277,12 +277,13 @@ export default function Marking(){
   
   useEffect(()=>{
     Promise.all([getForms(),getPeople()]).then(async([fl,p])=>{
-    setForms(fl); setPeople(p);
-    const subsMap={};
-    await Promise.all(fl.map(async f=>{subsMap[f.id]=await getSubmissions(f.id);}));
-    setAllSubs(subsMap);
-    const sc=localStorage.getItem("marking_config");
-    if(sc){try{setConfig(JSON.parse(sc));}catch{}}
+      setForms(fl); setPeople(p);
+      const subsMap={};
+      await Promise.all(fl.map(async f=>{subsMap[f.id]=await getSubmissions(f.id);}));
+      setAllSubs(subsMap);
+      const sc=localStorage.getItem("marking_config");
+      if(sc){try{setConfig(JSON.parse(sc));}catch(e){}}
+    }); // Fixed: Properly closed the .then() block here
   },[]);
 
   const teamMembers=people.filter(p=>(p.designations||[]).includes("Team Member"));
@@ -332,6 +333,7 @@ export default function Marking(){
       </div>
 
       {/* Config view */}
+      {view !== "leaderboard" && (
         <div style={{display:"flex",flexDirection:"column",gap:16}}>
           <FormConfigurator
             title="Team Members" icon="👥" color="#10B981"
@@ -359,6 +361,7 @@ export default function Marking(){
             </button>
           )}
         </div>
+      )}
 
       {/* Leaderboard view */}
       {view==="leaderboard"&&(

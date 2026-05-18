@@ -9,7 +9,7 @@ function gc(n=""){const c=["#F59E0B","#3B82F6","#10B981","#F43F5E","#8B5CF6","#0
 function Av({name="",size=36}){const color=gc(name);return<div style={{width:size,height:size,borderRadius:"50%",background:color+"18",border:"2px solid "+color+"44",display:"flex",alignItems:"center",justifyContent:"center",fontSize:size*0.33,fontWeight:700,color,flexShrink:0}}>{gi(name)}</div>;}
 
 function getFormSubs(formId){
-  try{return JSON.parse(localStorage.getItem("submissions_"+formId)||"[]");}catch{return[];}
+  try{return JSON.parse(localStorage.getItem("submissions_"+formId)||"[]");}catch(e){return[];}
 }
 
 function calcAvg(subs,fields,excludeEmail=null,invalidated=[]){
@@ -45,13 +45,14 @@ export default function ReReview(){
 
   useEffect(()=>{
     Promise.all([getForms(),getPeople()]).then(async([fl,p])=>{
-    setForms(fl); setPeople(p);
-    const subsMap={};
-    await Promise.all(fl.map(async f=>{subsMap[f.id]=await getSubmissions(f.id);}));
-    setAllSubs(subsMap);
-    const st=localStorage.getItem("rr_threshold");
-    if(st){try{setThreshold(parseInt(st));}catch{}}
-    setInvalidated(getInvalidated());
+      setForms(fl); setPeople(p);
+      const subsMap={};
+      await Promise.all(fl.map(async f=>{subsMap[f.id]=await getSubmissions(f.id);}));
+      setAllSubs(subsMap);
+      const st=localStorage.getItem("rr_threshold");
+      if(st){try{setThreshold(parseInt(st));}catch(e){}}
+      setInvalidated(getInvalidated());
+    }); // Fixed: Properly closed the .then() block here
   },[refresh]);
 
   function saveThreshold(v){
