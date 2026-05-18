@@ -19,20 +19,9 @@ function Av({name="",size=40}){const color=gc(name);return <div style={{width:si
 function getMY(){return new Date().toLocaleDateString("en-US",{month:"long",year:"numeric"});}
 
 // ── localStorage helpers ───────────────────────────────────────────────────────
-function saveSubmission(formId,reviewerEmail,personName,values){
-  const all=getSubmissions(formId);
-  const idx=all.findIndex(s=>s.reviewerEmail===reviewerEmail&&s.personName===personName);
-  const entry={reviewerEmail,personName,formId,values,updatedAt:new Date().toISOString()};
-  if(idx!==-1)all[idx]=entry;
-  else all.push(entry);
-  localStorage.setItem("submissions_"+formId,JSON.stringify(all));
-}
-function getPrevSubmission(formId,reviewerEmail,personName){
-  return getSubmissions(formId).find(s=>s.reviewerEmail===reviewerEmail&&s.personName===personName)||null;
-}
-function getReviewedNames(formId,reviewerEmail){
-  return getSubmissions(formId).filter(s=>s.reviewerEmail===reviewerEmail).map(s=>s.personName);
-}
+
+
+
 
 // ── Step: Enter Email ─────────────────────────────────────────────────────────
 function StepEmail({form,onNext}){

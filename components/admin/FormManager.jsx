@@ -276,11 +276,11 @@ export default function FormManager(){
     if(sf){try{setForms(JSON.parse(sf));}catch{}}
     else{
       const def=[{...EF,id:"form_"+Date.now(),name:"Leadership Performance Review",description:"Monthly leadership assessment",createdAt:new Date().toISOString().slice(0,10)}];
-      setForms(def);localStorage.setItem("forms_list",JSON.stringify(def));
+      setForms(def);
     }
   },[]);
 
-  function saveForms(list){setForms(list);localStorage.setItem("forms_list",JSON.stringify(list));}
+  function saveForms(list){setForms(list);}
   function handleUpdate(updated){const list=forms.map(f=>f.id===updated.id?updated:f);saveForms(list);setSelected(updated);}
   function createForm(){const nf={...EF,id:"form_"+Date.now(),name:"New Form "+(forms.length+1),description:"",createdAt:new Date().toISOString().slice(0,10)};saveForms([...forms,nf]);setSelected(nf);}
   function dupForm(form){saveForms([...forms,{...form,id:"form_"+Date.now(),name:form.name+" (Copy)",createdAt:new Date().toISOString().slice(0,10)}]);}

@@ -344,7 +344,7 @@ export default function FormsList({ onEdit, onOpenConnections }) {
     if(sf){try{setForms(JSON.parse(sf));}catch{}}
     else {
       const def=[{...EF,id:"form_"+Date.now(),name:"Leadership Performance Review",description:"Monthly leadership assessment",createdAt:new Date().toISOString().slice(0,10),fields:[]}];
-      setForms(def); localStorage.setItem("forms_list",JSON.stringify(def));
+      setForms(def); 
     }
   }, []);
 
