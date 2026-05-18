@@ -340,18 +340,13 @@ export default function FormsList({ onEdit, onOpenConnections }) {
     const [employees, setEmployees] = useState([]);
   const [executives, setExecutives] = useState([]);
 
-  useEffect(() => {
-    const sf=localStorage.getItem("forms_list");
-    const se=localStorage.getItem("employees");
-    const sx=localStorage.getItem("executives");
-    if(se){try{setEmployees(JSON.parse(se));}catch{}}
-    if(sx){try{setExecutives(JSON.parse(sx));}catch{}}
-    if(sf){try{setForms(JSON.parse(sf));}catch{}}
-    else {
-      const def=[{...EF,id:"form_"+Date.now(),name:"Leadership Performance Review",description:"Monthly leadership assessment",createdAt:new Date().toISOString().slice(0,10),fields:[]}];
-      setForms(def); 
-    }
-  }, []);
+  useEffect(()=>{
+    setLoading(true);
+    getForms().then(data=>{
+      setForms(data);
+      setLoading(false);
+    }).catch(()=>setLoading(false));
+  },[]);
 
   function persistForms(list) { setForms(list); saveForms(list); }
   function handleUpdate(updated) { const list = forms.map(f=>f.id===updated.id?updated:f); saveForms(list); setSelected(updated); }
