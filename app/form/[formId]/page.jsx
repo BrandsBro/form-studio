@@ -167,8 +167,7 @@ function StepForm({form,reviewerEmail,personName,isMulti,onDone,onBack}){
     if(hasErr){setErrors(errs);return;}
     setLoading(true);
     try{
-      // Save to localStorage
-      saveSubmission(form.id,reviewerEmail,personName,vals);
+      // Save to Sheets only
       // Save to Google Sheets
       await sheetSaveSubmission({
         formId:form.id,
@@ -315,13 +314,11 @@ export default function FormPage(){
   const [currentPerson,setCurrentPerson]=useState(null);
 
   useEffect(()=>{
-    const sf=localStorage.getItem("forms_list");
-    let found=null;
-    if(sf){
-      try{
-        const forms=JSON.parse(sf);
-        found=forms.find(f=>f.id===formId);
-        if(found&&found.active) setForm(found);
+    getForms().then(fl=>{
+      const f=fl.find(f=>f.id===params.formId);
+      if(f) setForm(f);
+      else setError("Form not found");
+    });
         else setNotFound(true);
       }catch{
         setNotFound(true);

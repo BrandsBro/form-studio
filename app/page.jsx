@@ -13,7 +13,7 @@ export default function Home(){
   const [allForms,setAllForms]=useState([]);
 
   useEffect(()=>{
-    const sf=localStorage.getItem("forms_list");
+    // forms loaded from Sheets via getForms()
     if(sf){try{setAllForms(JSON.parse(sf).filter(f=>f.active));}catch{}}
   },[]);
 
