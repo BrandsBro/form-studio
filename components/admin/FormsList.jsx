@@ -465,7 +465,13 @@ export default function FormsList({ onEdit, onOpenConnections }) {
       {renamingForm && <RenameModal form={renamingForm} onSave={handleRename} onClose={()=>setRenamingForm(null)}/>}
     </div>
   );
-}useEffect(()=>{
+}
+
+export default function FormsList({ onEdit, onOpenConnections }) {
+  const [forms, setForms] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(()=>{
     setLoading(true);
     getForms().then(data=>{
       setForms(data);
