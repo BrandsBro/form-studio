@@ -1,5 +1,5 @@
 "use client";
-import { getForms, saveSubmission as sheetSaveSubmission } from "@/lib/sheets";
+import { getForms, saveSubmission as sheetSaveSubmission, getSubmissions } from "@/lib/sheets";
 import { useState, useEffect } from "react";
 import { useParams, useSearchParams } from "next/navigation";
 import { ChevronRight, ChevronLeft, Star, Check } from "lucide-react";
@@ -64,7 +64,7 @@ function StepEmail({form,onNext}){
 // ── Step: Review List (one-to-many) ───────────────────────────────────────────
 function StepReviewList({form,conn,reviewerEmail,onStart,onBack}){
   const t=getTheme(form);
-  const reviewed=getReviewedNames(form.id,reviewerEmail);
+  const reviewed=allSubs.filter(s=>s.reviewerEmail===reviewerEmail).map(s=>s.personName);
   const pending=conn.revieweeNames.filter(n=>!reviewed.includes(n));
   const allDone=pending.length===0;
 
@@ -101,7 +101,7 @@ function StepReviewList({form,conn,reviewerEmail,onStart,onBack}){
             const isDone=reviewed.includes(name);
             const isNext=!isDone&&pending[0]===name;
             const c=gc(name);
-            const prev=getPrevSubmission(form.id,reviewerEmail,name);
+            const prev=allSubs.find(s=>s.reviewerEmail===reviewerEmail&&s.personName===name)||null;
             return(
               <button key={name} onClick={()=>onStart(name)}
                 style={{display:"flex",alignItems:"center",gap:14,padding:"14px 16px",borderRadius:12,border:"1px solid "+(isDone?"#22c55e33":isNext?c+"55":"#21262D"),background:isDone?"rgba(34,197,94,0.05)":isNext?c+"08":"#161B22",cursor:"pointer",textAlign:"left",transition:"all 0.2s",width:"100%"}}
@@ -148,7 +148,7 @@ function StepReviewList({form,conn,reviewerEmail,onStart,onBack}){
 
 // ── Step: Fill form ───────────────────────────────────────────────────────────
 function StepForm({form,reviewerEmail,personName,isMulti,onDone,onBack}){
-  const prev=getPrevSubmission(form.id,reviewerEmail,personName);
+  const prev=allSubs.find(s=>s.reviewerEmail===reviewerEmail&&s.personName===personName)||null;
   const [vals,setVals]=useState(prev?.values||{});
   const [errors,setErrors]=useState({});
   const [loading,setLoading]=useState(false);
@@ -273,7 +273,7 @@ function StepForm({form,reviewerEmail,personName,isMulti,onDone,onBack}){
 // ── Step: All Done ────────────────────────────────────────────────────────────
 function StepSuccess({form,conn,reviewerEmail,onEdit}){
   const t=getTheme(form);
-  const reviewed=getReviewedNames(form.id,reviewerEmail);
+  const reviewed=allSubs.filter(s=>s.reviewerEmail===reviewerEmail).map(s=>s.personName);
   return(
     <div style={{minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",padding:24}}>
       <div style={{textAlign:"center",maxWidth:420}}>
@@ -307,6 +307,7 @@ export default function FormPage(){
   const searchParams=useSearchParams();
   const [form,setForm]=useState(null);
   const [loading,setLoading]=useState(true);
+  const [allSubs,setAllSubs]=useState([]);
   const [notFound,setNotFound]=useState(false);
   const [step,setStep]=useState("email");
   const [reviewerEmail,setReviewerEmail]=useState("");
@@ -330,6 +331,8 @@ export default function FormPage(){
           }
         }
       } else setError("Form not found");
+      setLoading(false);
+        if(f) getSubmissions(f.id).then(setAllSubs).catch(()=>{});
       setLoading(false);
     }).catch(()=>{setError("Failed to load form.");setLoading(false);});
   },[formId]);
@@ -355,7 +358,7 @@ export default function FormPage(){
       setStep("success");
     }else{
       // Check if all done
-      const reviewed=getReviewedNames(form.id,reviewerEmail);
+      const reviewed=allSubs.filter(s=>s.reviewerEmail===reviewerEmail).map(s=>s.personName);
       const allNames=conn.revieweeNames;
       const allDone=allNames.every(n=>reviewed.includes(n));
       if(allDone)setStep("success");
