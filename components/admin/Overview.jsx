@@ -20,6 +20,7 @@ export default function Overview(){
   const [people,setPeople]=useState([]);
   const [loading,setLoading]=useState(true);
   const [allSubs,setAllSubs]=useState([]);
+  const [loadingSubs,setLoadingSubs]=useState(false);
 
   useEffect(()=>{
     getForms().then(data=>{setForms(data);if(data.length){setSelectedId(data[0].id);}setLoading(false);}).catch(()=>setLoading(false));
@@ -27,7 +28,7 @@ export default function Overview(){
   },[]);
 
   const form=forms.find(f=>f.id===selectedId);
-  useEffect(()=>{ if(selectedId) getSubmissions(selectedId).then(setAllSubs); },[selectedId]);
+  useEffect(()=>{ if(selectedId){setLoadingSubs(true);getSubmissions(selectedId).then(s=>{setAllSubs(s);setLoadingSubs(false);});} },[selectedId]);
   const color=form?getFormColor(form):"#F59E0B";
   const subs=form?allSubs:[];
   const rFields=(form?.fields||[]).filter(f=>f.type==="rating");
