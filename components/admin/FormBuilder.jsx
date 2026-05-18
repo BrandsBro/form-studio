@@ -6,8 +6,7 @@ function ConfirmModal({ title, message, confirmLabel="Delete", confirmColor="#ef
   useEffect(() => {
     const h = e => e.key==="Escape"&&onClose();
     window.addEventListener("keydown",h);
-    return (<>
-  <style>{"@keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}"}</style>)=>window.removeEventListener("keydown",h);
+    return ()=>window.removeEventListener("keydown",h);
   },[]);
   return (
     <div style={{position:"fixed",inset:0,zIndex:400,display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
@@ -27,11 +26,9 @@ function ConfirmModal({ title, message, confirmLabel="Delete", confirmColor="#ef
             onMouseOver={e=>e.currentTarget.style.opacity="0.85"} onMouseOut={e=>e.currentTarget.style.opacity="1"}>{confirmLabel}</button>
         </div>
       </div>
-    </div>
-  </>);
+    </></div>
+  );
 }
-
-
 import { Trash2, PlusCircle, GripVertical, Save } from "lucide-react";
 
 const PRESET_THEMES = {
@@ -176,7 +173,7 @@ export default function FormBuilder({ editForm, onSaved }) {
   const lbl = { fontSize:11, color:"#6b7280", display:"block", marginBottom:6, textTransform:"uppercase", letterSpacing:"0.06em" };
 
   const Builder = (
-    <div style={{ display:"flex", flexDirection:"column", gap:10, height:"100%" }}>
+    <><style>{"@keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}"}</style><div style={{ display:"flex", flexDirection:"column", gap:10, height:"100%" }}>
       {/* Tabs */}
       <div style={{ display:"flex", background:"#0D1117", borderRadius:10, padding:3 }}>
         {[{id:"fields",label:"📋 Fields"},{id:"settings",label:"⚙️ Settings"}].map(t=>(
