@@ -349,11 +349,12 @@ export default function FormsList({ onEdit, onOpenConnections }) {
   },[]);
 
   function persistForms(list) { setForms(list); saveForms(list); }
-  async function handleUpdate(updated) { const fresh=await getForms(); const list=fresh.map(f=>f.id===updated.id?updated:f); setForms(list); saveForms(list); setSelected(updated); }
-  async function handleRename(updated) { const fresh=await getForms(); const list=fresh.map(f=>f.id===updated.id?updated:f); setForms(list); saveForms(list); setRenamingForm(null); }
-  async function createForm() { const fresh=await getForms(); const nf={...EF,id:"form_"+Date.now(),name:"New Form "+(fresh.length+1),description:"",createdAt:new Date().toISOString().slice(0,10),fields:[]}; const updated=[...fresh,nf]; setForms(updated); saveForms(updated); }
+  async function handleUpdate(updated) { const fresh=await getForms(); if(!fresh.length)return; const list=fresh.map(f=>f.id===updated.id?updated:f); setForms(list); saveForms(list); setSelected(updated); }
+  async function handleRename(updated) { const fresh=await getForms(); if(!fresh.length)return; const list=fresh.map(f=>f.id===updated.id?updated:f); setForms(list); saveForms(list); setRenamingForm(null); }
+  async function createForm() { const fresh=await getForms(); if(fresh===null) return; const nf={...EF,id:"form_"+Date.now(),name:"New Form "+(fresh.length+1),description:"",createdAt:new Date().toISOString().slice(0,10),fields:[]}; const updated=[...fresh,nf]; setForms(updated); saveForms(updated); }
   async function dupForm(form) {
     const fresh = await getForms();
+    if(!fresh.length) return;
     const copy = {...form,id:"form_"+Date.now(),name:form.name+" (Copy)",createdAt:new Date().toISOString().slice(0,10)};
     const updated = [...fresh, copy];
     setForms(updated);
@@ -368,9 +369,10 @@ export default function FormsList({ onEdit, onOpenConnections }) {
   }
   async function toggleActive(id) {
     const fresh = await getForms();
+    if(!fresh.length) return; // guard against empty
     const updated = fresh.map(f=>f.id===id?{...f,active:!f.active}:f);
     setForms(updated);
-    saveForms(updated);
+    await saveForms(updated);
   }
 
   if (selected) {
