@@ -1,4 +1,5 @@
 "use client";
+import { getForms, getSubmissions } from "@/lib/sheets";
 import { useState, useEffect } from "react";
 
 function gc(n=""){const c=["#F59E0B","#3B82F6","#10B981","#F43F5E","#8B5CF6","#06B6D4","#F97316"];return c[(n.charCodeAt(0)||0)%c.length];}
