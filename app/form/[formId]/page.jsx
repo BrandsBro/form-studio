@@ -273,6 +273,11 @@ try{ const freshS=await getSubmissions(form.id); onSubsUpdate&&onSubsUpdate(fres
 
 // ── Step: All Done ────────────────────────────────────────────────────────────
 function StepSuccess({form,conn,reviewerEmail,onEdit,allSubs=[]}){
+  const [freshSubs,setFreshSubs]=useState(allSubs);
+  useEffect(()=>{
+    getSubmissions(form.id).then(setFreshSubs).catch(()=>{});
+  },[form.id]);
+  allSubs=freshSubs;
   const t=getTheme(form);
   const reviewed=allSubs.filter(s=>s.reviewerEmail===reviewerEmail).map(s=>s.personName);
   return(
