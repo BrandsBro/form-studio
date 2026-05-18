@@ -3,6 +3,50 @@ import { useState, useEffect } from "react";
 import { Plus, Trash2, Search, Check, X } from "lucide-react";
 import { DEPARTMENTS, DEFAULT_DESIGNATIONS, getDesignations, addDesignation, removeDesignation } from "@/lib/roles";
 
+
+const SHEETS_URL = process.env.NEXT_PUBLIC_SHEETS_URL;
+
+async function sheetGetPeople() {
+  try {
+    const r = await fetch(SHEETS_URL+"?action=getPeople", {redirect:"follow"});
+    const d = await r.json();
+    return d.people || [];
+  } catch(e) { console.error("Sheets read error:", e); return null; }
+}
+
+async function sheetSavePerson(person) {
+  try {
+    await fetch(SHEETS_URL, {
+      method:"POST",
+      headers:{"Content-Type":"text/plain"},
+      body:JSON.stringify({action:"savePerson",...person}),
+      redirect:"follow",
+    });
+  } catch(e) { console.error("Sheets save error:", e); }
+}
+
+async function sheetDeletePerson(id) {
+  try {
+    await fetch(SHEETS_URL, {
+      method:"POST",
+      headers:{"Content-Type":"text/plain"},
+      body:JSON.stringify({action:"deletePerson", id}),
+      redirect:"follow",
+    });
+  } catch(e) { console.error("Sheets delete error:", e); }
+}
+
+async function sheetSaveAllPeople(people) {
+  try {
+    await fetch(SHEETS_URL, {
+      method:"POST",
+      headers:{"Content-Type":"text/plain"},
+      body:JSON.stringify({action:"savePeople", people}),
+      redirect:"follow",
+    });
+  } catch(e) { console.error("Sheets sync error:", e); }
+}
+
 const DESIG_COLORS = {
   "Project Manager": "#8B5CF6",
   "Team Leader":     "#3B82F6",
@@ -198,14 +242,39 @@ export default function People(){
   const [designations,setDesignations]=useState(DEFAULT_DESIGNATIONS);
 
   useEffect(()=>{
-    const stored=localStorage.getItem("people");
-    if(stored){try{setPeople(JSON.parse(stored));}catch{}}
-    else localStorage.setItem("people",JSON.stringify(DEFAULT_PEOPLE));
     setDesignations(getDesignations());
+    // Try Sheets first
+    sheetGetPeople().then(sheetPeople=>{
+      if(sheetPeople&&sheetPeople.length>0){
+        setPeople(sheetPeople);
+        localStorage.setItem("people",JSON.stringify(sheetPeople));
+      } else {
+        // Fallback to localStorage
+        const stored=localStorage.getItem("people");
+        if(stored){
+          try{
+            const local=JSON.parse(stored);
+            setPeople(local);
+            // Sync localStorage data up to Sheets
+            if(local.length>0) sheetSaveAllPeople(local);
+          }catch{}
+        } else {
+          setPeople(DEFAULT_PEOPLE);
+          sheetSaveAllPeople(DEFAULT_PEOPLE);
+          localStorage.setItem("people",JSON.stringify(DEFAULT_PEOPLE));
+        }
+      }
+    });
   },[]);
 
-  function save(list){setPeople(list);localStorage.setItem("people",JSON.stringify(list));}
-  function handleSave(p){const ex=people.find(x=>x.id===p.id);save(ex?people.map(x=>x.id===p.id?p:x):[...people,p]);setModal(null);}
+  function save(list){setPeople(list);localStorage.setItem("people",JSON.stringify(list));sheetSaveAllPeople(list);}
+  function handleSave(person){
+    const ex=people.find(x=>x.id===person.id);
+    const updated=ex?people.map(x=>x.id===person.id?person:x):[...people,person];
+    save(updated);
+    sheetSavePerson(person);
+    setModal(null);
+  }
   function handleDelete(id){save(people.filter(p=>p.id!==id));}
 
   const allDesig=["All",...getDesignations()];
