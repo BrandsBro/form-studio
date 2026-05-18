@@ -471,7 +471,8 @@ export default function FormsList({ onEdit, onOpenConnections }) {
       {renamingForm && <RenameModal form={renamingForm} onSave={handleRename} onClose={()=>setRenamingForm(null)}/>}
     </div>
   );
-}if(loading) return(
+
+  if(loading) return(
     <div style={{display:"flex",flexDirection:"column",gap:16}}>
       <style>{"@keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}"}</style>
       <div style={{display:"flex",justifyContent:"space-between"}}>
@@ -489,4 +490,4 @@ export default function FormsList({ onEdit, onOpenConnections }) {
       </div>
     </div>
   );
-  
+}
