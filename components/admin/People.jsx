@@ -4,9 +4,6 @@ import { Plus, Trash2, Search, Check, X } from "lucide-react";
 import { DEPARTMENTS, DEFAULT_DESIGNATIONS, getDesignations, addDesignation, removeDesignation } from "@/lib/roles";
 import { getPeople, savePerson, deletePerson, saveAllPeople } from "@/lib/sheets";
 
-
-}
-
 const DESIG_COLORS = {
   "Project Manager": "#8B5CF6",
   "Team Leader":     "#3B82F6",

@@ -80,9 +80,6 @@ function hexToRgb(hex) {
   return `${r},${g},${b}`;
 }
 
-
-}
-
 export default function FormBuilder({ editForm, onSaved }) {
   const [config, setConfig] = useState(DEFAULT_CONFIG);
   const [activeTab, setActiveTab] = useState("fields");
@@ -98,9 +95,10 @@ export default function FormBuilder({ editForm, onSaved }) {
     // Load forms list for the selector
     try {
       getForms().then(fl=>{
-      setFormsList(fl);
-      if (fl.length > 0 && !editForm) setTargetFormId(fl[0].id);
-    }); catch(e) {}
+        setFormsList(fl);
+        if (fl.length > 0 && !editForm) setTargetFormId(fl[0].id);
+      });
+    } catch(e) {}
 
     if (editForm) {
       setConfig(prev => ({
