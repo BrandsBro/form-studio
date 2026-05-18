@@ -216,7 +216,6 @@ export default function People(){
     const updated=ex?people.map(x=>x.id===person.id?person:x):[...people,person];
     setPeople(updated);
     savePerson(person);
-    saveAllPeople(updated);
     setModal(null);
   }
   function handleDelete(id){save(people.filter(p=>p.id!==id));}
