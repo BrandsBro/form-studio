@@ -203,8 +203,7 @@ export default function People(){
     setDesignations(getDesignations());
     setLoading(true);
     getPeople().then(data=>{
-      if(data.length>0){ setPeople(data); }
-      else { setPeople(DEFAULT_PEOPLE); saveAllPeople(DEFAULT_PEOPLE); }
+      setPeople(data);
       setLoading(false);
     });
   },[]);
