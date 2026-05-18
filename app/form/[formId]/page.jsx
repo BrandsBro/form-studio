@@ -62,7 +62,7 @@ function StepEmail({form,onNext}){
 }
 
 // ── Step: Review List (one-to-many) ───────────────────────────────────────────
-function StepReviewList({form,conn,reviewerEmail,onStart,onBack}){
+function StepReviewList({form,conn,reviewerEmail,onStart,onBack,allSubs=[]}){
   const t=getTheme(form);
   const reviewed=allSubs.filter(s=>s.reviewerEmail===reviewerEmail).map(s=>s.personName);
   const pending=conn.revieweeNames.filter(n=>!reviewed.includes(n));
@@ -147,7 +147,7 @@ function StepReviewList({form,conn,reviewerEmail,onStart,onBack}){
 }
 
 // ── Step: Fill form ───────────────────────────────────────────────────────────
-function StepForm({form,reviewerEmail,personName,isMulti,onDone,onBack}){
+function StepForm({form,reviewerEmail,personName,isMulti,onDone,onBack,allSubs=[]}){
   const prev=allSubs.find(s=>s.reviewerEmail===reviewerEmail&&s.personName===personName)||null;
   const [vals,setVals]=useState(prev?.values||{});
   const [errors,setErrors]=useState({});
@@ -389,8 +389,8 @@ export default function FormPage(){
       <div style={{position:"fixed",top:0,left:"50%",transform:"translateX(-50%)",width:600,height:280,background:"radial-gradient(ellipse,"+t.glow+" 0%,transparent 70%)",pointerEvents:"none",zIndex:0}}/>
       <div style={{position:"relative",zIndex:1}}>
         {step==="email"&&<StepEmail form={form} onNext={handleEmailNext}/>}
-        {step==="list"&&<StepReviewList form={form} conn={conn} reviewerEmail={reviewerEmail} onStart={handleStartPerson} onBack={()=>setStep("email")}/>}
-        {step==="form"&&<StepForm form={form} reviewerEmail={reviewerEmail} personName={currentPerson} isMulti={conn?.type==="multi"} onDone={handleFormDone} onBack={()=>setStep("list")}/>}
+        {step==="list"&&<StepReviewList form={form} conn={conn} reviewerEmail={reviewerEmail} allSubs={allSubs} onStart={handleStartPerson} onBack={()=>setStep("email")}/>}
+        {step==="form"&&<StepForm form={form} reviewerEmail={reviewerEmail} personName={currentPerson} isMulti={conn?.type==="multi"} onDone={handleFormDone} onBack={()=>setStep("list")} allSubs={allSubs}/>}
         {step==="success"&&<StepSuccess form={form} conn={conn} reviewerEmail={reviewerEmail} onEdit={handleEditFromSuccess}/>}
       </div>
     </div>
