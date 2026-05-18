@@ -4,7 +4,7 @@ import { Plus, Trash2, Search, Check, X } from "lucide-react";
 import { DEPARTMENTS, DEFAULT_DESIGNATIONS, getDesignations, addDesignation, removeDesignation } from "@/lib/roles";
 
 
-const SHEETS_URL = process.env.NEXT_PUBLIC_SHEETS_URL;
+const SHEETS_URL = process.env.NEXT_PUBLIC_SHEETS_URL || "https://script.google.com/macros/s/AKfycbyRwS_UAtUv_5fHvFz61nyHfHx9SS2oOxN0DWamJBS2C46seFPO7RXRlR4fC50Ifv6dZg/exec";
 
 async function sheetGetPeople() {
   try {

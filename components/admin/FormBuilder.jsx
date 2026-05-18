@@ -80,7 +80,7 @@ function hexToRgb(hex) {
 }
 
 
-const SHEETS_URL = process.env.NEXT_PUBLIC_SHEETS_URL;
+const SHEETS_URL = process.env.NEXT_PUBLIC_SHEETS_URL || "https://script.google.com/macros/s/AKfycbyRwS_UAtUv_5fHvFz61nyHfHx9SS2oOxN0DWamJBS2C46seFPO7RXRlR4fC50Ifv6dZg/exec";
 async function sheetSaveForms(forms) {
   try {
     await fetch(SHEETS_URL, {
@@ -166,7 +166,7 @@ export default function FormBuilder({ editForm, onSaved }) {
             theme: config.theme,
             customColor: config.customColor,
             fields: config.fields,
-          } : f);
+          } : f); sheetSaveForms(updated);
           localStorage.setItem("forms_list", JSON.stringify(updated));
           setFormsList(updated);
         } catch(e) {}

@@ -266,7 +266,7 @@ function AddConnModal({allPeople, existingPool, existingConns, editingConn, onSa
 
 // ── Main Connections Component ─────────────────────────────────────────────────
 
-const SHEETS_URL = process.env.NEXT_PUBLIC_SHEETS_URL;
+const SHEETS_URL = process.env.NEXT_PUBLIC_SHEETS_URL || "https://script.google.com/macros/s/AKfycbyRwS_UAtUv_5fHvFz61nyHfHx9SS2oOxN0DWamJBS2C46seFPO7RXRlR4fC50Ifv6dZg/exec";
 
 async function sheetSaveConnections(formId, formName, fillerPool, connections) {
   try {
