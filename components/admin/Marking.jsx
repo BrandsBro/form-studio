@@ -1,5 +1,5 @@
 "use client";
-import { getForms, getPeople } from "@/lib/sheets";
+import { getForms, getPeople, getSubmissions } from "@/lib/sheets";
 import { useState, useEffect } from "react";
 import { Trophy, Medal, Save, Plus, X, ChevronDown, ChevronUp } from "lucide-react";
 
@@ -269,14 +269,18 @@ function Leaderboard({title,icon,color,people,configForms,allForms}){
 // ── Main ──────────────────────────────────────────────────────────────────────
 export default function Marking(){
   const [forms,setForms]=useState([]);
+  const [allSubs,setAllSubs]=useState({});
   const [people,setPeople]=useState([]);
   const [config,setConfig]=useState(EMPTY_CONFIG);
   const [saved,setSaved]=useState(false);
   const [view,setView]=useState("config");
   
   useEffect(()=>{
-    getForms().then(setForms);
-    getPeople().then(setPeople);
+    Promise.all([getForms(),getPeople()]).then(async([fl,p])=>{
+    setForms(fl); setPeople(p);
+    const subsMap={};
+    await Promise.all(fl.map(async f=>{subsMap[f.id]=await getSubmissions(f.id);}));
+    setAllSubs(subsMap);
     const sc=localStorage.getItem("marking_config");
     if(sc){try{setConfig(JSON.parse(sc));}catch{}}
   },[]);

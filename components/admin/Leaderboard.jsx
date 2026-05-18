@@ -1,5 +1,5 @@
 "use client";
-import { getForms, getPeople } from "@/lib/sheets";
+import { getForms, getPeople, getSubmissions } from "@/lib/sheets";
 import { useState, useEffect } from "react";
 
 function gi(n=""){return n.split(" ").map(x=>x[0]).join("").toUpperCase().slice(0,2)||"?";}
@@ -19,12 +19,12 @@ function getPersonFormAvg(personName,formId,formFields){
   return totals.reduce((a,b)=>a+b,0)/totals.length;
 }
 
-function calcScore(personName,configForms,allForms){
+function calcScore(personName,configForms,allForms,allSubs){
   let weightedSum=0,totalWeight=0,hasData=false;
   configForms.forEach(cf=>{
     const form=allForms.find(f=>f.id===cf.formId);
     if(!form)return;
-    const avg=getPersonFormAvg(personName,cf.formId,form.fields||[]);
+    const avg=getPersonFormAvg(personName,cf.formId,form.fields||[],allSubs);
     if(avg!==null){weightedSum+=avg*(cf.weight/100);totalWeight+=cf.weight;hasData=true;}
   });
   if(!hasData)return null;
@@ -93,14 +93,24 @@ const MEDALS=["🥇","🥈","🥉"];
 
 export default function Leaderboard(){
   const [forms,setForms]=useState([]);
+  const [allSubs,setAllSubs]=useState({});
   const [people,setPeople]=useState([]);
   const [config,setConfig]=useState({teamMembers:{forms:[]},teamLeaders:{forms:[]}});
 
   useEffect(()=>{
-    getForms().then(setForms);
-    getPeople().then(setPeople);
+    Promise.all([getForms(), getPeople()]).then(async([fl, p])=>{
+    setForms(fl);
+    setPeople(p);
+    // Load submissions for all forms
+    const subsMap = {};
+    await Promise.all(fl.map(async f=>{
+      const s = await getSubmissions(f.id);
+      subsMap[f.id] = s;
+    }));
+    setAllSubs(subsMap);
     const sc=localStorage.getItem("marking_config");
     if(sc){try{setConfig(JSON.parse(sc));}catch{}}
+  });
   },[]);
 
   // Combine all people with their scores
@@ -108,7 +118,7 @@ export default function Leaderboard(){
   const allScored = people.map(p=>{
     const isTM=(p.designations||[]).includes("Team Member");
     const configForms=isTM?config.teamMembers.forms:config.teamLeaders.forms;
-    const score=calcScore(p.name,configForms,forms);
+    const score=calcScore(p.name,configForms,forms,allSubs);
     return{...p,score,isTM,configForms};
   }).sort((a,b)=>{
     if(a.score===null&&b.score===null)return 0;

@@ -1,5 +1,5 @@
 "use client";
-import { getForms, getPeople } from "@/lib/sheets";
+import { getForms, getPeople, getSubmissions } from "@/lib/sheets";
 import { useState, useEffect } from "react";
 import { AlertTriangle, CheckCircle, RotateCcw, Settings } from "lucide-react";
 import { getInvalidated, invalidateSubmission, restoreSubmission } from "@/lib/roles";
@@ -36,6 +36,7 @@ function ScoreChip({label,score,weight,color}){
 
 export default function ReReview(){
   const [forms,setForms]=useState([]);
+  const [allSubs,setAllSubs]=useState({});
   const [people,setPeople]=useState([]);
   const [threshold,setThreshold]=useState(20);
   const [editThreshold,setEditThreshold]=useState(false);
@@ -43,8 +44,11 @@ export default function ReReview(){
   const [refresh,setRefresh]=useState(0);
 
   useEffect(()=>{
-    getForms().then(setForms);
-    getPeople().then(setPeople);
+    Promise.all([getForms(),getPeople()]).then(async([fl,p])=>{
+    setForms(fl); setPeople(p);
+    const subsMap={};
+    await Promise.all(fl.map(async f=>{subsMap[f.id]=await getSubmissions(f.id);}));
+    setAllSubs(subsMap);
     const st=localStorage.getItem("rr_threshold");
     if(st){try{setThreshold(parseInt(st));}catch{}}
     setInvalidated(getInvalidated());
