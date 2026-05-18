@@ -372,6 +372,24 @@ export default function FormsList({ onEdit, onOpenConnections }) {
     return <FormConnections form={fresh} onUpdate={handleUpdate} onBack={()=>setSelected(null)} employees={employees} executives={executives}/>;
   }
 
+  if(loading) return(
+    <div style={{display:"flex",flexDirection:"column",gap:16}}>
+      <style>{"@keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}"}</style>
+      <div style={{display:"flex",justifyContent:"space-between"}}>
+        <Skeleton w={100} h={28}/>
+        <Skeleton w={120} h={36} r={10}/>
+      </div>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(320px,1fr))",gap:16}}>
+        {[1,2,3].map(i=>(
+          <div key={i} style={{background:"#161B22",border:"1px solid #21262D",borderRadius:14,padding:20,display:"flex",flexDirection:"column",gap:14}}>
+            <Skeleton w="60%" h={20}/>
+            <Skeleton w="40%" h={14}/>
+            <div style={{display:"flex",gap:10}}><Skeleton w={80} h={32} r={8}/><Skeleton w={100} h={32} r={8}/></div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
   return (
     <div style={{ display:"flex", flexDirection:"column", gap:20 }}>
       <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", flexWrap:"wrap", gap:12 }}>
@@ -472,22 +490,4 @@ export default function FormsList({ onEdit, onOpenConnections }) {
     </div>
   );
 
-  if(loading) return(
-    <div style={{display:"flex",flexDirection:"column",gap:16}}>
-      <style>{"@keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}"}</style>
-      <div style={{display:"flex",justifyContent:"space-between"}}>
-        <Skeleton w={100} h={28}/>
-        <Skeleton w={120} h={36} r={10}/>
-      </div>
-      <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(320px,1fr))",gap:16}}>
-        {[1,2,3].map(i=>(
-          <div key={i} style={{background:"#161B22",border:"1px solid #21262D",borderRadius:14,padding:20,display:"flex",flexDirection:"column",gap:14}}>
-            <Skeleton w="60%" h={20}/>
-            <Skeleton w="40%" h={14}/>
-            <div style={{display:"flex",gap:10}}><Skeleton w={80} h={32} r={8}/><Skeleton w={100} h={32} r={8}/></div>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
 }
