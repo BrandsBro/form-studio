@@ -110,6 +110,15 @@ export default function Overview(){
       ):(
         <>
           {/* Stats */}
+          {loadingSubs ? (
+            <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(160px,1fr))",gap:12}}>
+              {[1,2,3,4,5,6].map(i=>(
+                <div key={i} style={{background:"#161B22",border:"1px solid #21262D",borderRadius:12,padding:"14px 16px",display:"flex",flexDirection:"column",gap:8}}>
+                  <Skeleton w="40%" h={28}/><Skeleton w="70%" h={12}/>
+                </div>
+              ))}
+            </div>
+          ) : (
           <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(160px,1fr))",gap:12}}>
             {[
               {l:"Total Submissions",v:subs.length,c:color,icon:"📋"},
@@ -129,6 +138,7 @@ export default function Overview(){
             ))}
           </div>
 
+          )}
           <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(300px,1fr))",gap:16}}>
             {/* Avg score per question */}
             <div style={{background:"#161B22",border:"1px solid #21262D",borderRadius:12,padding:20}}>
