@@ -325,6 +325,19 @@ function FormConnections({ form, onUpdate, onBack, employees, executives }) {
 }
 
 // ── Forms List ────────────────────────────────────────────────────────────────
+
+const SHEETS_URL = process.env.NEXT_PUBLIC_SHEETS_URL;
+async function sheetSaveForms(forms) {
+  try {
+    await fetch(SHEETS_URL, {
+      method:"POST",
+      headers:{"Content-Type":"text/plain"},
+      body:JSON.stringify({action:"saveForms", forms}),
+      redirect:"follow",
+    });
+  } catch(e) { console.error("Sheets forms error:", e); }
+}
+
 export default function FormsList({ onEdit, onOpenConnections }) {
   const [forms, setForms] = useState([]);
   const [selected, setSelected] = useState(null);

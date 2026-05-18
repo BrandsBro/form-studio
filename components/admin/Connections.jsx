@@ -265,6 +265,20 @@ function AddConnModal({allPeople, existingPool, existingConns, editingConn, onSa
 }
 
 // ── Main Connections Component ─────────────────────────────────────────────────
+
+const SHEETS_URL = process.env.NEXT_PUBLIC_SHEETS_URL;
+
+async function sheetSaveConnections(formId, formName, fillerPool, connections) {
+  try {
+    await fetch(SHEETS_URL, {
+      method:"POST",
+      headers:{"Content-Type":"text/plain"},
+      body:JSON.stringify({action:"saveConnections", formId, formName, fillerPool, connections}),
+      redirect:"follow",
+    });
+  } catch(e) { console.error("Sheets connections error:", e); }
+}
+
 export default function Connections({ defaultFormId }){
   const [forms,setForms]=useState([]);
   const [people,setPeople]=useState([]);
@@ -287,7 +301,14 @@ export default function Connections({ defaultFormId }){
 
   const allPeople=people.map(p=>({name:p.name,email:p.email||"",designations:p.designations||[],tag:(p.designations||[]).join(", ")||"No designation"}));
 
-  function saveForms(updated){setForms(updated);localStorage.setItem("forms_list",JSON.stringify(updated));}
+  function saveForms(updated){
+    setForms(updated);
+    localStorage.setItem("forms_list",JSON.stringify(updated));
+    // Sync each form's connections to Sheets
+    updated.forEach(f=>{
+      sheetSaveConnections(f.id, f.name, f.fillerPool||[], f.connections||[]);
+    });
+  }
 
   function handleSave({pool,connections:conns}){
     saveForms(forms.map(f=>f.id===selectedFormId?{...f,fillerPool:pool,connections:conns}:f));
