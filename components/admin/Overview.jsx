@@ -21,7 +21,7 @@ export default function Overview(){
   const [loading,setLoading]=useState(true);
   const [loadingSubs,setLoadingSubs]=useState(false);
   const [allSubs,setAllSubs]=useState([]);
-  const [loadingSubs,setLoadingSubs]=useState(false);
+  
 
   useEffect(()=>{
     getForms().then(data=>{setForms(data);if(data.length){setSelectedId(data[0].id);}setLoading(false);}).catch(()=>setLoading(false));
