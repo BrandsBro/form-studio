@@ -111,9 +111,7 @@ export default function FormBuilder({ editForm, onSaved }) {
         customColor: editForm.customColor || "",
         fields: editForm.fields?.length ? editForm.fields : prev.fields,
       }));
-    } else {
-      const stored = localStorage.getItem("form_config");
-      if (stored) { try { setConfig(JSON.parse(stored)); } catch {} }
+    }
     }
   }, [editForm?.id]);
 
@@ -145,7 +143,8 @@ export default function FormBuilder({ editForm, onSaved }) {
       // Also update the target form in forms_list
       if (targetFormId) {
         try {
-          const updated = formsList.map(f => f.id === targetFormId ? {
+          const freshForms2 = await getForms();
+          const updated = freshForms2.map(f => f.id === targetFormId ? {
             ...f,
             name: config.title,
             description: config.description,
