@@ -146,7 +146,7 @@ export default function FormBuilder({ editForm, onSaved }) {
           customColor: config.customColor,
           fields: config.fields,
         } : f);
-        localStorage.setItem("forms_list", JSON.stringify(updated));
+        localStorage.setItem("forms_list", JSON.stringify(updated)); sheetSaveForms(updated);
       } catch(e) { console.error(e); }
       setSaved(true);
       setTimeout(() => { setSaved(false); if (onSaved) onSaved(); }, 1200);

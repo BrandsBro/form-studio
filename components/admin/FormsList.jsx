@@ -358,7 +358,7 @@ export default function FormsList({ onEdit, onOpenConnections }) {
     }
   }, []);
 
-  function saveForms(list) { setForms(list); localStorage.setItem("forms_list",JSON.stringify(list)); }
+  function saveForms(list) { setForms(list); localStorage.setItem("forms_list",JSON.stringify(list)); sheetSaveForms(list); }
   function handleUpdate(updated) { const list=forms.map(f=>f.id===updated.id?updated:f); saveForms(list); setSelected(updated); }
   function handleRename(updated) { saveForms(forms.map(f=>f.id===updated.id?updated:f)); setRenamingForm(null); }
   function createForm() { const nf={...EF,id:"form_"+Date.now(),name:"New Form "+(forms.length+1),description:"",createdAt:new Date().toISOString().slice(0,10),fields:[]}; saveForms([...forms,nf]); }
