@@ -17,8 +17,7 @@ export default function Overview(){
 
   useEffect(()=>{
     getForms().then(data=>{setForms(data);if(data.length){setSelectedId(data[0].id);}});
-    const sp=localStorage.getItem("people");
-    if(sp){try{setPeople(JSON.parse(sp));}catch{}}
+    getPeople().then(setPeople);
   },[]);
 
   const form=forms.find(f=>f.id===selectedId);

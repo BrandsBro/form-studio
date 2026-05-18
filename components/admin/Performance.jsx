@@ -130,8 +130,7 @@ export default function Performance(){
 
   useEffect(()=>{
     getForms().then(setForms);
-    const sp=localStorage.getItem("people");
-    if(sp){try{setPeople(JSON.parse(sp));}catch{}}
+    getPeople().then(setPeople);
   },[]);
 
   // Count total reviews per person
