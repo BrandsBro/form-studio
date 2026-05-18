@@ -192,7 +192,7 @@ function PersonModal({person,onSave,onClose}){
 
 // ── Main ──────────────────────────────────────────────────────────────────────
 export default function People(){
-  const [people,setPeople]=useState(DEFAULT_PEOPLE);
+  const [people,setPeople]=useState([]);
   const [search,setSearch]=useState("");
   const [filter,setFilter]=useState("All");
   const [modal,setModal]=useState(null);
@@ -202,10 +202,7 @@ export default function People(){
   useEffect(()=>{
     setDesignations(getDesignations());
     setLoading(true);
-    getPeople().then(data=>{
-      setPeople(data);
-      setLoading(false);
-    });
+    getPeople().then(data=>{ setPeople(data); setLoading(false); });
   },[]);
 
   function save(list){setPeople(list);saveAllPeople(list);}
