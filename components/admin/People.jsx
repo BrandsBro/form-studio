@@ -226,11 +226,17 @@ export default function People(){
     .filter(p=>filter==="All"||(p.designations||[]).includes(filter))
     .filter(p=>p.name.toLowerCase().includes(search.toLowerCase())||p.email.toLowerCase().includes(search.toLowerCase()));
 
-  return(
+  if(loading) return(
     <div style={{display:"flex",flexDirection:"column",gap:20}}>
-      {loading&&(
+      <style>{"@keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}"}</style>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+        <div style={{display:"flex",flexDirection:"column",gap:8}}>
+          <Skeleton w={120} h={24}/>
+          <Skeleton w={80} h={14}/>
+        </div>
+        <Skeleton w={120} h={38} r={10}/>
+      </div>
       <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(280px,1fr))",gap:14}}>
-        <style>{"@keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}"}</style>
         {[1,2,3,4,5,6].map(i=>(
           <div key={i} style={{background:"#161B22",border:"1px solid #21262D",borderRadius:14,padding:18,display:"flex",flexDirection:"column",gap:12}}>
             <div style={{display:"flex",gap:12,alignItems:"center"}}>
@@ -244,7 +250,11 @@ export default function People(){
           </div>
         ))}
       </div>
-    )}
+    </div>
+  );
+  return(
+    <div style={{display:"flex",flexDirection:"column",gap:20}}>
+      
       <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",flexWrap:"wrap",gap:12}}>
         <div>
           <h2 style={{color:"white",fontSize:18,fontWeight:700,margin:0,fontFamily:"var(--font-playfair)"}}>People</h2>
