@@ -8,6 +8,11 @@ function gi(n=""){return n.split(" ").map(x=>x[0]).join("").toUpperCase().slice(
 function Av({name="",size=30}){const color=gc(name);return<div style={{width:size,height:size,borderRadius:"50%",background:color+"18",border:"2px solid "+color+"44",display:"flex",alignItems:"center",justifyContent:"center",fontSize:size*0.33,fontWeight:700,color,flexShrink:0}}>{gi(name)}</div>;}
 function getFormColor(form){const T={amber:"#F59E0B",blue:"#3B82F6",green:"#10B981",rose:"#F43F5E",violet:"#8B5CF6",cyan:"#06B6D4"};return form?.customColor||T[form?.theme]||"#F59E0B";}
 
+
+function Skeleton({w="100%",h=20,r=8}){
+  return <div style={{width:w,height:h,borderRadius:r,background:"linear-gradient(90deg,#161B22,#21262D,#161B22)",backgroundSize:"200% 100%",animation:"shimmer 1.5s infinite"}} />;
+}
+
 export default function Submissions(){
   const [forms,setForms]=useState([]);
   const [selectedId,setSelectedId]=useState(null);

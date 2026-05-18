@@ -9,14 +9,20 @@ function Av({name="",size=32}){const color=gc(name);return<div style={{width:siz
 function getFormColor(form){const T={amber:"#F59E0B",blue:"#3B82F6",green:"#10B981",rose:"#F43F5E",violet:"#8B5CF6",cyan:"#06B6D4"};return form?.customColor||T[form?.theme]||"#F59E0B";}
 
 
+
+function Skeleton({w="100%",h=20,r=8}){
+  return <div style={{width:w,height:h,borderRadius:r,background:"linear-gradient(90deg,#161B22,#21262D,#161B22)",backgroundSize:"200% 100%",animation:"shimmer 1.5s infinite"}} />;
+}
+
 export default function Overview(){
   const [forms,setForms]=useState([]);
   const [selectedId,setSelectedId]=useState(null);
   const [people,setPeople]=useState([]);
+  const [loading,setLoading]=useState(true);
   const [allSubs,setAllSubs]=useState([]);
 
   useEffect(()=>{
-    getForms().then(data=>{setForms(data);if(data.length){setSelectedId(data[0].id);}});
+    getForms().then(data=>{setForms(data);if(data.length){setSelectedId(data[0].id);}setLoading(false);}).catch(()=>setLoading(false));
     getPeople().then(setPeople);
   },[]);
 

@@ -191,6 +191,11 @@ function PersonModal({person,onSave,onClose}){
 }
 
 // ── Main ──────────────────────────────────────────────────────────────────────
+
+function Skeleton({w="100%",h=20,r=8}){
+  return <div style={{width:w,height:h,borderRadius:r,background:"linear-gradient(90deg,#161B22,#21262D,#161B22)",backgroundSize:"200% 100%",animation:"shimmer 1.5s infinite"}} />;
+}
+
 export default function People(){
   const [people,setPeople]=useState([]);
   const [search,setSearch]=useState("");
@@ -223,7 +228,23 @@ export default function People(){
 
   return(
     <div style={{display:"flex",flexDirection:"column",gap:20}}>
-      {loading&&<div style={{textAlign:"center",padding:20,color:"#6b7280",fontSize:13}}>Loading from Google Sheets...</div>}
+      {loading&&(
+      <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(280px,1fr))",gap:14}}>
+        <style>{"@keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}"}</style>
+        {[1,2,3,4,5,6].map(i=>(
+          <div key={i} style={{background:"#161B22",border:"1px solid #21262D",borderRadius:14,padding:18,display:"flex",flexDirection:"column",gap:12}}>
+            <div style={{display:"flex",gap:12,alignItems:"center"}}>
+              <Skeleton w={48} h={48} r={50}/>
+              <div style={{flex:1,display:"flex",flexDirection:"column",gap:6}}>
+                <Skeleton w="70%" h={16}/>
+                <Skeleton w="90%" h={12}/>
+              </div>
+            </div>
+            <Skeleton w="50%" h={20}/>
+          </div>
+        ))}
+      </div>
+    )}
       <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",flexWrap:"wrap",gap:12}}>
         <div>
           <h2 style={{color:"white",fontSize:18,fontWeight:700,margin:0,fontFamily:"var(--font-playfair)"}}>People</h2>
