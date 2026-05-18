@@ -271,7 +271,7 @@ function StepForm({form,reviewerEmail,personName,isMulti,onDone,onBack,allSubs=[
 }
 
 // ── Step: All Done ────────────────────────────────────────────────────────────
-function StepSuccess({form,conn,reviewerEmail,onEdit}){
+function StepSuccess({form,conn,reviewerEmail,onEdit,allSubs=[]}){
   const t=getTheme(form);
   const reviewed=allSubs.filter(s=>s.reviewerEmail===reviewerEmail).map(s=>s.personName);
   return(
@@ -391,7 +391,7 @@ export default function FormPage(){
         {step==="email"&&<StepEmail form={form} onNext={handleEmailNext}/>}
         {step==="list"&&<StepReviewList form={form} conn={conn} reviewerEmail={reviewerEmail} allSubs={allSubs} onStart={handleStartPerson} onBack={()=>setStep("email")}/>}
         {step==="form"&&<StepForm form={form} reviewerEmail={reviewerEmail} personName={currentPerson} isMulti={conn?.type==="multi"} onDone={handleFormDone} onBack={()=>setStep("list")} allSubs={allSubs} onSubsUpdate={s=>setAllSubs(s)}/>}
-        {step==="success"&&<StepSuccess form={form} conn={conn} reviewerEmail={reviewerEmail} onEdit={handleEditFromSuccess}/>}
+        {step==="success"&&<StepSuccess allSubs={allSubs} form={form} conn={conn} reviewerEmail={reviewerEmail} onEdit={handleEditFromSuccess}/>}
       </div>
     </div>
   );
