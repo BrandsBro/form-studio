@@ -19,6 +19,7 @@ export default function Overview(){
   const [selectedId,setSelectedId]=useState(null);
   const [people,setPeople]=useState([]);
   const [loading,setLoading]=useState(true);
+  const [loadingSubs,setLoadingSubs]=useState(false);
   const [allSubs,setAllSubs]=useState([]);
   const [loadingSubs,setLoadingSubs]=useState(false);
 
