@@ -118,7 +118,7 @@ export default function FormBuilder({ editForm, onSaved }) {
   const rgb = primaryColor.startsWith("#") ? hexToRgb(primaryColor) : "245,158,11";
   const theme = { primary:primaryColor, light:`rgba(${rgb},0.12)`, border:`rgba(${rgb},0.3)`, glow:`rgba(${rgb},0.2)` };
 
-  function save() {
+  async function save() {
     if (editForm) {
       try {
         const fl = JSON.parse(localStorage.getItem("forms_list") || "[]");
