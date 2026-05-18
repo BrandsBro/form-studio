@@ -134,7 +134,7 @@ export default function FormBuilder({ editForm, onSaved }) {
         await sheetSaveForms(updated);
       } catch(e) { console.error(e); }
       setSaved(true);
-      setTimeout(() => { setSaved(false); if (onSaved) onSaved(); }, 1200);
+      setTimeout(() => { setSaved(false); }, 1200);
     } else {
       // Save to form_config (legacy)
       
