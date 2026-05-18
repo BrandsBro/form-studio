@@ -30,7 +30,13 @@ export default function Submissions(){
   },[]);
 
   const form=forms.find(f=>f.id===selectedId);
-  useEffect(()=>{ if(selectedId){setLoadingSubs(true);getSubmissions(selectedId).then(s=>{setSubs(s);setLoadingSubs(false);}).catch(()=>setLoadingSubs(false));} },[selectedId]);
+  useEffect(()=>{
+    if(selectedId){
+      setSubs([]);
+      setLoadingSubs(true);
+      getSubmissions(selectedId).then(data=>{setSubs(data);setLoadingSubs(false);}).catch(()=>setLoadingSubs(false));
+    }
+  },[selectedId]);
   const color=form?getFormColor(form):"#F59E0B";
   const rFields=(form?.fields||[]).filter(f=>f.type==="rating");
   
