@@ -11,7 +11,7 @@ function Av({name="",size=30}){const color=gc(name);return<div style={{width:siz
 function getFormColor(form){const T={amber:"#F59E0B",blue:"#3B82F6",green:"#10B981",rose:"#F43F5E",violet:"#8B5CF6",cyan:"#06B6D4"};return form?.customColor||T[form?.theme]||"#F59E0B";}
 
 
-}
+
 
 export default function Submissions(){
   const [forms,setForms]=useState([]);
