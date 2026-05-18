@@ -121,18 +121,17 @@ export default function FormBuilder({ editForm, onSaved }) {
   async function save() {
     if (editForm) {
       try {
-        const fl = JSON.parse(localStorage.getItem("forms_list") || "[]");
-        const updated = fl.map(f => f.id === editForm.id ? {
-          ...f,
-          name: config.title,
-          description: config.description,
-          quote: config.quote,
-          badgeLabel: config.badgeLabel,
-          theme: config.theme,
-          customColor: config.customColor,
-          fields: config.fields,
-        } : f);
-         sheetSaveForms(updated);
+        const freshForms = await getForms();
+        const updated = freshForms.length > 0 
+          ? freshForms.map(f => f.id === editForm.id ? {
+              ...f, name:config.title, description:config.description,
+              quote:config.quote, badgeLabel:config.badgeLabel,
+              theme:config.theme, customColor:config.customColor, fields:config.fields,
+            } : f)
+          : [{id:editForm.id, name:config.title, description:config.description,
+              quote:config.quote, badgeLabel:config.badgeLabel, theme:config.theme,
+              customColor:config.customColor, fields:config.fields, active:editForm.active||true}];
+        await sheetSaveForms(updated);
       } catch(e) { console.error(e); }
       setSaved(true);
       setTimeout(() => { setSaved(false); if (onSaved) onSaved(); }, 1200);
