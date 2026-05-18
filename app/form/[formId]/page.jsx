@@ -147,7 +147,7 @@ function StepReviewList({form,conn,reviewerEmail,onStart,onBack,allSubs=[]}){
 }
 
 // ── Step: Fill form ───────────────────────────────────────────────────────────
-function StepForm({form,reviewerEmail,personName,isMulti,onDone,onBack,allSubs=[]}){
+function StepForm({form,reviewerEmail,personName,isMulti,onDone,onBack,allSubs=[],onSubsUpdate}){
   const prev=allSubs.find(s=>s.reviewerEmail===reviewerEmail&&s.personName===personName)||null;
   const [vals,setVals]=useState(prev?.values||{});
   const [errors,setErrors]=useState({});
@@ -390,7 +390,7 @@ export default function FormPage(){
       <div style={{position:"relative",zIndex:1}}>
         {step==="email"&&<StepEmail form={form} onNext={handleEmailNext}/>}
         {step==="list"&&<StepReviewList form={form} conn={conn} reviewerEmail={reviewerEmail} allSubs={allSubs} onStart={handleStartPerson} onBack={()=>setStep("email")}/>}
-        {step==="form"&&<StepForm form={form} reviewerEmail={reviewerEmail} personName={currentPerson} isMulti={conn?.type==="multi"} onDone={handleFormDone} onBack={()=>setStep("list")} allSubs={allSubs}/>}
+        {step==="form"&&<StepForm form={form} reviewerEmail={reviewerEmail} personName={currentPerson} isMulti={conn?.type==="multi"} onDone={handleFormDone} onBack={()=>setStep("list")} allSubs={allSubs} onSubsUpdate={s=>setAllSubs(s)}/>}
         {step==="success"&&<StepSuccess form={form} conn={conn} reviewerEmail={reviewerEmail} onEdit={handleEditFromSuccess}/>}
       </div>
     </div>
