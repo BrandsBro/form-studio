@@ -3,6 +3,8 @@ import { getForms, getSubmissions } from "@/lib/sheets";
 import { useState, useEffect } from "react";
 import { Search, Download, ChevronDown, ChevronUp } from "lucide-react";
 
+function Skeleton({w="100%",h=20,r=8}){return <div style={{width:w,height:h,borderRadius:r,background:"linear-gradient(90deg,#161B22 25%,#21262D 50%,#161B22 75%)",backgroundSize:"200% 100%",animation:"shimmer 1.5s infinite"}}/>;}
+
 function gc(n=""){const c=["#F59E0B","#3B82F6","#10B981","#F43F5E","#8B5CF6","#06B6D4","#F97316"];return c[(n.charCodeAt(0)||0)%c.length];}
 function gi(n=""){return n.split(" ").map(x=>x[0]).join("").toUpperCase().slice(0,2)||"?";}
 function Av({name="",size=30}){const color=gc(name);return<div style={{width:size,height:size,borderRadius:"50%",background:color+"18",border:"2px solid "+color+"44",display:"flex",alignItems:"center",justifyContent:"center",fontSize:size*0.33,fontWeight:700,color,flexShrink:0}}>{gi(name)}</div>;}
@@ -20,15 +22,17 @@ export default function Submissions(){
   const [personFilter,setPersonFilter]=useState("All");
   const [expandedRow,setExpandedRow]=useState(null);
   const [subs,setSubs]=useState([]);
+  const [loadingForms,setLoadingForms]=useState(true);
+  const [loadingSubs,setLoadingSubs]=useState(false);
   const [sortKey,setSortKey]=useState("updatedAt");
   const [sortDir,setSortDir]=useState("desc");
 
   useEffect(()=>{
-    getForms().then(data=>{setForms(data);if(data.length)setSelectedId(data[0].id);});
+    getForms().then(data=>{setForms(data);if(data.length)setSelectedId(data[0].id);setLoadingForms(false);}).catch(()=>setLoadingForms(false));
   },[]);
 
   const form=forms.find(f=>f.id===selectedId);
-  useEffect(()=>{ if(selectedId) getSubmissions(selectedId).then(setSubs); },[selectedId]);
+  useEffect(()=>{ if(selectedId){setLoadingSubs(true);getSubmissions(selectedId).then(s=>{setSubs(s);setLoadingSubs(false);}).catch(()=>setLoadingSubs(false));} },[selectedId]);
   const color=form?getFormColor(form):"#F59E0B";
   const rFields=(form?.fields||[]).filter(f=>f.type==="rating");
   
@@ -65,6 +69,23 @@ export default function Submissions(){
   }
 
   const avgColor=v=>v>=4?"#22c55e":v>=3?"#F59E0B":v>=2?"#f97316":"#ef4444";
+
+  if(loadingForms) return(
+    <div style={{display:"flex",flexDirection:"column",gap:16}}>
+      <style>{"@keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}"}</style>
+      <Skeleton w={200} h={28}/>
+      <div style={{display:"flex",gap:8}}>{[1,2,3].map(i=><Skeleton key={i} w={140} h={36} r={10}/>)}</div>
+      <div style={{background:"#161B22",border:"1px solid #21262D",borderRadius:14,padding:20,display:"flex",flexDirection:"column",gap:12}}>
+        {[1,2,3,4,5].map(i=>(
+          <div key={i} style={{display:"flex",gap:12,alignItems:"center",padding:"12px 0",borderBottom:"1px solid #21262D"}}>
+            <Skeleton w={40} h={40} r={50}/>
+            <div style={{flex:1,display:"flex",flexDirection:"column",gap:6}}><Skeleton w="40%" h={16}/><Skeleton w="25%" h={12}/></div>
+            <Skeleton w={80} h={24} r={6}/>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
 
   return(
     <div style={{display:"flex",flexDirection:"column",gap:20}}>
