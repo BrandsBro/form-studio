@@ -179,8 +179,31 @@ function StepForm({form,reviewerEmail,personName,isMulti,onDone,onBack}){
     (form.fields||[]).forEach(f=>{if(f.required&&!vals[f.id]){errs[f.id]=true;hasErr=true;}});
     if(hasErr){setErrors(errs);return;}
     setLoading(true);
-    await new Promise(r=>setTimeout(r,1200));
-    saveSubmission(form.id,reviewerEmail,personName,vals);
+    try{
+      // Save to localStorage
+      saveSubmission(form.id,reviewerEmail,personName,vals);
+      // Save to Google Sheets
+      const SHEETS_URL=process.env.NEXT_PUBLIC_SHEETS_URL;
+      if(SHEETS_URL){
+        await fetch(SHEETS_URL,{
+          method:"POST",
+          headers:{"Content-Type":"text/plain"},
+          body:JSON.stringify({
+            action:"submit",
+            formId:form.id,
+            formName:form.name,
+            reviewerEmail,
+            personName,
+            values:vals,
+            comments:vals.comments||"",
+            submittedAt:new Date().toISOString(),
+          }),
+          redirect:"follow",
+        });
+      }
+    }catch(err){
+      console.error("Sheets save error:",err);
+    }
     setLoading(false);
     onDone();
   }
