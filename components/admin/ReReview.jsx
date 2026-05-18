@@ -1,4 +1,5 @@
 "use client";
+import { getForms, getPeople } from "@/lib/sheets";
 import { useState, useEffect } from "react";
 import { AlertTriangle, CheckCircle, RotateCcw, Settings } from "lucide-react";
 import { getInvalidated, invalidateSubmission, restoreSubmission } from "@/lib/roles";
@@ -42,11 +43,9 @@ export default function ReReview(){
   const [refresh,setRefresh]=useState(0);
 
   useEffect(()=>{
-    const sf=localStorage.getItem("forms_list");
-    const sp=localStorage.getItem("people");
+    getForms().then(setForms);
+    getPeople().then(setPeople);
     const st=localStorage.getItem("rr_threshold");
-    if(sf){try{setForms(JSON.parse(sf));}catch{}}
-    if(sp){try{setPeople(JSON.parse(sp));}catch{}}
     if(st){try{setThreshold(parseInt(st));}catch{}}
     setInvalidated(getInvalidated());
   },[refresh]);

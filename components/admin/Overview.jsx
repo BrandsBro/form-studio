@@ -7,23 +7,23 @@ function Av({name="",size=32}){const color=gc(name);return<div style={{width:siz
 
 function getFormColor(form){const T={amber:"#F59E0B",blue:"#3B82F6",green:"#10B981",rose:"#F43F5E",violet:"#8B5CF6",cyan:"#06B6D4"};return form?.customColor||T[form?.theme]||"#F59E0B";}
 
-function getSubs(formId){try{return JSON.parse(localStorage.getItem("submissions_"+formId)||"[]");}catch{return[];}}
 
 export default function Overview(){
   const [forms,setForms]=useState([]);
   const [selectedId,setSelectedId]=useState(null);
   const [people,setPeople]=useState([]);
+  const [allSubs,setAllSubs]=useState([]);
 
   useEffect(()=>{
-    const sf=localStorage.getItem("forms_list");
+    getForms().then(data=>{setForms(data);if(data.length){setSelectedId(data[0].id);}});
     const sp=localStorage.getItem("people");
-    if(sf){try{const fl=JSON.parse(sf);setForms(fl);if(fl.length)setSelectedId(fl[0].id);}catch{}}
     if(sp){try{setPeople(JSON.parse(sp));}catch{}}
   },[]);
 
   const form=forms.find(f=>f.id===selectedId);
+  useEffect(()=>{ if(selectedId) getSubmissions(selectedId).then(setAllSubs); },[selectedId]);
   const color=form?getFormColor(form):"#F59E0B";
-  const subs=form?getSubs(form.id):[];
+  const subs=form?allSubs:[];
   const rFields=(form?.fields||[]).filter(f=>f.type==="rating");
   const connections=form?.connections||[];
 

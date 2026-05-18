@@ -1,4 +1,5 @@
 "use client";
+import { getForms, getPeople } from "@/lib/sheets";
 import { useState, useEffect } from "react";
 import { Trophy, Medal, Save, Plus, X, ChevronDown, ChevronUp } from "lucide-react";
 
@@ -274,11 +275,9 @@ export default function Marking(){
   const [view,setView]=useState("config");
   
   useEffect(()=>{
-    const sf=localStorage.getItem("forms_list");
-    const sp=localStorage.getItem("people");
+    getForms().then(setForms);
+    getPeople().then(setPeople);
     const sc=localStorage.getItem("marking_config");
-    if(sf){try{setForms(JSON.parse(sf));}catch{}}
-    if(sp){try{setPeople(JSON.parse(sp));}catch{}}
     if(sc){try{setConfig(JSON.parse(sc));}catch{}}
   },[]);
 

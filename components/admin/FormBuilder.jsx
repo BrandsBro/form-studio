@@ -95,9 +95,9 @@ export default function FormBuilder({ editForm, onSaved }) {
     // Load forms list for the selector
     try {
       getForms().then(fl=>{
-        setFormsList(fl);
-        if (fl.length > 0 && !editForm) setTargetFormId(fl[0].id);
-      });
+      setFormsList(fl);
+      if (fl.length > 0 && !editForm) setTargetFormId(fl[0].id);
+    });
     } catch(e) {}
 
     if (editForm) {

@@ -6,10 +6,6 @@ import { ChevronRight, Star } from "lucide-react";
 function gc(n=""){const c=["#F59E0B","#3B82F6","#10B981","#F43F5E","#8B5CF6","#06B6D4","#F97316"];return c[(n.charCodeAt(0)||0)%c.length];}
 function getColor(form){const T={amber:"#F59E0B",blue:"#3B82F6",green:"#10B981",rose:"#F43F5E",violet:"#8B5CF6",cyan:"#06B6D4"};return form?.customColor||T[form?.theme]||"#F59E0B";}
 
-function getReviewedCount(formId, email){
-  try{return JSON.parse(localStorage.getItem("submissions_"+formId)||"[]").filter(s=>s.reviewerEmail===email).length;}catch{return 0;}
-}
-
 export default function Home(){
   const [email,setEmail]=useState("");
   const [err,setErr]=useState("");
@@ -82,7 +78,7 @@ export default function Home(){
               const color=getColor(form);
               const conn=(form.connections||[]).find(c=>c.reviewerEmail.toLowerCase()===email.toLowerCase().trim());
               const totalToReview=conn?.revieweeNames?.length||0;
-              const reviewed=getReviewedCount(form.id,email.toLowerCase().trim());
+              const reviewed=0;
               const allDone=reviewed>=totalToReview&&totalToReview>0;
               return(
                 <button key={form.id} onClick={()=>goToForm(form.id)}

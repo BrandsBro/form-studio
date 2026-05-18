@@ -6,7 +6,6 @@ function gc(n=""){const c=["#F59E0B","#3B82F6","#10B981","#F43F5E","#8B5CF6","#0
 function gi(n=""){return n.split(" ").map(x=>x[0]).join("").toUpperCase().slice(0,2)||"?";}
 function Av({name="",size=30}){const color=gc(name);return<div style={{width:size,height:size,borderRadius:"50%",background:color+"18",border:"2px solid "+color+"44",display:"flex",alignItems:"center",justifyContent:"center",fontSize:size*0.33,fontWeight:700,color,flexShrink:0}}>{gi(name)}</div>;}
 function getFormColor(form){const T={amber:"#F59E0B",blue:"#3B82F6",green:"#10B981",rose:"#F43F5E",violet:"#8B5CF6",cyan:"#06B6D4"};return form?.customColor||T[form?.theme]||"#F59E0B";}
-function getSubs(formId){try{return JSON.parse(localStorage.getItem("submissions_"+formId)||"[]");}catch{return[];}}
 
 export default function Submissions(){
   const [forms,setForms]=useState([]);
@@ -14,18 +13,19 @@ export default function Submissions(){
   const [search,setSearch]=useState("");
   const [personFilter,setPersonFilter]=useState("All");
   const [expandedRow,setExpandedRow]=useState(null);
+  const [subs,setSubs]=useState([]);
   const [sortKey,setSortKey]=useState("updatedAt");
   const [sortDir,setSortDir]=useState("desc");
 
   useEffect(()=>{
-    const sf=localStorage.getItem("forms_list");
-    if(sf){try{const fl=JSON.parse(sf);setForms(fl);if(fl.length)setSelectedId(fl[0].id);}catch{}}
+    getForms().then(data=>{setForms(data);if(data.length)setSelectedId(data[0].id);});
   },[]);
 
   const form=forms.find(f=>f.id===selectedId);
+  useEffect(()=>{ if(selectedId) getSubmissions(selectedId).then(setSubs); },[selectedId]);
   const color=form?getFormColor(form):"#F59E0B";
   const rFields=(form?.fields||[]).filter(f=>f.type==="rating");
-  const subs=form?getSubs(form.id):[];
+  
 
   const allPersons=["All",...new Set(subs.map(s=>s.personName))];
 
@@ -71,7 +71,7 @@ export default function Submissions(){
       <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
         {forms.map(f=>{
           const c=getFormColor(f);const sel=f.id===selectedId;
-          const count=getSubs(f.id).length;
+          const count=subs.length.length;
           return(
             <button key={f.id} onClick={()=>{setSelectedId(f.id);setPersonFilter("All");setSearch("");}}
               style={{padding:"8px 16px",borderRadius:10,border:`2px solid ${sel?c+"88":"#21262D"}`,background:sel?c+"15":"#161B22",color:sel?c:"#6b7280",fontSize:12,fontWeight:sel?600:400,cursor:"pointer",display:"flex",alignItems:"center",gap:8}}>

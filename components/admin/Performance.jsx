@@ -1,14 +1,11 @@
 "use client";
+import { getForms, getSubmissions } from "@/lib/sheets";
 import { useState, useEffect } from "react";
 import { Search, ChevronDown, ChevronUp } from "lucide-react";
 
 function gi(n=""){return n.split(" ").map(x=>x[0]).join("").toUpperCase().slice(0,2)||"?";}
 function gc(n=""){const c=["#F59E0B","#3B82F6","#10B981","#F43F5E","#8B5CF6","#06B6D4","#F97316"];return c[(n.charCodeAt(0)||0)%c.length];}
 function Av({name="",size=36}){const color=gc(name);return<div style={{width:size,height:size,borderRadius:"50%",background:color+"18",border:"2px solid "+color+"44",display:"flex",alignItems:"center",justifyContent:"center",fontSize:size*0.33,fontWeight:700,color,flexShrink:0}}>{gi(name)}</div>;}
-
-function getSubmissions(formId){
-  try{return JSON.parse(localStorage.getItem("submissions_"+formId)||"[]");}catch{return[];}
-}
 
 function ScoreBar({value,max=5}){
   const pct=(value/max)*100;
@@ -132,9 +129,8 @@ export default function Performance(){
   const [search,setSearch]=useState("");
 
   useEffect(()=>{
-    const sf=localStorage.getItem("forms_list");
+    getForms().then(setForms);
     const sp=localStorage.getItem("people");
-    if(sf){try{setForms(JSON.parse(sf));}catch{}}
     if(sp){try{setPeople(JSON.parse(sp));}catch{}}
   },[]);
 

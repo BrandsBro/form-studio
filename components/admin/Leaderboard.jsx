@@ -1,4 +1,5 @@
 "use client";
+import { getForms, getPeople } from "@/lib/sheets";
 import { useState, useEffect } from "react";
 
 function gi(n=""){return n.split(" ").map(x=>x[0]).join("").toUpperCase().slice(0,2)||"?";}
@@ -96,11 +97,9 @@ export default function Leaderboard(){
   const [config,setConfig]=useState({teamMembers:{forms:[]},teamLeaders:{forms:[]}});
 
   useEffect(()=>{
-    const sf=localStorage.getItem("forms_list");
-    const sp=localStorage.getItem("people");
+    getForms().then(setForms);
+    getPeople().then(setPeople);
     const sc=localStorage.getItem("marking_config");
-    if(sf){try{setForms(JSON.parse(sf));}catch{}}
-    if(sp){try{setPeople(JSON.parse(sp));}catch{}}
     if(sc){try{setConfig(JSON.parse(sc));}catch{}}
   },[]);
 

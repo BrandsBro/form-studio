@@ -19,9 +19,6 @@ function Av({name="",size=40}){const color=gc(name);return <div style={{width:si
 function getMY(){return new Date().toLocaleDateString("en-US",{month:"long",year:"numeric"});}
 
 // ── localStorage helpers ───────────────────────────────────────────────────────
-function getSubmissions(formId){
-  try{return JSON.parse(localStorage.getItem("submissions_"+formId)||"[]");}catch{return[];}
-}
 function saveSubmission(formId,reviewerEmail,personName,values){
   const all=getSubmissions(formId);
   const idx=all.findIndex(s=>s.reviewerEmail===reviewerEmail&&s.personName===personName);
