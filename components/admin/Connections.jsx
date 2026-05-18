@@ -124,7 +124,7 @@ function AddConnModal({allPeople,existingPool,existingConns,editingConn,onSave,o
               </div>
               <p style={{color:"#9ca3af",fontSize:13,margin:"0 0 14px"}}>Select who they will review (staff only, not themselves):</p>
               <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(120px,1fr))",gap:10}}>
-                {allPeople.filter(p=>p.name!==reviewer.name&&!(p.designations||[]).includes&&!((p.designations||[]).some?.(d=>d==="Executive"))).map(p=>{
+                {allPeople.filter(p=>p.name!==reviewer.name).map(p=>{
                   const sel=isReviewee(p);const c=gc(p.name);
                   return(
                     <button key={p.name} onClick={()=>toggleReviewee(p)} style={{padding:"12px 10px",borderRadius:12,border:"2px solid "+(sel?c+"99":"#1C2333"),background:sel?c+"15":"#161B22",cursor:"pointer",textAlign:"center",transition:"all 0.15s",position:"relative"}}>
