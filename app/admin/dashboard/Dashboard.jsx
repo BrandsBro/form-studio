@@ -183,7 +183,7 @@ export default function AdminDashboard() {
           {tab==="formslist"   && <FormsList key={reloadKey} onEdit={(form)=>{ setEditingForm(form); setTab("formbuilder"); }} onOpenConnections={(id)=>{ setConnectionFormId(id); setTab("connections"); }}/>}
           {tab==="formbuilder" && (
             <div style={{background:"#161B22",border:"1px solid #21262D",borderRadius:14,padding:24,minHeight:600}}>
-              <FormBuilder editForm={editingForm} onSaved={()=>{ setEditingForm(null); setReloadKey(k=>k+1); setTab("formslist"); }}/>
+              <FormBuilder editForm={editingForm} onSaved={()=>{ setEditingForm(null); setReloadKey(k=>k+1); setTimeout(()=>setTab("formslist"),100); }}/>
             </div>
           )}
         </div>
