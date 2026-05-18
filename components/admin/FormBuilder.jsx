@@ -372,7 +372,7 @@ export default function FormBuilder({ editForm, onSaved }) {
             </div>
           )}
           <button onClick={reset} style={{ padding:"7px 14px", fontSize:12, color:"#6b7280", background:"transparent", border:"1px solid #21262D", borderRadius:9, cursor:"pointer" }}>Reset</button>
-          <button onClick={save} style={{ padding:"7px 18px", fontSize:13, fontWeight:600, color:"#000", background:saved?"#16a34a":theme.primary, border:"none", borderRadius:9, cursor:"pointer", display:"flex", alignItems:"center", gap:6 }}>
+          <button onClick={async()=>{await save();if(editForm&&onSaved)onSaved();}} style={{ padding:"7px 18px", fontSize:13, fontWeight:600, color:"#000", background:saved?"#16a34a":theme.primary, border:"none", borderRadius:9, cursor:"pointer", display:"flex", alignItems:"center", gap:6 }}>
             <Save size={14}/> {saved ? "Saved!" : editForm ? "Save & Return to Forms" : "Save & Publish"}
           </button>
         </div>
@@ -410,7 +410,7 @@ export default function FormBuilder({ editForm, onSaved }) {
       {editForm && (
         <div style={{background:"rgba(245,158,11,0.08)",border:"1px solid rgba(245,158,11,0.25)",borderRadius:10,padding:"12px 18px",marginBottom:16,display:"flex",alignItems:"center",justifyContent:"space-between",flexWrap:"wrap",gap:8}}>
           <p style={{color:"#F59E0B",fontSize:13,margin:0}}>✏️ Editing: <strong style={{color:"white"}}>{editForm.name}</strong></p>
-          <button onClick={()=>onSaved&&onSaved()} style={{background:"none",border:"1px solid #21262D",borderRadius:8,cursor:"pointer",color:"#9ca3af",fontSize:12,padding:"5px 14px"}}>← Back to Forms</button>
+          <button onClick={async()=>{await save();onSaved&&onSaved();}} style={{background:"none",border:"1px solid #21262D",borderRadius:8,cursor:"pointer",color:"#9ca3af",fontSize:12,padding:"5px 14px"}}>← Back to Forms</button>
         </div>
       )}
       {isMobile ? (
