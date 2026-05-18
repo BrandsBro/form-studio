@@ -20,42 +20,25 @@ export default function Home(){
 
   async function handleFind(){
     if(!email.trim()){setErr("Please enter your email.");return;}
+    if(!email.includes("@")){setErr("Please enter a valid email.");return;}
     setFinding(true);
     setErr("");
-    if(!email.includes("@")){setErr("Please enter a valid email.");return;}
-    const e=email.toLowerCase().trim();
-    // Find all active forms where this email has a connection
-    const found=allForms.filter(form=>
-      (form.connections||[]).some(c=>c.reviewerEmail.toLowerCase()===e)
-    );
-    setMyForms(found);
-    if(!found.length)setErr("No review assignments found for this email.");
-    else setErr("");
-  }
-
-  function goToForm(formId){
-    window.location.href="/form/"+formId+"?email="+encodeURIComponent(email.trim());
-  }
-
-  return(
-    <div style={{minHeight:"100vh",background:"#0D1117",display:"flex",alignItems:"center",justifyContent:"center",padding:24}}>
-      <div style={{width:"100%",maxWidth:540}}>
-
-        {/* Header */}
-        <div style={{textAlign:"center",marginBottom:36}}>
-          <div style={{fontSize:40,marginBottom:12}}>📋</div>
-          <h1 style={{color:"white",fontSize:26,fontWeight:700,margin:"0 0 8px",fontFamily:"var(--font-playfair)"}}>Performance Reviews</h1>
-          <p style={{color:"#6b7280",fontSize:14,margin:0}}>Enter your email to see your assigned reviews</p>
-        </div>
-
-        {/* Email input */}
-        <div style={{background:"#161B22",border:"1px solid #21262D",borderRadius:16,padding:24,marginBottom:16}}>
-          <label style={{fontSize:11,color:"#6b7280",display:"block",marginBottom:8,textTransform:"uppercase",letterSpacing:"0.07em"}}>Your Email Address</label>
-          <div style={{display:"flex",gap:10}}>
-            <input
-              value={email}
-              onChange={e=>{setEmail(e.target.value);setErr("");setMyForms(null);
-    setFinding(false);}}
+    setMyForms(null);
+    try {
+      const fl = await getForms();
+      const e = email.toLowerCase().trim();
+      const active = fl.filter(f=>f.active);
+      const found = active.filter(form=>{
+        const conns = form.connections||[];
+        return conns.some(c=>c.reviewerEmail&&c.reviewerEmail.toLowerCase()===e);
+      });
+      setAllForms(active);
+      setMyForms(found);
+    } catch(err) {
+      setErr("Error loading forms. Please try again.");
+    }
+    setFinding(false);
+  }}
               onKeyDown={e=>e.key==="Enter"&&handleFind()}
               placeholder="your@email.com"
               type="email"
