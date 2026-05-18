@@ -1,4 +1,5 @@
 "use client";
+import { getForms, saveSubmission as sheetSaveSubmission } from "@/lib/sheets";
 import { useState, useEffect } from "react";
 import { useParams, useSearchParams } from "next/navigation";
 import { ChevronRight, ChevronLeft, Star, Check } from "lucide-react";
@@ -183,24 +184,15 @@ function StepForm({form,reviewerEmail,personName,isMulti,onDone,onBack}){
       // Save to localStorage
       saveSubmission(form.id,reviewerEmail,personName,vals);
       // Save to Google Sheets
-      const SHEETS_URL=process.env.NEXT_PUBLIC_SHEETS_URL;
-      if(SHEETS_URL){
-        await fetch(SHEETS_URL,{
-          method:"POST",
-          headers:{"Content-Type":"text/plain"},
-          body:JSON.stringify({
-            action:"submit",
-            formId:form.id,
-            formName:form.name,
-            reviewerEmail,
-            personName,
-            values:vals,
-            comments:vals.comments||"",
-            submittedAt:new Date().toISOString(),
-          }),
-          redirect:"follow",
-        });
-      }
+      await sheetSaveSubmission({
+        formId:form.id,
+        formName:form.name,
+        reviewerEmail,
+        personName,
+        values:vals,
+        comments:vals.comments||"",
+        submittedAt:new Date().toISOString(),
+      });
     }catch(err){
       console.error("Sheets save error:",err);
     }

@@ -1,4 +1,5 @@
 "use client";
+import { getForms, saveForms } from "@/lib/sheets";
 import { useState, useEffect } from "react";
 import { Plus, Trash2, X, ArrowRight, ArrowLeft, Copy, Check } from "lucide-react";
 
@@ -326,20 +327,11 @@ function FormConnections({ form, onUpdate, onBack, employees, executives }) {
 
 // ── Forms List ────────────────────────────────────────────────────────────────
 
-const SHEETS_URL = process.env.NEXT_PUBLIC_SHEETS_URL || "https://script.google.com/macros/s/AKfycbyRwS_UAtUv_5fHvFz61nyHfHx9SS2oOxN0DWamJBS2C46seFPO7RXRlR4fC50Ifv6dZg/exec";
-async function sheetSaveForms(forms) {
-  try {
-    await fetch(SHEETS_URL, {
-      method:"POST",
-      headers:{"Content-Type":"text/plain"},
-      body:JSON.stringify({action:"saveForms", forms}),
-      redirect:"follow",
-    });
-  } catch(e) { console.error("Sheets forms error:", e); }
 }
 
 export default function FormsList({ onEdit, onOpenConnections }) {
   const [forms, setForms] = useState([]);
+  const [loading, setLoading] = useState(false);
   const [selected, setSelected] = useState(null);
   const [renamingForm, setRenamingForm] = useState(null);
     const [employees, setEmployees] = useState([]);
@@ -358,13 +350,13 @@ export default function FormsList({ onEdit, onOpenConnections }) {
     }
   }, []);
 
-  function saveForms(list) { setForms(list); localStorage.setItem("forms_list",JSON.stringify(list)); sheetSaveForms(list); }
+  function persistForms(list) { setForms(list); saveForms(list); }
   function handleUpdate(updated) { const list=forms.map(f=>f.id===updated.id?updated:f); saveForms(list); setSelected(updated); }
-  function handleRename(updated) { saveForms(forms.map(f=>f.id===updated.id?updated:f)); setRenamingForm(null); }
-  function createForm() { const nf={...EF,id:"form_"+Date.now(),name:"New Form "+(forms.length+1),description:"",createdAt:new Date().toISOString().slice(0,10),fields:[]}; saveForms([...forms,nf]); }
-  function dupForm(form) { saveForms([...forms,{...form,id:"form_"+Date.now(),name:form.name+" (Copy)",createdAt:new Date().toISOString().slice(0,10)}]); }
-  function delForm(id) { saveForms(forms.filter(f=>f.id!==id)); }
-  function toggleActive(id) { saveForms(forms.map(f=>f.id===id?{...f,active:!f.active}:f)); }
+  function handleRename(updated) { persistForms(forms.map(f=>f.id===updated.id?updated:f)); setRenamingForm(null); }
+  function createForm() { const nf={...EF,id:"form_"+Date.now(),name:"New Form "+(forms.length+1),description:"",createdAt:new Date().toISOString().slice(0,10),fields:[]}; persistForms([...forms,nf]); }
+  function dupForm(form) { persistForms([...forms,{...form,id:"form_"+Date.now(),name:form.name+" (Copy)",createdAt:new Date().toISOString().slice(0,10)}]); }
+  function delForm(id) { persistForms(forms.filter(f=>f.id!==id)); }
+  function toggleActive(id) { persistForms(forms.map(f=>f.id===id?{...f,active:!f.active}:f)); }
 
   if (selected) {
     const fresh = forms.find(f=>f.id===selected.id)||selected;

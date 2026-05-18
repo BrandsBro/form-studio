@@ -2,49 +2,9 @@
 import { useState, useEffect } from "react";
 import { Plus, Trash2, Search, Check, X } from "lucide-react";
 import { DEPARTMENTS, DEFAULT_DESIGNATIONS, getDesignations, addDesignation, removeDesignation } from "@/lib/roles";
+import { getPeople, savePerson, deletePerson, saveAllPeople } from "@/lib/sheets";
 
 
-const SHEETS_URL = process.env.NEXT_PUBLIC_SHEETS_URL || "https://script.google.com/macros/s/AKfycbyRwS_UAtUv_5fHvFz61nyHfHx9SS2oOxN0DWamJBS2C46seFPO7RXRlR4fC50Ifv6dZg/exec";
-
-async function sheetGetPeople() {
-  try {
-    const r = await fetch(SHEETS_URL+"?action=getPeople", {redirect:"follow"});
-    const d = await r.json();
-    return d.people || [];
-  } catch(e) { console.error("Sheets read error:", e); return null; }
-}
-
-async function sheetSavePerson(person) {
-  try {
-    await fetch(SHEETS_URL, {
-      method:"POST",
-      headers:{"Content-Type":"text/plain"},
-      body:JSON.stringify({action:"savePerson",...person}),
-      redirect:"follow",
-    });
-  } catch(e) { console.error("Sheets save error:", e); }
-}
-
-async function sheetDeletePerson(id) {
-  try {
-    await fetch(SHEETS_URL, {
-      method:"POST",
-      headers:{"Content-Type":"text/plain"},
-      body:JSON.stringify({action:"deletePerson", id}),
-      redirect:"follow",
-    });
-  } catch(e) { console.error("Sheets delete error:", e); }
-}
-
-async function sheetSaveAllPeople(people) {
-  try {
-    await fetch(SHEETS_URL, {
-      method:"POST",
-      headers:{"Content-Type":"text/plain"},
-      body:JSON.stringify({action:"savePeople", people}),
-      redirect:"follow",
-    });
-  } catch(e) { console.error("Sheets sync error:", e); }
 }
 
 const DESIG_COLORS = {
@@ -239,40 +199,26 @@ export default function People(){
   const [search,setSearch]=useState("");
   const [filter,setFilter]=useState("All");
   const [modal,setModal]=useState(null);
+  const [loading,setLoading]=useState(false);
   const [designations,setDesignations]=useState(DEFAULT_DESIGNATIONS);
 
   useEffect(()=>{
     setDesignations(getDesignations());
-    // Try Sheets first
-    sheetGetPeople().then(sheetPeople=>{
-      if(sheetPeople&&sheetPeople.length>0){
-        setPeople(sheetPeople);
-        localStorage.setItem("people",JSON.stringify(sheetPeople));
-      } else {
-        // Fallback to localStorage
-        const stored=localStorage.getItem("people");
-        if(stored){
-          try{
-            const local=JSON.parse(stored);
-            setPeople(local);
-            // Sync localStorage data up to Sheets
-            if(local.length>0) sheetSaveAllPeople(local);
-          }catch{}
-        } else {
-          setPeople(DEFAULT_PEOPLE);
-          sheetSaveAllPeople(DEFAULT_PEOPLE);
-          localStorage.setItem("people",JSON.stringify(DEFAULT_PEOPLE));
-        }
-      }
+    setLoading(true);
+    getPeople().then(data=>{
+      if(data.length>0){ setPeople(data); }
+      else { setPeople(DEFAULT_PEOPLE); saveAllPeople(DEFAULT_PEOPLE); }
+      setLoading(false);
     });
   },[]);
 
-  function save(list){setPeople(list);localStorage.setItem("people",JSON.stringify(list));sheetSaveAllPeople(list);}
+  function save(list){setPeople(list);saveAllPeople(list);}
   function handleSave(person){
     const ex=people.find(x=>x.id===person.id);
     const updated=ex?people.map(x=>x.id===person.id?person:x):[...people,person];
-    save(updated);
-    sheetSavePerson(person);
+    setPeople(updated);
+    savePerson(person);
+    saveAllPeople(updated);
     setModal(null);
   }
   function handleDelete(id){save(people.filter(p=>p.id!==id));}
@@ -284,6 +230,7 @@ export default function People(){
 
   return(
     <div style={{display:"flex",flexDirection:"column",gap:20}}>
+      {loading&&<div style={{textAlign:"center",padding:20,color:"#6b7280",fontSize:13}}>Loading from Google Sheets...</div>}
       <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",flexWrap:"wrap",gap:12}}>
         <div>
           <h2 style={{color:"white",fontSize:18,fontWeight:700,margin:0,fontFamily:"var(--font-playfair)"}}>People</h2>

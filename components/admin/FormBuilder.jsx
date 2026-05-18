@@ -1,4 +1,5 @@
 "use client";
+import { getForms, saveForms as sheetSaveForms } from "@/lib/sheets";
 
 function ConfirmModal({ title, message, confirmLabel="Delete", confirmColor="#ef4444", icon="🗑️", onConfirm, onClose }) {
   useEffect(() => {
@@ -80,16 +81,6 @@ function hexToRgb(hex) {
 }
 
 
-const SHEETS_URL = process.env.NEXT_PUBLIC_SHEETS_URL || "https://script.google.com/macros/s/AKfycbyRwS_UAtUv_5fHvFz61nyHfHx9SS2oOxN0DWamJBS2C46seFPO7RXRlR4fC50Ifv6dZg/exec";
-async function sheetSaveForms(forms) {
-  try {
-    await fetch(SHEETS_URL, {
-      method:"POST",
-      headers:{"Content-Type":"text/plain"},
-      body:JSON.stringify({action:"saveForms", forms}),
-      redirect:"follow",
-    });
-  } catch(e) { console.error("Sheets forms error:", e); }
 }
 
 export default function FormBuilder({ editForm, onSaved }) {
@@ -106,10 +97,10 @@ export default function FormBuilder({ editForm, onSaved }) {
   useEffect(() => {
     // Load forms list for the selector
     try {
-      const fl = JSON.parse(localStorage.getItem("forms_list") || "[]");
+      getForms().then(fl=>{
       setFormsList(fl);
       if (fl.length > 0 && !editForm) setTargetFormId(fl[0].id);
-    } catch(e) {}
+    }); catch(e) {}
 
     if (editForm) {
       setConfig(prev => ({
@@ -146,13 +137,13 @@ export default function FormBuilder({ editForm, onSaved }) {
           customColor: config.customColor,
           fields: config.fields,
         } : f);
-        localStorage.setItem("forms_list", JSON.stringify(updated)); sheetSaveForms(updated);
+         sheetSaveForms(updated);
       } catch(e) { console.error(e); }
       setSaved(true);
       setTimeout(() => { setSaved(false); if (onSaved) onSaved(); }, 1200);
     } else {
       // Save to form_config (legacy)
-      localStorage.setItem("form_config", JSON.stringify(config));
+      
       // Also update the target form in forms_list
       if (targetFormId) {
         try {
@@ -167,7 +158,7 @@ export default function FormBuilder({ editForm, onSaved }) {
             customColor: config.customColor,
             fields: config.fields,
           } : f); sheetSaveForms(updated);
-          localStorage.setItem("forms_list", JSON.stringify(updated));
+          
           setFormsList(updated);
         } catch(e) {}
       }
