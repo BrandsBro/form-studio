@@ -179,7 +179,7 @@ export default function AdminDashboard() {
 
           {tab==="people" && <People/>}
           {tab==="connections" && <Connections defaultFormId={connectionFormId}/>}
-          {tab==="formslist"   && <FormsList onEdit={(form)=>{ setEditingForm(form); setTab("formbuilder"); }} onOpenConnections={(id)=>{ setConnectionFormId(id); setTab("connections"); }}/>}
+          {tab==="formslist"   && <FormsList key={Date.now()} onEdit={(form)=>{ setEditingForm(form); setTab("formbuilder"); }} onOpenConnections={(id)=>{ setConnectionFormId(id); setTab("connections"); }}/>}
           {tab==="formbuilder" && (
             <div style={{background:"#161B22",border:"1px solid #21262D",borderRadius:14,padding:24,minHeight:600}}>
               <FormBuilder editForm={editingForm} onSaved={()=>{ setEditingForm(null); setTab("formslist"); }}/>

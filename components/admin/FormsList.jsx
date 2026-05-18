@@ -358,7 +358,13 @@ export default function FormsList({ onEdit, onOpenConnections }) {
   function handleRename(updated) { persistForms(forms.map(f=>f.id===updated.id?updated:f)); setRenamingForm(null); }
   function createForm() { const nf={...EF,id:"form_"+Date.now(),name:"New Form "+(forms.length+1),description:"",createdAt:new Date().toISOString().slice(0,10),fields:[]}; persistForms([...forms,nf]); }
   function dupForm(form) { persistForms([...forms,{...form,id:"form_"+Date.now(),name:form.name+" (Copy)",createdAt:new Date().toISOString().slice(0,10)}]); }
-  function delForm(id) { persistForms(forms.filter(f=>f.id!==id)); }
+  async function delForm(id) {
+    const updated = forms.filter(f=>f.id!==id);
+    setForms(updated);
+    await saveForms(updated);
+    // Reload from Sheets to confirm
+    getForms().then(data=>setForms(data));
+  }
   function toggleActive(id) { persistForms(forms.map(f=>f.id===id?{...f,active:!f.active}:f)); }
 
   if (selected) {
@@ -465,4 +471,22 @@ export default function FormsList({ onEdit, onOpenConnections }) {
       {renamingForm && <RenameModal form={renamingForm} onSave={handleRename} onClose={()=>setRenamingForm(null)}/>}
     </div>
   );
-}
+}if(loading) return(
+    <div style={{display:"flex",flexDirection:"column",gap:16}}>
+      <style>{"@keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}"}</style>
+      <div style={{display:"flex",justifyContent:"space-between"}}>
+        <Skeleton w={100} h={28}/>
+        <Skeleton w={120} h={36} r={10}/>
+      </div>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(320px,1fr))",gap:16}}>
+        {[1,2,3].map(i=>(
+          <div key={i} style={{background:"#161B22",border:"1px solid #21262D",borderRadius:14,padding:20,display:"flex",flexDirection:"column",gap:14}}>
+            <Skeleton w="60%" h={20}/>
+            <Skeleton w="40%" h={14}/>
+            <div style={{display:"flex",gap:10}}><Skeleton w={80} h={32} r={8}/><Skeleton w={100} h={32} r={8}/></div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+  
