@@ -91,6 +91,7 @@ export default function AdminDashboard() {
   const [selectedFormId, setSelectedFormId] = useState(null);
   const [editingForm, setEditingForm] = useState(null);
   const [connectionFormId, setConnectionFormId] = useState(null);
+  const [reloadKey, setReloadKey] = useState(0);
   const [search, setSearch] = useState("");
   const [sortKey, setSortKey] = useState("submittedAt");
   const [sortDir, setSortDir] = useState("desc");
@@ -179,10 +180,10 @@ export default function AdminDashboard() {
 
           {tab==="people" && <People/>}
           {tab==="connections" && <Connections defaultFormId={connectionFormId}/>}
-          {tab==="formslist"   && <FormsList key={Date.now()} onEdit={(form)=>{ setEditingForm(form); setTab("formbuilder"); }} onOpenConnections={(id)=>{ setConnectionFormId(id); setTab("connections"); }}/>}
+          {tab==="formslist"   && <FormsList key={reloadKey} onEdit={(form)=>{ setEditingForm(form); setTab("formbuilder"); }} onOpenConnections={(id)=>{ setConnectionFormId(id); setTab("connections"); }}/>}
           {tab==="formbuilder" && (
             <div style={{background:"#161B22",border:"1px solid #21262D",borderRadius:14,padding:24,minHeight:600}}>
-              <FormBuilder editForm={editingForm} onSaved={()=>{ setEditingForm(null); setTab("formslist"); }}/>
+              <FormBuilder editForm={editingForm} onSaved={()=>{ setEditingForm(null); setReloadKey(k=>k+1); setTab("formslist"); }}/>
             </div>
           )}
         </div>
