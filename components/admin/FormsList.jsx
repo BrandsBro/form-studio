@@ -349,9 +349,9 @@ export default function FormsList({ onEdit, onOpenConnections }) {
   },[]);
 
   function persistForms(list) { setForms(list); saveForms(list); }
-  function handleUpdate(updated) { const list = forms.map(f=>f.id===updated.id?updated:f); saveForms(list); setSelected(updated); }
-  function handleRename(updated) { persistForms(forms.map(f=>f.id===updated.id?updated:f)); setRenamingForm(null); }
-  function createForm() { const nf={...EF,id:"form_"+Date.now(),name:"New Form "+(forms.length+1),description:"",createdAt:new Date().toISOString().slice(0,10),fields:[]}; persistForms([...forms,nf]); }
+  async function handleUpdate(updated) { const fresh=await getForms(); const list=fresh.map(f=>f.id===updated.id?updated:f); setForms(list); saveForms(list); setSelected(updated); }
+  async function handleRename(updated) { const fresh=await getForms(); const list=fresh.map(f=>f.id===updated.id?updated:f); setForms(list); saveForms(list); setRenamingForm(null); }
+  async function createForm() { const fresh=await getForms(); const nf={...EF,id:"form_"+Date.now(),name:"New Form "+(fresh.length+1),description:"",createdAt:new Date().toISOString().slice(0,10),fields:[]}; const updated=[...fresh,nf]; setForms(updated); saveForms(updated); }
   async function dupForm(form) {
     const fresh = await getForms();
     const copy = {...form,id:"form_"+Date.now(),name:form.name+" (Copy)",createdAt:new Date().toISOString().slice(0,10)};
