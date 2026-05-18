@@ -35,8 +35,9 @@ export default function Home(){
       setAllForms(active);
       setMyForms(found);
     } catch(err) {
-      setErr("Error loading forms. Please try again.");
-    }
+      setErr("Error loading forms. Please try again.");</>
+  );
+}
     setFinding(false);
   }}
               onKeyDown={e=>e.key==="Enter"&&handleFind()}
@@ -49,7 +50,7 @@ export default function Home(){
             />
             <button onClick={handleFind} disabled={finding}
               style={{padding:"11px 20px",borderRadius:10,border:"none",background:"linear-gradient(135deg,#D97706,#F59E0B)",color:"#000",fontSize:14,fontWeight:700,cursor:"pointer",whiteSpace:"nowrap",display:"flex",alignItems:"center",gap:6}}>
-              Find <ChevronRight size={16}/>
+              {finding ? <><svg style={{width:14,height:14,animation:"spin 1s linear infinite",flexShrink:0}} viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" opacity="0.25"/><path fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"/></svg> Finding...</> : <>Find <ChevronRight size={16}/></>}
             </button>
           </div>
           {err&&<p style={{color:"#ef4444",fontSize:12,margin:"8px 0 0"}}>{err}</p>}
@@ -67,7 +68,7 @@ export default function Home(){
               const totalToReview=conn?.revieweeNames?.length||0;
               const reviewed=0;
               const allDone=reviewed>=totalToReview&&totalToReview>0;
-              return(
+              return(<><style>{"@keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}"}</style>
                 <button key={form.id} onClick={()=>goToForm(form.id)}
                   style={{background:"#161B22",border:"1px solid #21262D",borderRadius:16,overflow:"hidden",cursor:"pointer",textAlign:"left",width:"100%",transition:"all 0.2s"}}
                   onMouseOver={e=>{e.currentTarget.style.borderColor=color+"55";e.currentTarget.style.transform="translateY(-1px)";}}
