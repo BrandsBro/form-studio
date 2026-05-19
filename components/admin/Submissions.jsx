@@ -104,7 +104,7 @@ export default function Submissions(){
           const c=getFormColor(f);const sel=f.id===selectedId;
           const count=subs.length.length;
           return(
-            <button key={f.id} onClick={()=>{setSelectedId(f.id);setPersonFilter("All");setSearch("");}}
+            <button key={f.id} onClick={()=>{setSelectedId(f.id);setPersonFilter("All");setSearch("");setSubs([]);setLoadingSubs(true);}}
               style={{padding:"8px 16px",borderRadius:10,border:`2px solid ${sel?c+"88":"#21262D"}`,background:sel?c+"15":"#161B22",color:sel?c:"#6b7280",fontSize:12,fontWeight:sel?600:400,cursor:"pointer",display:"flex",alignItems:"center",gap:8}}>
               <span style={{width:7,height:7,borderRadius:"50%",background:sel?c:"#374151"}}/>
               {f.name.length>28?f.name.slice(0,28)+"...":f.name}
