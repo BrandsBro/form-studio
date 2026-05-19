@@ -303,6 +303,7 @@ function StepSuccess({form,conn,reviewerEmail,onEdit,allSubs=[]}){
           ))}
         </div>
         <p style={{color:"#4b5563",fontSize:12}}>Click any name above to edit your review.</p>
+<button onClick={goHome} style={{marginTop:20,padding:"13px 32px",borderRadius:12,border:"none",background:"linear-gradient(135deg,#D97706,#F59E0B)",color:"#000",fontSize:14,fontWeight:700,cursor:"pointer",display:"flex",alignItems:"center",gap:8,margin:"20px auto 0"}}>← Back to My Forms</button>
       </div>
     </div>
   );
