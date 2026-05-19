@@ -276,16 +276,18 @@ export default function Marking(){
   const [view,setView]=useState("config");
   
   useEffect(()=>{
-    getForms().then(fl=>{
+    Promise.all([getForms(), getPeople()]).then(([fl, p])=>{
       setForms(fl);
+      setPeople(p);
       setLoading(false);
-      getPeople().then(setPeople);
+      // subs loaded above
+      // getMarkingConfig().then(cfg=>{ if(cfg) setConfig(cfg); });
+    getMarkingConfig().then(cfg=>{ if(cfg) setConfig(cfg); }).catch(()=>{});
       fl.forEach(f=>{
         getSubmissions(f.id).then(subs=>{
           setAllSubs(prev=>({...prev,[f.id]:subs}));
         }).catch(()=>{});
       });
-      getMarkingConfig().then(cfg=>{ if(cfg) setConfig(cfg); });
     }).catch(()=>setLoading(false));
   },[]);
 
