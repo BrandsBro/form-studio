@@ -140,7 +140,6 @@ export default function Overview() {
         </div>
       ) : (
         <>
-          {/* Stats */}
           {loadingSubs ? (
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(160px,1fr))", gap: 12 }}>
               {[1, 2, 3, 4, 5, 6].map(i => (
@@ -170,6 +169,23 @@ export default function Overview() {
             </div>
           )}
 
+          {loadingSubs ? (
+            <div style={{display:"flex",flexDirection:"column",gap:16}}>
+              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:16}}>
+                <div style={{background:"#161B22",border:"1px solid #21262D",borderRadius:12,padding:20,display:"flex",flexDirection:"column",gap:10}}>
+                  <Skeleton w="50%" h={16}/>
+                  {[1,2,3,4,5,6,7,8,9,10].map(i=>(<div key={i} style={{display:"flex",justifyContent:"space-between",marginBottom:8}}><Skeleton w="70%" h={12}/><Skeleton w={40} h={12}/></div>))}
+                </div>
+                <div style={{background:"#161B22",border:"1px solid #21262D",borderRadius:12,padding:20,display:"flex",flexDirection:"column",gap:10}}>
+                  <Skeleton w="50%" h={16}/>
+                  {[1,2,3].map(i=>(<div key={i} style={{display:"flex",gap:10,alignItems:"center",padding:"10px 12px",background:"#0D1117",borderRadius:10,marginBottom:8}}><Skeleton w={36} h={36} r={50}/><div style={{flex:1}}><Skeleton w="60%" h={12}/></div><Skeleton w={40} h={12}/></div>))}
+                </div>
+              </div>
+              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:14}}>
+                {[1,2].map(i=>(<div key={i} style={{background:"#161B22",border:"1px solid #21262D",borderRadius:12,padding:18,display:"flex",flexDirection:"column",gap:8}}><Skeleton w="40%" h={14}/>{[1,2,3].map(j=>(<div key={j} style={{display:"flex",gap:10,alignItems:"center",padding:"8px 12px",background:"#0D1117",borderRadius:8}}><Skeleton w={30} h={30} r={50}/><Skeleton w="60%" h={12}/></div>))}</div>))}
+              </div>
+            </div>
+          ) : (
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(300px,1fr))", gap: 16 }}>
             {/* Avg score per question */}
             <div style={{ background: "#161B22", border: "1px solid #21262D", borderRadius: 12, padding: 20 }}>
@@ -278,6 +294,8 @@ export default function Overview() {
                 })}
               </div>
             </div>
+          )}
+        </>
           )}
         </>
       )}
