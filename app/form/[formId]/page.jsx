@@ -156,6 +156,14 @@ function StepForm({form,reviewerEmail,personName,isMulti,onDone,onBack,allSubs=[
   const t=getTheme(form);
   const rFields=(form.fields||[]).filter(f=>f.type==="rating"&&f.required);
   const isEditing=!!prev;
+  // Prevent browser back button
+  useEffect(()=>{
+    window.history.pushState(null,"",window.location.href);
+    const onPop=()=>{ window.history.pushState(null,"",window.location.href); };
+    window.addEventListener("popstate",onPop);
+    return()=>window.removeEventListener("popstate",onPop);
+  },[]);
+
   useEffect(()=>{
     if(prev?.values&&Object.keys(prev.values).length>0){
       setVals(prev.values);

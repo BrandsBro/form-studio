@@ -106,7 +106,7 @@ export default function Home(){
           {myForms.length===0?(
             <p style={{color:"#6b7280",fontSize:14,textAlign:"center"}}>No review assignments found for this email.</p>
           ):(
-            myForms.map(form=>{
+            myForms.filter(f=>!formProgress[f.id]?.done).map(form=>{
               const color=getColor(form);
               const prog=formProgress[form.id]||{reviewed:0,total:0,done:false};
               const pct=prog.total>0?Math.round((prog.reviewed/prog.total)*100):0;
