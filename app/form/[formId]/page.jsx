@@ -321,6 +321,7 @@ export default function FormPage(){
   const [form,setForm]=useState(null);
   const [loading,setLoading]=useState(true);
   const [allSubs,setAllSubs]=useState([]);
+  const [subsLoaded,setSubsLoaded]=useState(false);
   const [notFound,setNotFound]=useState(false);
   const [step,setStep]=useState("email");
   const [reviewerEmail,setReviewerEmail]=useState("");
@@ -345,7 +346,8 @@ export default function FormPage(){
         }
       } else setError("Form not found");
       setLoading(false);
-        if(f) getSubmissions(f.id).then(setAllSubs).catch(()=>{});
+        if(f) getSubmissions(f.id).then(s=>{setAllSubs(s);setSubsLoaded(true);}).catch(()=>{setSubsLoaded(true);});
+      else setSubsLoaded(true);
       setLoading(false);
     }).catch(()=>{setError("Failed to load form.");setLoading(false);});
   },[formId]);
@@ -419,7 +421,7 @@ export default function FormPage(){
       <div style={{position:"relative",zIndex:1}}>
         {step==="email"&&<StepEmail form={form} onNext={handleEmailNext}/>}
         {step==="list"&&<StepReviewList form={form} conn={conn} reviewerEmail={reviewerEmail} allSubs={allSubs} onStart={handleStartPerson} onBack={()=>setStep("email")}/>}
-        {step==="form"&&<StepForm form={form} reviewerEmail={reviewerEmail} personName={currentPerson} isMulti={conn?.type==="multi"} onDone={handleFormDone} onBack={()=>setStep("list")} allSubs={allSubs} onSubsUpdate={s=>setAllSubs(s)}/>}
+        {step==="form"&&(!subsLoaded?<div style={{minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",background:"#0D1117"}}><svg style={{width:32,height:32,animation:"spin 1s linear infinite"}} viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="#21262D" strokeWidth="3"/><path d="M4 12a8 8 0 018-8" stroke="#F59E0B" strokeWidth="3" strokeLinecap="round"/></svg></div>:<StepForm form={form} reviewerEmail={reviewerEmail} personName={currentPerson} isMulti={conn?.type==="multi"} onDone={handleFormDone} onBack={()=>setStep("list")} allSubs={allSubs} onSubsUpdate={s=>setAllSubs(s)}/>)}
         {step==="success"&&<StepSuccess allSubs={allSubs} form={form} conn={conn} reviewerEmail={reviewerEmail} onEdit={handleEditFromSuccess}/>}
       </div>
     </div>
