@@ -156,6 +156,11 @@ function StepForm({form,reviewerEmail,personName,isMulti,onDone,onBack,allSubs=[
   const t=getTheme(form);
   const rFields=(form.fields||[]).filter(f=>f.type==="rating"&&f.required);
   const isEditing=!!prev;
+  useEffect(()=>{
+    if(prev?.values&&Object.keys(prev.values).length>0){
+      setVals(prev.values);
+    }
+  },[prev?.id]);
 
   useEffect(()=>{setProgress((rFields.filter(f=>vals[f.id]).length/Math.max(rFields.length,1))*100);},[vals]);
 
