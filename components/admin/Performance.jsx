@@ -20,7 +20,7 @@ function ScoreBar({value,max=5}){
   );
 }
 
-function PersonCard({person,forms}){
+function PersonCard({person,forms,allSubs={}}){
   const [open,setOpen]=useState(false);
   const color=gc(person.name);
 
@@ -213,7 +213,7 @@ export default function Performance(){
         </div>
       ):(
         <div style={{display:"flex",flexDirection:"column",gap:10}}>
-          {filtered.map(person=><PersonCard key={person.id} person={person} forms={forms}/>)}
+          {filtered.map(person=><PersonCard key={person.id} person={person} forms={forms} allSubs={allSubs}/>)}
         </div>
       )}
     </div>
