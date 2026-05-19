@@ -8,9 +8,7 @@ function gi(n=""){return n.split(" ").map(x=>x[0]).join("").toUpperCase().slice(
 function gc(n=""){const c=["#F59E0B","#3B82F6","#10B981","#F43F5E","#8B5CF6","#06B6D4","#F97316"];return c[(n.charCodeAt(0)||0)%c.length];}
 function Av({name="",size=36}){const color=gc(name);return<div style={{width:size,height:size,borderRadius:"50%",background:color+"18",border:"2px solid "+color+"44",display:"flex",alignItems:"center",justifyContent:"center",fontSize:size*0.33,fontWeight:700,color,flexShrink:0}}>{gi(name)}</div>;}
 
-function getFormSubs(formId){
-  try{return JSON.parse(localStorage.getItem("submissions_"+formId)||"[]");}catch(e){return[];}
-}
+
 
 function calcAvg(subs,fields,excludeEmail=null,invalidated=[]){
   const rFields=fields.filter(f=>f.type==="rating");
@@ -42,6 +40,7 @@ export default function ReReview(){
   const [editThreshold,setEditThreshold]=useState(false);
   const [invalidated,setInvalidated]=useState([]);
   const [refresh,setRefresh]=useState(0);
+  const [loading,setLoading]=useState(true);
 
   useEffect(()=>{
     Promise.all([getForms(),getPeople()]).then(async([fl,p])=>{
@@ -49,6 +48,7 @@ export default function ReReview(){
       const subsMap={};
       await Promise.all(fl.map(async f=>{subsMap[f.id]=await getSubmissions(f.id);}));
       setAllSubs(subsMap);
+      setLoading(false);
       const st=localStorage.getItem("rr_threshold");
       if(st){try{setThreshold(parseInt(st));}catch(e){}}
       setInvalidated(getInvalidated());
@@ -83,7 +83,7 @@ export default function ReReview(){
   tmForms.forEach(form=>{
     const fields=form.fields||[];
     teamLeaders.forEach(leader=>{
-      const subs=getFormSubs(form.id).filter(s=>s.personName===leader.name);
+      const subs=(allSubs[form.id]||[]).filter(s=>s.personName===leader.name);
       if(!subs.length)return;
 
       const overallAvg=calcAvg(subs,fields,[],invalidated);
@@ -132,11 +132,11 @@ export default function ReReview(){
       // Calculate their score: TL=60%, HR=40%
       const tm=g.teamMembers[0];
       const allSubs=forms.flatMap(form=>{
-        const subs=getFormSubs(form.id).filter(s=>s.reviewerEmail===tm.email);
+        const subs=(allSubs[form.id]||[]).filter(s=>s.reviewerEmail===tm.email);
         const rFields=(form.fields||[]).filter(f=>f.type==="rating");
         return subs.map(s=>({score:rFields.length?rFields.map(f=>s.values?.[f.id]||0).reduce((a,b)=>a+b,0)/rFields.length:0}));
       });
-      const avgScore=allSubs.length?allSubs.reduce((a,s)=>a+s.score,0)/allSubs.length:null;
+      const avgScore=tmSubs.length?tmSubs.reduce((a,s)=>a+s.score,0)/tmSubs.length:null;
       const tlContrib=avgScore!==null?avgScore*0.6:null;
       const hrContrib=avgScore!==null?avgScore*0.4:null;
       const total=tlContrib!==null?tlContrib+hrContrib:null;
@@ -145,6 +145,19 @@ export default function ReReview(){
 
   const totalFlags=uniqueTLFlags.length+loneTMFlags.length;
 
+  if(loading) return(
+    <div style={{display:"flex",flexDirection:"column",gap:16}}>
+      <style>{"@keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}"}</style>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+        <div style={{display:"flex",flexDirection:"column",gap:6}}><div style={{width:120,height:24,borderRadius:8,background:"linear-gradient(90deg,#161B22 25%,#21262D 50%,#161B22 75%)",backgroundSize:"200% 100%",animation:"shimmer 1.5s infinite"}}/><div style={{width:220,height:14,borderRadius:6,background:"linear-gradient(90deg,#161B22 25%,#21262D 50%,#161B22 75%)",backgroundSize:"200% 100%",animation:"shimmer 1.5s infinite"}}/></div>
+        <div style={{width:160,height:36,borderRadius:9,background:"linear-gradient(90deg,#161B22 25%,#21262D 50%,#161B22 75%)",backgroundSize:"200% 100%",animation:"shimmer 1.5s infinite"}}/>
+      </div>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(130px,1fr))",gap:10}}>
+        {[1,2,3,4].map(i=>(<div key={i} style={{background:"#161B22",border:"1px solid #21262D",borderRadius:10,padding:"12px 16px",display:"flex",flexDirection:"column",gap:6}}><div style={{width:"40%",height:24,borderRadius:6,background:"linear-gradient(90deg,#161B22 25%,#21262D 50%,#161B22 75%)",backgroundSize:"200% 100%",animation:"shimmer 1.5s infinite"}}/><div style={{width:"60%",height:12,borderRadius:4,background:"linear-gradient(90deg,#161B22 25%,#21262D 50%,#161B22 75%)",backgroundSize:"200% 100%",animation:"shimmer 1.5s infinite"}}/></div>))}
+      </div>
+      {[1,2].map(i=>(<div key={i} style={{background:"#161B22",border:"1px solid #21262D",borderRadius:12,padding:18,display:"flex",flexDirection:"column",gap:12}}><div style={{width:"40%",height:16,borderRadius:6,background:"linear-gradient(90deg,#161B22 25%,#21262D 50%,#161B22 75%)",backgroundSize:"200% 100%",animation:"shimmer 1.5s infinite"}}/>{[1,2].map(j=>(<div key={j} style={{height:80,borderRadius:10,background:"linear-gradient(90deg,#161B22 25%,#21262D 50%,#161B22 75%)",backgroundSize:"200% 100%",animation:"shimmer 1.5s infinite"}}/>))}</div>))}
+    </div>
+  );
   return(
     <div style={{display:"flex",flexDirection:"column",gap:24}}>
 
