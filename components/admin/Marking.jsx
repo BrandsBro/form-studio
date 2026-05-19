@@ -135,8 +135,7 @@ function FormConfigurator({title,icon,color,configForms,maxForms,allForms,onChan
           )}
 
           {configForms.length>=maxForms&&<p style={{color:"#4b5563",fontSize:12,textAlign:"center",margin:0}}>Maximum {maxForms} forms selected</p>}
-          {availForms.length===0&&configForms.length<maxForms&&allForms.length===0&&<p style={{color:"#F59E0B",fontSize:12,textAlign:"center",margin:0}}>⏳ Loading forms...</p>}
-          {availForms.length===0&&configForms.length<maxForms&&allForms.length>0&&<p style={{color:"#4b5563",fontSize:12,textAlign:"center",margin:0}}>No more forms available</p>}
+          {availForms.length===0&&configForms.length<maxForms&&<p style={{color:"#4b5563",fontSize:12,textAlign:"center",margin:0}}>{allForms.length===0?"No forms created yet":"No more forms available"}</p>}
 
           {/* Weight distribution helper */}
           {configForms.length>0&&totalWeight!==100&&(
