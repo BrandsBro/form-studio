@@ -131,7 +131,7 @@ export default function ReReview(){
     .map(g=>{
       // Calculate their score: TL=60%, HR=40%
       const tm=g.teamMembers[0];
-      const allSubs=forms.flatMap(form=>{
+      const tmSubs=forms.flatMap(form=>{
         const subs=(allSubs[form.id]||[]).filter(s=>s.reviewerEmail===tm.email);
         const rFields=(form.fields||[]).filter(f=>f.type==="rating");
         return subs.map(s=>({score:rFields.length?rFields.map(f=>s.values?.[f.id]||0).reduce((a,b)=>a+b,0)/rFields.length:0}));
