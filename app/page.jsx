@@ -13,13 +13,6 @@ export default function Home(){
   const [finding,setFinding]=useState(false);
   const [formProgress,setFormProgress]=useState({});
 
-  // Auto-fill email from URL
-  useEffect(()=>{
-    const params=new URLSearchParams(window.location.search);
-    const e=params.get("email");
-    if(e){setEmail(e);handleFindWithEmail(e);}
-  },[]);
-
   async function handleFindWithEmail(e){
     setFinding(true);setErr("");setMyForms(null);
     try{
@@ -42,6 +35,12 @@ export default function Home(){
     }catch(e){setErr("Error loading forms. Please try again.");}
     setFinding(false);
   }
+
+  useEffect(()=>{
+    const params=new URLSearchParams(window.location.search);
+    const e=params.get("email");
+    if(e){setEmail(e);handleFindWithEmail(e);}
+  },[]);
 
   async function handleFind(){
     if(!email.trim()){setErr("Please enter your email.");return;}
