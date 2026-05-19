@@ -91,18 +91,18 @@ export default function Home(){
         </div>
       )}
 
-      {/* All done */}
-      {!finding&&allDone&&(
-        <div style={{width:"min(540px,100%)",marginTop:20,background:"rgba(34,197,94,0.08)",border:"1px solid rgba(34,197,94,0.3)",borderRadius:16,padding:28,textAlign:"center"}}>
-          <div style={{fontSize:48,marginBottom:12}}>🎉</div>
-          <h2 style={{color:"#22c55e",fontSize:20,fontWeight:800,margin:"0 0 8px"}}>All Reviews Completed!</h2>
-          <p style={{color:"#6b7280",fontSize:14,margin:0}}>You have completed all your assigned reviews. Great job!</p>
-        </div>
-      )}
+
 
       {/* Forms list */}
-      {!finding&&myForms!==null&&!allDone&&(
+      {!finding&&myForms!==null&&(
         <div style={{width:"min(540px,100%)",marginTop:20,display:"flex",flexDirection:"column",gap:12}}>
+          {allDone&&(
+            <div style={{background:"rgba(34,197,94,0.08)",border:"1px solid rgba(34,197,94,0.3)",borderRadius:14,padding:"18px 20px",textAlign:"center",marginBottom:4}}>
+              <div style={{fontSize:32,marginBottom:6}}>🎉</div>
+              <p style={{color:"#22c55e",fontSize:15,fontWeight:700,margin:"0 0 4px"}}>All Reviews Completed!</p>
+              <p style={{color:"#6b7280",fontSize:12,margin:0}}>You can still edit any submitted review below.</p>
+            </div>
+          )}
           {myForms.length===0?(
             <p style={{color:"#6b7280",fontSize:14,textAlign:"center"}}>No review assignments found for this email.</p>
           ):(
