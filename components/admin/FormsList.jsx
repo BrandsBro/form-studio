@@ -33,7 +33,7 @@ function Modal({ onClose, children, width = 500 }) {
 
 
 // ── Rename Modal ──────────────────────────────────────────────────────────────
-function RenameModal({ form, onSave, onClose }) {
+function RenameModal({ form, onSave, onClose, saving=false }) {
   const [name, setName] = useState(form.name);
   const [desc, setDesc] = useState(form.description || "");
   const color = THEMES[form.theme] || form.customColor || "#F59E0B";
@@ -107,7 +107,7 @@ function RenameModal({ form, onSave, onClose }) {
         </button>
         <button onClick={()=>canSave&&onSave({...form,name:name.trim(),description:desc.trim()})} disabled={!canSave}
           style={{ flex:2, padding:"11px 0", borderRadius:10, border:"none", background:canSave?`linear-gradient(135deg,${color}cc,${color})`:"#161B22", color:canSave?"#000":"#374151", fontSize:13, fontWeight:700, cursor:canSave?"pointer":"not-allowed", fontFamily:"inherit", transition:"all 0.2s", display:"flex", alignItems:"center", justifyContent:"center", gap:6 }}>
-          <Check size={14}/> Save Changes
+          {saving ? "Saving..." : <>{saving ? "Saving..." : <><Check size={14}/> Save Changes</>}</>}
         </button>
       </div>
     </Modal>
@@ -337,6 +337,8 @@ export default function FormsList({ onEdit, onOpenConnections }) {
   const [forms, setForms] = useState([]);
   const [loading, setLoading] = useState(false);
   const [creating, setCreating] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [saving, setSaving] = useState(false);
   const [selected, setSelected] = useState(null);
   const [renamingForm, setRenamingForm] = useState(null);
     const [employees, setEmployees] = useState([]);
@@ -352,8 +354,25 @@ export default function FormsList({ onEdit, onOpenConnections }) {
 
   function persistForms(list) { setForms(list); saveForms(list); }
   function handleUpdate(updated) { const list=forms.map(f=>f.id===updated.id?updated:f); setForms(list); saveForms(list); setSelected(updated); }
-  async function handleRename(updated) { const list=forms.map(f=>f.id===updated.id?updated:f); setForms(list); await saveForms(list); setRenamingForm(null); }
-  async function createForm() { setCreating(true); const fresh=await getForms(); if(!fresh||!fresh.length&&forms.length>0){setCreating(false);return;} const nf={...EF,id:"form_"+Date.now(),name:"New Form "+(fresh.length+1),description:"",createdAt:new Date().toISOString().slice(0,10),fields:[]}; const updated=[...fresh,nf]; setForms(updated); await saveForms(updated); setCreating(false); }
+  async function handleRename(updated) {
+    setSaving(true);
+    const list=forms.map(f=>f.id===updated.id?updated:f);
+    setForms(list);
+    await saveForms(list);
+    setSaving(false);
+    setRenamingForm(null);
+  }
+  async function createForm() {
+    if(creating) return;
+    setCreating(true);
+    const fresh=await getForms();
+    if(!fresh) { setCreating(false); return; }
+    const nf={...EF,id:"form_"+Date.now(),name:"New Form "+(fresh.length+1),description:"",createdAt:new Date().toISOString().slice(0,10),fields:[]};
+    const updated=[...fresh,nf];
+    setForms(updated);
+    await saveForms(updated);
+    setCreating(false);
+  }
   async function dupForm(form) {
     const fresh = await getForms();
     if(!fresh.length) return;
@@ -496,7 +515,7 @@ export default function FormsList({ onEdit, onOpenConnections }) {
         </div>
       )}
 
-      {renamingForm && <RenameModal form={renamingForm} onSave={handleRename} onClose={()=>setRenamingForm(null)}/>}
+      {renamingForm && <RenameModal form={renamingForm} onSave={handleRename} onClose={()=>setRenamingForm(null)} saving={saving}/>}
     </div>
   );
 
