@@ -26,7 +26,7 @@ function PersonCard({person,forms}){
 
   // Gather all submissions for this person across all forms
   const allReviews=forms.flatMap(form=>{
-    const subs=getSubmissions(form.id).filter(s=>s.personName===person.name);
+    const subs=(allSubs[form.id]||[]).filter(s=>s.personName===person.name);
     return subs.map(s=>({...s,formName:form.name,formColor:form.customColor||{amber:"#F59E0B",blue:"#3B82F6",green:"#10B981",rose:"#F43F5E",violet:"#8B5CF6",cyan:"#06B6D4"}[form.theme]||"#F59E0B",fields:(form.fields||[]).filter(f=>f.type==="rating")}));
   });
 
@@ -127,15 +127,27 @@ export default function Performance(){
   const [forms,setForms]=useState([]);
   const [people,setPeople]=useState([]);
   const [search,setSearch]=useState("");
+  const [allSubs,setAllSubs]=useState({});
+  const [loading,setLoading]=useState(true);
 
   useEffect(()=>{
-    getForms().then(setForms);
-    getPeople().then(setPeople);
+    Promise.all([getForms(),getPeople()]).then(([fl,p])=>{
+      setForms(fl);
+      setPeople(p);
+      Promise.all(fl.map(f=>
+        getSubmissions(f.id).then(subs=>({id:f.id,subs})).catch(()=>({id:f.id,subs:[]}))
+      )).then(results=>{
+        const map={};
+        results.forEach(r=>map[r.id]=r.subs);
+        setAllSubs(map);
+        setLoading(false);
+      });
+    }).catch(()=>setLoading(false));
   },[]);
 
   // Count total reviews per person
   const peopleWithReviews=people.map(p=>{
-    const count=forms.reduce((a,form)=>a+getSubmissions(form.id).filter(s=>s.personName===p.name).length,0);
+    const count=forms.reduce((a,form)=>a+(allSubs[form.id]||[]).filter(s=>s.personName===p.name).length,0);
     return{...p,reviewCount:count};
   }).filter(p=>p.reviewCount>0)
     .sort((a,b)=>b.reviewCount-a.reviewCount);
@@ -147,6 +159,23 @@ export default function Performance(){
 
   const totalReviews=peopleWithReviews.reduce((a,p)=>a+p.reviewCount,0);
 
+  if(loading) return(
+    <div style={{display:"flex",flexDirection:"column",gap:16}}>
+      <style>{"@keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}"}</style>
+      <div style={{background:"#161B22",border:"1px solid #21262D",borderRadius:9,padding:"10px 14px",width:300}}><div style={{height:16,borderRadius:6,background:"linear-gradient(90deg,#161B22 25%,#21262D 50%,#161B22 75%)",backgroundSize:"200% 100%",animation:"shimmer 1.5s infinite"}}/></div>
+      {[1,2,3,4].map(i=>(
+        <div key={i} style={{background:"#161B22",border:"1px solid #21262D",borderRadius:14,padding:20,display:"flex",flexDirection:"column",gap:12}}>
+          <div style={{display:"flex",gap:12,alignItems:"center"}}>
+            <div style={{width:44,height:44,borderRadius:"50%",background:"linear-gradient(90deg,#161B22 25%,#21262D 50%,#161B22 75%)",backgroundSize:"200% 100%",animation:"shimmer 1.5s infinite"}}/>
+            <div style={{flex:1,display:"flex",flexDirection:"column",gap:6}}>
+              <div style={{width:"40%",height:16,borderRadius:6,background:"linear-gradient(90deg,#161B22 25%,#21262D 50%,#161B22 75%)",backgroundSize:"200% 100%",animation:"shimmer 1.5s infinite"}}/>
+              <div style={{width:"60%",height:12,borderRadius:4,background:"linear-gradient(90deg,#161B22 25%,#21262D 50%,#161B22 75%)",backgroundSize:"200% 100%",animation:"shimmer 1.5s infinite"}}/>
+            </div>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
   return(
     <div style={{display:"flex",flexDirection:"column",gap:20}}>
       <div>
