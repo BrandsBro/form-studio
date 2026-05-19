@@ -103,7 +103,7 @@ function StepReviewList({form,conn,reviewerEmail,onStart,onBack,allSubs=[]}){
             const c=gc(name);
             const prev=allSubs.find(s=>s.reviewerEmail===reviewerEmail&&s.personName===name)||null;
             return(
-              <button key={name} onClick={()=>onStart(name)}
+              <button key={name} onClick={()=>{ if(!reviewed.includes(name)) onStart(name); }}
                 style={{display:"flex",alignItems:"center",gap:14,padding:"14px 16px",borderRadius:12,border:"1px solid "+(isDone?"#22c55e33":isNext?c+"55":"#21262D"),background:isDone?"rgba(34,197,94,0.05)":isNext?c+"08":"#161B22",cursor:"pointer",textAlign:"left",transition:"all 0.2s",width:"100%"}}
                 onMouseOver={e=>e.currentTarget.style.borderColor=isDone?"#22c55e55":c+"77"}
                 onMouseOut={e=>e.currentTarget.style.borderColor=isDone?"#22c55e33":isNext?c+"55":"#21262D"}>
