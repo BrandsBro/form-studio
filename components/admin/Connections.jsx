@@ -325,7 +325,7 @@ export default function Connections({defaultFormId}){
                           <div key={name} style={{display:"flex",alignItems:"center",gap:8,background:"#161B22",border:"1px solid "+nc+"33",borderRadius:10,padding:"8px 12px"}}>
                             <Av name={name} size={28} tag={nt}/>
                             <div><p style={{color:"white",fontSize:12,fontWeight:600,margin:0}}>{name}</p></div>
-                            <button onClick={e=>{e.stopPropagation();handleRemoveReviewee(conn.id,name);}} style={{background:"none",border:"none",cursor:"pointer",color:"#374151",padding:2,marginLeft:2,display:"flex",transition:"color 0.15s"}} onMouseOver={e=>e.currentTarget.style.color="#ef4444"} onMouseOut={e=>e.currentTarget.style.color="#374151"}><X size={12}/></button>
+                            
                           </div>
                         );
                       })}
