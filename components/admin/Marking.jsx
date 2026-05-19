@@ -1,5 +1,5 @@
 "use client";
-import { getForms, getPeople, getSubmissions } from "@/lib/sheets";
+import { getForms, getPeople, getSubmissions, getMarkingConfig, saveMarkingConfig } from "@/lib/sheets";
 import { useState, useEffect } from "react";
 import { Trophy, Medal, Save, Plus, X, ChevronDown, ChevronUp } from "lucide-react";
 
@@ -284,8 +284,7 @@ export default function Marking(){
           setAllSubs(prev=>({...prev,[f.id]:subs}));
         }).catch(()=>{});
       });
-      const sc=localStorage.getItem("marking_config");
-      if(sc){try{setConfig(JSON.parse(sc));}catch(e){}}
+      getMarkingConfig().then(cfg=>{ if(cfg) setConfig(cfg); });
     }).catch(()=>setLoading(false));
   },[]);
 
@@ -300,8 +299,8 @@ export default function Marking(){
   const teamMembers=people.filter(p=>(p.designations||[]).includes("Team Member"));
   const teamLeaders=people.filter(p=>!(p.designations||[]).includes("Team Member"));
 
-  function saveConfig(){
-    localStorage.setItem("marking_config",JSON.stringify(config));
+  async function saveConfig(){
+    await saveMarkingConfig(config);
     setSaved(true);
     setTimeout(()=>setSaved(false),2000);
   }
