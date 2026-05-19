@@ -333,6 +333,7 @@ export default function FormsList({ onEdit }) {
   const [loading, setLoading] = useState(false);
   const [creating, setCreating] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState(null);
 
 
   // Removed duplicate setSaving state here
@@ -386,8 +387,10 @@ export default function FormsList({ onEdit }) {
   }
   
   async function delForm(id) {
+    setDeleting(id);
     setForms(prev=>prev.filter(f=>f.id!==id));
     await sheetDeleteForm(id);
+    setDeleting(null);
     try {
       const cfg = await getMarkingConfig();
       if(cfg) {
@@ -514,11 +517,11 @@ export default function FormsList({ onEdit }) {
                   onMouseOut={e=>{ e.currentTarget.style.borderColor="#21262D"; e.currentTarget.style.color="#6b7280"; }}>
                   {form.active?"⊘":"✓"}
                 </button>
-                <button onClick={()=>delForm(form.id)} title="Delete"
-                  style={{ padding:"8px 10px", borderRadius:9, border:"1px solid #21262D", background:"transparent", color:"#6b7280", fontSize:12, cursor:"pointer" }}
-                  onMouseOver={e=>{ e.currentTarget.style.borderColor="rgba(239,68,68,0.4)"; e.currentTarget.style.color="#ef4444"; }}
-                  onMouseOut={e=>{ e.currentTarget.style.borderColor="#21262D"; e.currentTarget.style.color="#6b7280"; }}>
-                  🗑️
+                <button onClick={()=>!deleting&&delForm(form.id)} title="Delete" disabled={deleting===form.id}
+                  style={{ padding:"8px 10px", borderRadius:9, border:"1px solid #21262D", background:"transparent", color:deleting===form.id?"#F59E0B":"#6b7280", fontSize:12, cursor:deleting===form.id?"not-allowed":"pointer" }}
+                  onMouseOver={e=>{ if(!deleting){e.currentTarget.style.borderColor="rgba(239,68,68,0.4)";e.currentTarget.style.color="#ef4444";} }}
+                  onMouseOut={e=>{ if(!deleting){e.currentTarget.style.borderColor="#21262D";e.currentTarget.style.color="#6b7280";} }}>
+                  {deleting===form.id?"⏳":"🗑️"}
                 </button>
               </div>
             </div>
