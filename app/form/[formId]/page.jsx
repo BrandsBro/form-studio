@@ -278,6 +278,7 @@ function StepSuccess({form,conn,reviewerEmail,onEdit,allSubs=[]}){
     getSubmissions(form.id).then(setFreshSubs).catch(()=>{});
   },[form.id]);
   allSubs=freshSubs;
+  function goHome(){ window.location.href="/?email="+encodeURIComponent(reviewerEmail); }
   const t=getTheme(form);
   const reviewed=allSubs.filter(s=>s.reviewerEmail===reviewerEmail).map(s=>s.personName);
   return(
