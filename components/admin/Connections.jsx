@@ -165,6 +165,7 @@ export default function Connections({defaultFormId}){
   const [showModal,setShowModal]=useState(false);
   const [loading,setLoading]=useState(true);
   const [editingConn,setEditingConn]=useState(null);
+  const [deleting,setDeleting]=useState(null);
 
   const loadAll = useCallback(()=>{
     return Promise.all([getForms(),getPeople()]).then(([fl,p])=>{
@@ -210,11 +211,13 @@ export default function Connections({defaultFormId}){
   }
 
   async function handleDeleteConn(id){
+    setDeleting(id);
     const fresh=await getForms();
     const base=fresh.length>0?fresh:forms;
     const updated=base.map(f=>f.id===selectedFormId?{...f,connections:(f.connections||[]).filter(c=>c.id!==id)}:f);
     setForms(updated);
     await sheetSaveForms(updated);
+    setDeleting(null);
     setTimeout(()=>loadAll(),1000);
   }
 
@@ -321,11 +324,11 @@ export default function Connections({defaultFormId}){
                       );
                     })}
                   </div>
-                  <button onClick={e=>{e.stopPropagation();handleDeleteConn(conn.id);}}
-                    style={{background:"none",border:"1px solid #21262D",borderRadius:8,cursor:"pointer",color:"#6b7280",padding:"7px 10px",display:"flex",alignItems:"center",gap:5,fontSize:12,transition:"all 0.2s"}}
-                    onMouseOver={e=>{e.currentTarget.style.borderColor="rgba(239,68,68,0.4)";e.currentTarget.style.color="#ef4444";}}
-                    onMouseOut={e=>{e.currentTarget.style.borderColor="#21262D";e.currentTarget.style.color="#6b7280";}}>
-                    <Trash2 size={13}/> Remove
+                  <button onClick={e=>{e.stopPropagation();!deleting&&handleDeleteConn(conn.id);}} disabled={deleting===conn.id}
+                    style={{background:"none",border:"1px solid #21262D",borderRadius:8,cursor:deleting===conn.id?"not-allowed":"pointer",color:deleting===conn.id?"#F59E0B":"#6b7280",padding:"7px 10px",display:"flex",alignItems:"center",gap:5,fontSize:12,transition:"all 0.2s"}}
+                    onMouseOver={e=>{if(!deleting){e.currentTarget.style.borderColor="rgba(239,68,68,0.4)";e.currentTarget.style.color="#ef4444";}}}
+                    onMouseOut={e=>{if(!deleting){e.currentTarget.style.borderColor="#21262D";e.currentTarget.style.color="#6b7280";}}}>
+                    {deleting===conn.id?<><svg style={{width:13,height:13,animation:"spin 1s linear infinite"}} viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" opacity="0.25"/><path fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"/></svg>Removing...</>:<><Trash2 size={13}/> Remove</>}
                   </button>
                 </div>
               ))}
