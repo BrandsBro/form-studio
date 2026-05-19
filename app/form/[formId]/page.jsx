@@ -277,13 +277,32 @@ try{ const freshS=await getSubmissions(form.id); onSubsUpdate&&onSubsUpdate(fres
 }
 
 // ── Step: All Done ────────────────────────────────────────────────────────────
-function StepSuccess({form,conn,reviewerEmail,onEdit,allSubs=[]}){
+function StepSuccess({form,conn,reviewerEmail,onEdit,allSubs=[],formId}){
   const [freshSubs,setFreshSubs]=useState(allSubs);
   useEffect(()=>{
     getSubmissions(form.id).then(setFreshSubs).catch(()=>{});
   },[form.id]);
   allSubs=freshSubs;
   function goHome(){ window.location.href="/?email="+encodeURIComponent(reviewerEmail); }
+  const [allFormsCompleted,setAllFormsCompleted]=useState(false);
+  useEffect(()=>{
+    if(!reviewerEmail) return;
+    getForms().then(async fl=>{
+      const active=fl.filter(f=>f.active);
+      const myForms=active.filter(f=>(f.connections||[]).some(c=>c.reviewerEmail&&c.reviewerEmail.toLowerCase()===reviewerEmail.toLowerCase()));
+      let allDone=true;
+      for(const f of myForms){
+        const subs=await getSubmissions(f.id);
+        const conn2=(f.connections||[]).find(c=>c.reviewerEmail&&c.reviewerEmail.toLowerCase()===reviewerEmail.toLowerCase());
+        if(conn2){
+          const reviewed=subs.filter(s=>s.reviewerEmail===reviewerEmail.toLowerCase()).map(s=>s.personName);
+          const total=(conn2.revieweeNames||[]).length;
+          if(reviewed.length<total){allDone=false;break;}
+        }
+      }
+      setAllFormsCompleted(allDone);
+    }).catch(()=>{});
+  },[reviewerEmail]);
   const t=getTheme(form);
   const reviewed=allSubs.filter(s=>s.reviewerEmail===reviewerEmail).map(s=>s.personName);
   return(
@@ -308,7 +327,15 @@ function StepSuccess({form,conn,reviewerEmail,onEdit,allSubs=[]}){
           ))}
         </div>
         <p style={{color:"#4b5563",fontSize:12}}>Click any name above to edit your review.</p>
-<button onClick={goHome} style={{marginTop:20,padding:"13px 32px",borderRadius:12,border:"none",background:"linear-gradient(135deg,#D97706,#F59E0B)",color:"#000",fontSize:14,fontWeight:700,cursor:"pointer",display:"flex",alignItems:"center",gap:8,margin:"20px auto 0"}}>← Back to My Forms</button>
+{allFormsCompleted ? (
+  <div style={{marginTop:20,background:"rgba(34,197,94,0.1)",border:"1px solid rgba(34,197,94,0.3)",borderRadius:14,padding:"20px 24px",textAlign:"center"}}>
+    <div style={{fontSize:36,marginBottom:8}}>🎉</div>
+    <p style={{color:"#22c55e",fontSize:16,fontWeight:700,margin:"0 0 6px"}}>All Reviews Completed!</p>
+    <p style={{color:"#6b7280",fontSize:13,margin:0}}>You have completed all your assigned reviews. Great job!</p>
+  </div>
+) : (
+  <button onClick={goHome} style={{marginTop:20,padding:"13px 32px",borderRadius:12,border:"none",background:"linear-gradient(135deg,#D97706,#F59E0B)",color:"#000",fontSize:14,fontWeight:700,cursor:"pointer",display:"flex",alignItems:"center",gap:8,margin:"20px auto 0"}}>← Back to My Forms</button>
+)}
       </div>
     </div>
   );
@@ -422,7 +449,7 @@ export default function FormPage(){
         {step==="email"&&<StepEmail form={form} onNext={handleEmailNext}/>}
         {step==="list"&&<StepReviewList form={form} conn={conn} reviewerEmail={reviewerEmail} allSubs={allSubs} onStart={handleStartPerson} onBack={()=>setStep("email")}/>}
         {step==="form"&&(!subsLoaded?<div style={{minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",background:"#0D1117"}}><svg style={{width:32,height:32,animation:"spin 1s linear infinite"}} viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="#21262D" strokeWidth="3"/><path d="M4 12a8 8 0 018-8" stroke="#F59E0B" strokeWidth="3" strokeLinecap="round"/></svg></div>:<StepForm form={form} reviewerEmail={reviewerEmail} personName={currentPerson} isMulti={conn?.type==="multi"} onDone={handleFormDone} onBack={()=>setStep("list")} allSubs={allSubs} onSubsUpdate={s=>setAllSubs(s)}/>)}
-        {step==="success"&&<StepSuccess allSubs={allSubs} form={form} conn={conn} reviewerEmail={reviewerEmail} onEdit={handleEditFromSuccess}/>}
+        {step==="success"&&<StepSuccess allSubs={allSubs} form={form} conn={conn} reviewerEmail={reviewerEmail} onEdit={handleEditFromSuccess} formId={formId}/>}
       </div>
     </div>
   );
