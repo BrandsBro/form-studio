@@ -95,6 +95,7 @@ export default function Leaderboard(){
   const [people,setPeople]=useState([]);
   const [config,setConfig]=useState({teamMembers:{forms:[]},teamLeaders:{forms:[]}});
   const [loading,setLoading]=useState(true);
+  const [configLoaded,setConfigLoaded]=useState(false);
 
   useEffect(()=>{
     Promise.all([getForms(), getPeople()]).then(async([fl, p])=>{
@@ -108,7 +109,7 @@ export default function Leaderboard(){
     }));
     setAllSubs(subsMap);
     setLoading(false);
-    getMarkingConfig().then(cfg=>{ if(cfg) setConfig(cfg); }).catch(()=>{});
+    getMarkingConfig().then(cfg=>{ if(cfg) setConfig(cfg); setConfigLoaded(true); }).catch(()=>setConfigLoaded(true));
   });
   },[]);
 
@@ -132,7 +133,7 @@ export default function Leaderboard(){
   const teamMembers=allScored.filter(p=>p.isTM);
   const noConfig=config.teamMembers.forms.length===0&&config.teamLeaders.forms.length===0;
 
-  if(loading) return(
+  if(loading||!configLoaded) return(
     <div style={{display:"flex",flexDirection:"column",gap:16}}>
       <style>{"@keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}"}</style>
       <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(140px,1fr))",gap:10}}>
