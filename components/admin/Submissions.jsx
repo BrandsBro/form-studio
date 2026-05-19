@@ -137,6 +137,25 @@ export default function Submissions(){
           </div>
 
           {/* Stats row */}
+          {loadingSubs ? (
+            <div style={{display:"flex",flexDirection:"column",gap:16}}>
+              <style>{"@keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}"}</style>
+              <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(130px,1fr))",gap:10}}>
+                {[1,2,3,4].map(i=>(<div key={i} style={{background:"#161B22",border:"1px solid #21262D",borderRadius:10,padding:"10px 14px"}}><Skeleton w="40%" h={22}/><Skeleton w="60%" h={12}/></div>))}
+              </div>
+              <div style={{background:"#161B22",border:"1px solid #21262D",borderRadius:12,overflow:"hidden"}}>
+                {[1,2,3,4,5].map(i=>(
+                  <div key={i} style={{display:"flex",gap:12,alignItems:"center",padding:"14px 16px",borderBottom:"1px solid #21262D"}}>
+                    <Skeleton w={32} h={32} r={50}/>
+                    <div style={{flex:1}}><Skeleton w="40%" h={14}/></div>
+                    <Skeleton w={120} h={14}/>
+                    <Skeleton w={80} h={14}/>
+                    <Skeleton w={60} h={14}/>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : (<>
           <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(130px,1fr))",gap:10}}>
             {[
               {l:"Total",v:subs.length,c:color},
@@ -229,6 +248,8 @@ export default function Submissions(){
               </tbody>
             </table>
           </div>
+        </>
+          )}
         </>
       )}
     </div>
