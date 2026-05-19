@@ -186,116 +186,117 @@ export default function Overview() {
               </div>
             </div>
           ) : (
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(300px,1fr))", gap: 16 }}>
-            {/* Avg score per question */}
-            <div style={{ background: "#161B22", border: "1px solid #21262D", borderRadius: 12, padding: 20 }}>
-              <p style={{ color: "white", fontSize: 14, fontWeight: 700, margin: "0 0 16px" }}>Average Score per Question</p>
-              {qAvgs.length === 0 && <p style={{ color: "#4b5563", fontSize: 13 }}>No submissions yet.</p>}
-              {qAvgs.map((q, i) => {
-                const c = q.avg >= 4 ? "#22c55e" : q.avg >= 3 ? "#F59E0B" : q.avg >= 2 ? "#f97316" : "#ef4444";
-                return (
-                  <div key={i} style={{ marginBottom: 14 }}>
-                    <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
-                      <span style={{ fontSize: 11, color: "#9ca3af", flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", marginRight: 8 }}>Q{i + 1}. {q.label}</span>
-                      <span style={{ fontSize: 12, fontWeight: 700, color: c, flexShrink: 0 }}>{q.avg.toFixed(2)}/5</span>
-                    </div>
-                    <div style={{ height: 6, background: "#21262D", borderRadius: 999, overflow: "hidden" }}>
-                      <div style={{ height: "100%", borderRadius: 999, background: c, width: (q.avg / 5 * 100) + "%", transition: "width 0.6s" }} />
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-
-            {/* Reviewer progress */}
-            <div style={{ background: "#161B22", border: "1px solid #21262D", borderRadius: 12, padding: 20 }}>
-              <p style={{ color: "white", fontSize: 14, fontWeight: 700, margin: "0 0 16px" }}>Reviewer Progress</p>
-              {reviewerProgress.length === 0 && <p style={{ color: "#4b5563", fontSize: 13 }}>No connections set up.</p>}
-              {reviewerProgress.map((r, i) => {
-                const c = r.pct === 100 ? "#22c55e" : r.pct > 0 ? "#F59E0B" : "#ef4444";
-                return (
-                  <div key={i} style={{ marginBottom: 12, padding: "10px 12px", background: "#0D1117", borderRadius: 10, border: "1px solid #21262D" }}>
-                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6 }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                        <Av name={r.name} size={28} />
-                        <div>
-                          <p style={{ color: "white", fontSize: 12, fontWeight: 600, margin: 0 }}>{r.name}</p>
-                          <p style={{ color: "#4b5563", fontSize: 10, margin: 0 }}>{r.email}</p>
+            <>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(300px,1fr))", gap: 16 }}>
+                {/* Avg score per question */}
+                <div style={{ background: "#161B22", border: "1px solid #21262D", borderRadius: 12, padding: 20 }}>
+                  <p style={{ color: "white", fontSize: 14, fontWeight: 700, margin: "0 0 16px" }}>Average Score per Question</p>
+                  {qAvgs.length === 0 && <p style={{ color: "#4b5563", fontSize: 13 }}>No submissions yet.</p>}
+                  {qAvgs.map((q, i) => {
+                    const c = q.avg >= 4 ? "#22c55e" : q.avg >= 3 ? "#F59E0B" : q.avg >= 2 ? "#f97316" : "#ef4444";
+                    return (
+                      <div key={i} style={{ marginBottom: 14 }}>
+                        <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
+                          <span style={{ fontSize: 11, color: "#9ca3af", flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", marginRight: 8 }}>Q{i + 1}. {q.label}</span>
+                          <span style={{ fontSize: 12, fontWeight: 700, color: c, flexShrink: 0 }}>{q.avg.toFixed(2)}/5</span>
+                        </div>
+                        <div style={{ height: 6, background: "#21262D", borderRadius: 999, overflow: "hidden" }}>
+                          <div style={{ height: "100%", borderRadius: 999, background: c, width: (q.avg / 5 * 100) + "%", transition: "width 0.6s" }} />
                         </div>
                       </div>
-                      <span style={{ color: c, fontSize: 12, fontWeight: 700 }}>{r.done}/{r.total}</span>
-                    </div>
-                    <div style={{ height: 4, background: "#21262D", borderRadius: 999, overflow: "hidden" }}>
-                      <div style={{ height: "100%", background: c, borderRadius: 999, width: r.pct + "%", transition: "width 0.5s" }} />
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
+                    );
+                  })}
+                </div>
 
-          {/* People reviewed vs not */}
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
-            <div style={{ background: "#161B22", border: "1px solid rgba(34,197,94,0.2)", borderRadius: 12, padding: 18 }}>
-              <p style={{ color: "#22c55e", fontSize: 13, fontWeight: 700, margin: "0 0 12px" }}>✓ Reviewed ({reviewedPeople.length})</p>
-              {reviewedPeople.length === 0 && <p style={{ color: "#4b5563", fontSize: 12 }}>None yet.</p>}
-              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                {reviewedPeople.map(name => {
-                  const count = subs.filter(s => s.personName === name).length;
-                  const vals = subs.filter(s => s.personName === name).flatMap(s => rFields.map(f => s.values?.[f.id] || 0)).filter(v => v > 0);
-                  const avg = vals.length ? (vals.reduce((a, b) => a + b, 0) / vals.length).toFixed(2) : null;
-                  return (
-                    <div key={name} style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 12px", background: "#0D1117", borderRadius: 8 }}>
-                      <Av name={name} size={30} />
-                      <p style={{ color: "white", fontSize: 12, fontWeight: 600, margin: 0, flex: 1 }}>{name}</p>
-                      <span style={{ fontSize: 11, color: "#6b7280" }}>{count} review{count > 1 ? "s" : ""}</span>
-                      {avg && <span style={{ fontSize: 11, color: "#22c55e", fontWeight: 700 }}>{avg}/5</span>}
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-            <div style={{ background: "#161B22", border: "1px solid rgba(239,68,68,0.2)", borderRadius: 12, padding: 18 }}>
-              <p style={{ color: "#ef4444", fontSize: 13, fontWeight: 700, margin: "0 0 12px" }}>⏳ Not Yet Reviewed ({notReviewed.length})</p>
-              {notReviewed.length === 0 && <p style={{ color: "#22c55e", fontSize: 12 }}>Everyone has been reviewed! ✓</p>}
-              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                {notReviewed.map(name => (
-                  <div key={name} style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 12px", background: "#0D1117", borderRadius: 8 }}>
-                    <Av name={name} size={30} />
-                    <p style={{ color: "#9ca3af", fontSize: 12, margin: 0 }}>{name}</p>
-                    <span style={{ marginLeft: "auto", fontSize: 10, color: "#ef4444", background: "rgba(239,68,68,0.1)", padding: "2px 8px", borderRadius: 999 }}>Pending</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          {/* Recent submissions */}
-          {subs.length > 0 && (
-            <div style={{ background: "#161B22", border: "1px solid #21262D", borderRadius: 12, padding: 20 }}>
-              <p style={{ color: "white", fontSize: 14, fontWeight: 700, margin: "0 0 14px" }}>Recent Submissions</p>
-              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                {[...subs].sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt)).slice(0, 8).map((s, i) => {
-                  const vals = rFields.map(f => s.values?.[f.id] || 0).filter(v => v > 0);
-                  const avg = vals.length ? (vals.reduce((a, b) => a + b, 0) / vals.length).toFixed(2) : null;
-                  const c = avg >= 4 ? "#22c55e" : avg >= 3 ? "#F59E0B" : avg >= 2 ? "#f97316" : "#ef4444";
-                  const date = s.updatedAt ? new Date(s.updatedAt).toLocaleDateString("en-US", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" }) : "—";
-                  return (
-                    <div key={i} style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 14px", background: "#0D1117", borderRadius: 10, border: "1px solid #21262D" }}>
-                      <Av name={s.personName} size={34} />
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <p style={{ color: "white", fontSize: 13, fontWeight: 600, margin: 0 }}>{s.personName}</p>
-                        <p style={{ color: "#6b7280", fontSize: 11, margin: "2px 0 0" }}>by {s.reviewerEmail}</p>
+                {/* Reviewer progress */}
+                <div style={{ background: "#161B22", border: "1px solid #21262D", borderRadius: 12, padding: 20 }}>
+                  <p style={{ color: "white", fontSize: 14, fontWeight: 700, margin: "0 0 16px" }}>Reviewer Progress</p>
+                  {reviewerProgress.length === 0 && <p style={{ color: "#4b5563", fontSize: 13 }}>No connections set up.</p>}
+                  {reviewerProgress.map((r, i) => {
+                    const c = r.pct === 100 ? "#22c55e" : r.pct > 0 ? "#F59E0B" : "#ef4444";
+                    return (
+                      <div key={i} style={{ marginBottom: 12, padding: "10px 12px", background: "#0D1117", borderRadius: 10, border: "1px solid #21262D" }}>
+                        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6 }}>
+                          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                            <Av name={r.name} size={28} />
+                            <div>
+                              <p style={{ color: "white", fontSize: 12, fontWeight: 600, margin: 0 }}>{r.name}</p>
+                              <p style={{ color: "#4b5563", fontSize: 10, margin: 0 }}>{r.email}</p>
+                            </div>
+                          </div>
+                          <span style={{ color: c, fontSize: 12, fontWeight: 700 }}>{r.done}/{r.total}</span>
+                        </div>
+                        <div style={{ height: 4, background: "#21262D", borderRadius: 999, overflow: "hidden" }}>
+                          <div style={{ height: "100%", background: c, borderRadius: 999, width: r.pct + "%", transition: "width 0.5s" }} />
+                        </div>
                       </div>
-                      {avg && <span style={{ color: c, fontSize: 14, fontWeight: 800 }}>{avg}/5</span>}
-                      <span style={{ color: "#4b5563", fontSize: 11 }}>{date}</span>
-                    </div>
-                  );
-                })}
+                    );
+                  })}
+                </div>
               </div>
-            </div>
-          )}
-        </>
+
+              {/* People reviewed vs not */}
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
+                <div style={{ background: "#161B22", border: "1px solid rgba(34,197,94,0.2)", borderRadius: 12, padding: 18 }}>
+                  <p style={{ color: "#22c55e", fontSize: 13, fontWeight: 700, margin: "0 0 12px" }}>✓ Reviewed ({reviewedPeople.length})</p>
+                  {reviewedPeople.length === 0 && <p style={{ color: "#4b5563", fontSize: 12 }}>None yet.</p>}
+                  <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                    {reviewedPeople.map(name => {
+                      const count = subs.filter(s => s.personName === name).length;
+                      const vals = subs.filter(s => s.personName === name).flatMap(s => rFields.map(f => s.values?.[f.id] || 0)).filter(v => v > 0);
+                      const avg = vals.length ? (vals.reduce((a, b) => a + b, 0) / vals.length).toFixed(2) : null;
+                      return (
+                        <div key={name} style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 12px", background: "#0D1117", borderRadius: 8 }}>
+                          <Av name={name} size={30} />
+                          <p style={{ color: "white", fontSize: 12, fontWeight: 600, margin: 0, flex: 1 }}>{name}</p>
+                          <span style={{ fontSize: 11, color: "#6b7280" }}>{count} review{count > 1 ? "s" : ""}</span>
+                          {avg && <span style={{ fontSize: 11, color: "#22c55e", fontWeight: 700 }}>{avg}/5</span>}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+                <div style={{ background: "#161B22", border: "1px solid rgba(239,68,68,0.2)", borderRadius: 12, padding: 18 }}>
+                  <p style={{ color: "#ef4444", fontSize: 13, fontWeight: 700, margin: "0 0 12px" }}>⏳ Not Yet Reviewed ({notReviewed.length})</p>
+                  {notReviewed.length === 0 && <p style={{ color: "#22c55e", fontSize: 12 }}>Everyone has been reviewed! ✓</p>}
+                  <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                    {notReviewed.map(name => (
+                      <div key={name} style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 12px", background: "#0D1117", borderRadius: 8 }}>
+                        <Av name={name} size={30} />
+                        <p style={{ color: "#9ca3af", fontSize: 12, margin: 0 }}>{name}</p>
+                        <span style={{ marginLeft: "auto", fontSize: 10, color: "#ef4444", background: "rgba(239,68,68,0.1)", padding: "2px 8px", borderRadius: 999 }}>Pending</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* Recent submissions */}
+              {subs.length > 0 && (
+                <div style={{ background: "#161B22", border: "1px solid #21262D", borderRadius: 12, padding: 20 }}>
+                  <p style={{ color: "white", fontSize: 14, fontWeight: 700, margin: "0 0 14px" }}>Recent Submissions</p>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                    {[...subs].sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt)).slice(0, 8).map((s, i) => {
+                      const vals = rFields.map(f => s.values?.[f.id] || 0).filter(v => v > 0);
+                      const avg = vals.length ? (vals.reduce((a, b) => a + b, 0) / vals.length).toFixed(2) : null;
+                      const c = avg >= 4 ? "#22c55e" : avg >= 3 ? "#F59E0B" : avg >= 2 ? "#f97316" : "#ef4444";
+                      const date = s.updatedAt ? new Date(s.updatedAt).toLocaleDateString("en-US", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" }) : "—";
+                      return (
+                        <div key={i} style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 14px", background: "#0D1117", borderRadius: 10, border: "1px solid #21262D" }}>
+                          <Av name={s.personName} size={34} />
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <p style={{ color: "white", fontSize: 13, fontWeight: 600, margin: 0 }}>{s.personName}</p>
+                            <p style={{ color: "#6b7280", fontSize: 11, margin: "2px 0 0" }}>by {s.reviewerEmail}</p>
+                          </div>
+                          {avg && <span style={{ color: c, fontSize: 14, fontWeight: 800 }}>{avg}/5</span>}
+                          <span style={{ color: "#4b5563", fontSize: 11 }}>{date}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+            </>
           )}
         </>
       )}
