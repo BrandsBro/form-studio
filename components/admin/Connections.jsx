@@ -202,6 +202,8 @@ export default function Connections({defaultFormId}){
     const updated=base.map(f=>f.id===selectedFormId?{...f,fillerPool:pool,connections:conns}:f);
     setForms(updated);
     await sheetSaveForms(updated);
+    // Reload to confirm
+    getForms().then(fl=>setForms(fl));
     setShowModal(false);
     setEditingConn(null);
   }
@@ -214,9 +216,10 @@ export default function Connections({defaultFormId}){
     const updated=base.map(f=>f.id===selectedFormId?{...f,connections:(f.connections||[]).filter(c=>c.id!==id)}:f);
     setForms(updated);
     await sheetSaveForms(updated);
+    getForms().then(fl=>setForms(fl));
   }
 
-  function handleRemoveReviewee(connId,name){
+  async function handleRemoveReviewee(connId,name){
     const conn=connections.find(c=>c.id===connId);if(!conn)return;
     const newNames=conn.revieweeNames.filter(n=>n!==name);
     const newReviewees=(conn.reviewees||[]).filter(r=>r.name!==name);
