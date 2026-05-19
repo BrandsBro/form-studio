@@ -21,6 +21,7 @@ function AddConnModal({allPeople,existingPool,existingConns,editingConn,onSave,o
   const [reviewer,setReviewer]=useState(editingConn?allPeople.find(p=>p.name===editingConn.reviewerName)||{name:editingConn.reviewerName,email:editingConn.reviewerEmail||""}:null);
   const [reviewees,setReviewees]=useState(editingConn?(editingConn.reviewees||editingConn.revieweeNames.map(n=>({name:n,email:""}))):[] );
   const [savedConns,setSavedConns]=useState(existingConns);
+  const [finishing,setFinishing]=useState(false);
   useEffect(()=>{const h=e=>e.key==="Escape"&&onClose();window.addEventListener("keydown",h);return()=>window.removeEventListener("keydown",h);},[]);
   const togglePool=p=>setPool(prev=>prev.find(x=>x.name===p.name)?prev.filter(x=>x.name!==p.name):[...prev,p]);
   const toggleReviewee=p=>setReviewees(prev=>prev.find(x=>x.name===p.name)?prev.filter(x=>x.name!==p.name):[...prev,p]);
@@ -43,7 +44,11 @@ function AddConnModal({allPeople,existingPool,existingConns,editingConn,onSave,o
     setReviewer(null);setReviewees([]);setPhase(2);
   }
 
-  function finish(){onSave({pool,connections:savedConns});}
+  async function finish(){
+    setFinishing(true);
+    await onSave({pool,connections:savedConns});
+    setFinishing(false);
+  }
 
   const phaseLabels=["1. Form Fillers","2. Pick Reviewer","3. Who They Review"];
   return(
@@ -152,7 +157,7 @@ function AddConnModal({allPeople,existingPool,existingConns,editingConn,onSave,o
         </div>
         <div style={{padding:"16px 24px",borderTop:"1px solid rgba(255,255,255,0.06)",display:"flex",gap:10,flexShrink:0}}>
           {phase===1&&(<><button onClick={onClose} style={{flex:1,padding:"11px 0",borderRadius:10,border:"1px solid #21262D",background:"transparent",color:"#6b7280",fontSize:13,cursor:"pointer"}}>Cancel</button><button onClick={()=>pool.length>0&&setPhase(2)} disabled={!pool.length} style={{flex:2,padding:"11px 0",borderRadius:10,border:"none",background:pool.length?"linear-gradient(135deg,#D97706,#F59E0B)":"#21262D",color:pool.length?"#000":"#4b5563",fontSize:13,fontWeight:700,cursor:pool.length?"pointer":"not-allowed"}}>Continue →</button></>)}
-          {phase===2&&(<><button onClick={()=>setPhase(1)} style={{padding:"11px 20px",borderRadius:10,border:"1px solid #21262D",background:"transparent",color:"#6b7280",fontSize:13,cursor:"pointer"}}>← Back</button><button onClick={()=>reviewer&&setPhase(3)} disabled={!reviewer} style={{flex:2,padding:"11px 0",borderRadius:10,border:"none",background:reviewer?"linear-gradient(135deg,#D97706,#F59E0B)":"#21262D",color:reviewer?"#000":"#4b5563",fontSize:13,fontWeight:700,cursor:reviewer?"pointer":"not-allowed"}}>Select Who They Review →</button><button onClick={finish} style={{flex:1,padding:"11px 0",borderRadius:10,border:"none",background:"#22c55e",color:"#000",fontSize:13,fontWeight:700,cursor:"pointer"}}>Finish ✓</button></>)}
+          {phase===2&&(<><button onClick={()=>setPhase(1)} style={{padding:"11px 20px",borderRadius:10,border:"1px solid #21262D",background:"transparent",color:"#6b7280",fontSize:13,cursor:"pointer"}}>← Back</button><button onClick={()=>reviewer&&setPhase(3)} disabled={!reviewer} style={{flex:2,padding:"11px 0",borderRadius:10,border:"none",background:reviewer?"linear-gradient(135deg,#D97706,#F59E0B)":"#21262D",color:reviewer?"#000":"#4b5563",fontSize:13,fontWeight:700,cursor:reviewer?"pointer":"not-allowed"}}>Select Who They Review →</button><button onClick={finish} disabled={finishing} style={{flex:1,padding:"11px 0",borderRadius:10,border:"none",background:finishing?"#374151":"#22c55e",color:finishing?"#9ca3af":"#000",fontSize:13,fontWeight:700,cursor:finishing?"not-allowed":"pointer"}}>{finishing?"Saving...":"Finish ✓"}</button></>)}
           {phase===3&&(<><button onClick={()=>setPhase(2)} style={{padding:"11px 20px",borderRadius:10,border:"1px solid #21262D",background:"transparent",color:"#6b7280",fontSize:13,cursor:"pointer"}}>← Back</button><button onClick={()=>reviewees.length&&saveConnection()} disabled={!reviewees.length} style={{flex:2,padding:"11px 0",borderRadius:10,border:"none",background:reviewees.length?"linear-gradient(135deg,#D97706,#F59E0B)":"#21262D",color:reviewees.length?"#000":"#4b5563",fontSize:13,fontWeight:700,cursor:reviewees.length?"pointer":"not-allowed",display:"flex",alignItems:"center",justifyContent:"center",gap:6}}><Check size={14}/> Save Connection</button></>)}
         </div>
       </div>
@@ -202,7 +207,6 @@ export default function Connections({defaultFormId}){
     const updated=base.map(f=>f.id===selectedFormId?{...f,fillerPool:pool,connections:conns}:f);
     setForms(updated);
     await sheetSaveForms(updated);
-    // Reload to confirm
     getForms().then(fl=>setForms(fl));
     setShowModal(false);
     setEditingConn(null);
