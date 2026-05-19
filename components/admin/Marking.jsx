@@ -273,6 +273,7 @@ export default function Marking(){
   const [config,setConfig]=useState(EMPTY_CONFIG);
   const [saved,setSaved]=useState(false);
   const [loading,setLoading]=useState(true);
+  const [subsLoaded,setSubsLoaded]=useState(false);
   const [view,setView]=useState("config");
   
   useEffect(()=>{
@@ -283,15 +284,15 @@ export default function Marking(){
       // subs loaded above
       // getMarkingConfig().then(cfg=>{ if(cfg) setConfig(cfg); });
     getMarkingConfig().then(cfg=>{ if(cfg) setConfig(cfg); }).catch(()=>{});
-      fl.forEach(f=>{
+      Promise.all(fl.map(f=>
         getSubmissions(f.id).then(subs=>{
           setAllSubs(prev=>({...prev,[f.id]:subs}));
-        }).catch(()=>{});
-      });
+        }).catch(()=>{})
+      )).then(()=>setSubsLoaded(true));
     }).catch(()=>setLoading(false));
   },[]);
 
-  if(loading) return(
+  if(loading||!subsLoaded) return(
     <div style={{display:"flex",flexDirection:"column",gap:16}}>
       <style>{"@keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}"}</style>
       <div style={{display:"flex",justifyContent:"space-between"}}><div style={{display:"flex",flexDirection:"column",gap:6}}><div style={{width:120,height:24,borderRadius:8,background:"linear-gradient(90deg,#161B22 25%,#21262D 50%,#161B22 75%)",backgroundSize:"200% 100%",animation:"shimmer 1.5s infinite"}}/><div style={{width:200,height:14,borderRadius:6,background:"linear-gradient(90deg,#161B22 25%,#21262D 50%,#161B22 75%)",backgroundSize:"200% 100%",animation:"shimmer 1.5s infinite"}}/></div><div style={{width:120,height:36,borderRadius:9,background:"linear-gradient(90deg,#161B22 25%,#21262D 50%,#161B22 75%)",backgroundSize:"200% 100%",animation:"shimmer 1.5s infinite"}}/></div>
