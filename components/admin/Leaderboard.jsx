@@ -1,17 +1,15 @@
 "use client";
-import { getForms, getPeople, getSubmissions } from "@/lib/sheets";
+import { getForms, getPeople, getSubmissions, getMarkingConfig } from "@/lib/sheets";
 import { useState, useEffect } from "react";
 
 function gi(n=""){return n.split(" ").map(x=>x[0]).join("").toUpperCase().slice(0,2)||"?";}
 function gc(n=""){const c=["#F59E0B","#3B82F6","#10B981","#F43F5E","#8B5CF6","#06B6D4","#F97316"];return c[(n.charCodeAt(0)||0)%c.length];}
 function Av({name="",size=36}){const color=gc(name);return<div style={{width:size,height:size,borderRadius:"50%",background:color+"18",border:"2px solid "+color+"44",display:"flex",alignItems:"center",justifyContent:"center",fontSize:size*0.33,fontWeight:700,color,flexShrink:0}}>{gi(name)}</div>;}
 
-function getSubmissionsForForm(formId){
-  try{return JSON.parse(localStorage.getItem("submissions_"+formId)||"[]");}catch{return[];}
-}
 
-function getPersonFormAvg(personName,formId,formFields){
-  const subs=getSubmissionsForForm(formId).filter(s=>s.personName===personName);
+
+function getPersonFormAvg(personName,formId,formFields,allSubs={}){
+  const subs=(allSubs[formId]||[]).filter(s=>s.personName===personName);
   if(!subs.length)return null;
   const rFields=formFields.filter(f=>f.type==="rating");
   if(!rFields.length)return null;
@@ -96,6 +94,7 @@ export default function Leaderboard(){
   const [allSubs,setAllSubs]=useState({});
   const [people,setPeople]=useState([]);
   const [config,setConfig]=useState({teamMembers:{forms:[]},teamLeaders:{forms:[]}});
+  const [loading,setLoading]=useState(true);
 
   useEffect(()=>{
     Promise.all([getForms(), getPeople()]).then(async([fl, p])=>{
@@ -108,8 +107,7 @@ export default function Leaderboard(){
       subsMap[f.id] = s;
     }));
     setAllSubs(subsMap);
-    const sc=localStorage.getItem("marking_config");
-    if(sc){try{setConfig(JSON.parse(sc));}catch{}}
+    getMarkingConfig().then(cfg=>{ if(cfg) setConfig(cfg); }).catch(()=>{});
   });
   },[]);
 
@@ -133,6 +131,17 @@ export default function Leaderboard(){
   const teamMembers=allScored.filter(p=>p.isTM);
   const noConfig=config.teamMembers.forms.length===0&&config.teamLeaders.forms.length===0;
 
+  if(loading) return(
+    <div style={{display:"flex",flexDirection:"column",gap:16}}>
+      <style>{"@keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}"}</style>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(140px,1fr))",gap:10}}>
+        {[1,2,3,4].map(i=>(<div key={i} style={{background:"#161B22",border:"1px solid #21262D",borderRadius:10,padding:"12px 16px",display:"flex",flexDirection:"column",gap:6}}><div style={{width:"40%",height:24,borderRadius:6,background:"linear-gradient(90deg,#161B22 25%,#21262D 50%,#161B22 75%)",backgroundSize:"200% 100%",animation:"shimmer 1.5s infinite"}}/><div style={{width:"60%",height:12,borderRadius:4,background:"linear-gradient(90deg,#161B22 25%,#21262D 50%,#161B22 75%)",backgroundSize:"200% 100%",animation:"shimmer 1.5s infinite"}}/></div>))}
+      </div>
+      <div style={{background:"#161B22",border:"1px solid #21262D",borderRadius:14,overflow:"hidden"}}>
+        {[1,2,3,4,5].map(i=>(<div key={i} style={{display:"flex",gap:14,alignItems:"center",padding:"16px",borderBottom:"1px solid #21262D"}}><div style={{width:36,height:36,borderRadius:6,background:"linear-gradient(90deg,#161B22 25%,#21262D 50%,#161B22 75%)",backgroundSize:"200% 100%",animation:"shimmer 1.5s infinite"}}/><div style={{width:44,height:44,borderRadius:"50%",background:"linear-gradient(90deg,#161B22 25%,#21262D 50%,#161B22 75%)",backgroundSize:"200% 100%",animation:"shimmer 1.5s infinite"}}/><div style={{flex:1,display:"flex",flexDirection:"column",gap:6}}><div style={{width:"40%",height:14,borderRadius:6,background:"linear-gradient(90deg,#161B22 25%,#21262D 50%,#161B22 75%)",backgroundSize:"200% 100%",animation:"shimmer 1.5s infinite"}}/><div style={{width:"25%",height:10,borderRadius:4,background:"linear-gradient(90deg,#161B22 25%,#21262D 50%,#161B22 75%)",backgroundSize:"200% 100%",animation:"shimmer 1.5s infinite"}}/></div><div style={{width:200,height:8,borderRadius:999,background:"linear-gradient(90deg,#161B22 25%,#21262D 50%,#161B22 75%)",backgroundSize:"200% 100%",animation:"shimmer 1.5s infinite"}}/></div>))}
+      </div>
+    </div>
+  );
   return(
     <div style={{display:"flex",flexDirection:"column",gap:20}}>
 
@@ -215,7 +224,7 @@ export default function Leaderboard(){
                   <div style={{display:"flex",gap:4,flexShrink:0}}>
                     {(person.configForms||[]).map(cf=>{
                       const form=forms.find(f=>f.id===cf.formId);
-                      const avg=form?getPersonFormAvg(person.name,cf.formId,form.fields||[]):null;
+                      const avg=form?getPersonFormAvg(person.name,cf.formId,form.fields||[],allSubs):null;
                       const c=avg!==null?(avg>=4?"#22c55e":avg>=3?"#F59E0B":"#ef4444"):"#4b5563";
                       return(
                         <div key={cf.formId} title={form?form.name:""}
