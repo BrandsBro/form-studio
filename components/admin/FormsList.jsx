@@ -1,6 +1,6 @@
 "use client";
 
-import { getForms, saveForms, getPeople } from "@/lib/sheets";
+import { getForms, saveForms, deleteForm as sheetDeleteForm, getMarkingConfig, saveMarkingConfig } from "@/lib/sheets";
 import { useState, useEffect } from "react";
 import { Plus, Trash2, X, ArrowRight, ArrowLeft, Check } from "lucide-react";
 
@@ -386,10 +386,17 @@ export default function FormsList({ onEdit }) {
   }
   
   async function delForm(id) {
-    const updated = forms.filter(f=>f.id!==id);
-    setForms(updated);
-    await saveForms(updated);
-    getForms().then(data=>setForms(data));
+    setForms(prev=>prev.filter(f=>f.id!==id));
+    await sheetDeleteForm(id);
+    try {
+      const cfg = await getMarkingConfig();
+      if(cfg) {
+        cfg.teamMembers.forms = (cfg.teamMembers.forms||[]).filter(f=>f.formId!==id);
+        cfg.teamLeaders.forms = (cfg.teamLeaders.forms||[]).filter(f=>f.formId!==id);
+        await saveMarkingConfig(cfg);
+      }
+    } catch(e) {}
+    getForms().then(setForms);
   }
   
   async function toggleActive(id) {
