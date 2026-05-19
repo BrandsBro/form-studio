@@ -31,8 +31,8 @@ function AddConnModal({people,existingPool,existingConns,editingConn,onSave,onCl
     const newNames=reviewees.map(r=>r.name);
     let updated;
     if(ex){
-      const merged=[...new Set([...ex.revieweeNames,...newNames])];
-      updated=savedConns.map(c=>c.reviewerName===reviewer.name?{...c,revieweeNames:merged,type:merged.length>1?"multi":"single"}:c);
+      // Replace reviewees with new selection
+      updated=savedConns.map(c=>c.reviewerName===reviewer.name?{...c,revieweeNames:newNames,type:newNames.length>1?"multi":"single",reviewerEmail:reviewer.email||c.reviewerEmail}:c);
     }else{
       updated=[...savedConns,{id:"conn_"+Date.now(),reviewerName:reviewer.name,reviewerEmail:reviewer.email||"",revieweeNames:newNames,type:newNames.length>1?"multi":"single"}];
     }
