@@ -212,7 +212,11 @@ export default function Connections({defaultFormId}){
     setEditingConn(null);
   }
 
-  function handleEditConn(conn){setShowModal(true);setEditingConn(conn);}
+  function handleEditConn(conn){
+    getPeople().then(p=>setPeople(p));
+    setShowModal(true);
+    setEditingConn(conn);
+  }
 
   async function handleDeleteConn(id){
     const fresh=await getForms();
@@ -261,7 +265,7 @@ export default function Connections({defaultFormId}){
           <h2 style={{color:"white",fontSize:18,fontWeight:700,margin:0,fontFamily:"var(--font-playfair)"}}>Review Connections</h2>
           <p style={{color:"#6b7280",fontSize:13,margin:"3px 0 0"}}>3-phase setup: pick form fillers → assign reviewer → pick who they evaluate</p>
         </div>
-        <button onClick={()=>setShowModal(true)} disabled={!selectedForm} style={{display:"flex",alignItems:"center",gap:8,padding:"10px 20px",borderRadius:10,border:"none",background:selectedForm?"linear-gradient(135deg,#D97706,#F59E0B)":"#21262D",color:selectedForm?"#000":"#4b5563",fontSize:13,fontWeight:700,cursor:selectedForm?"pointer":"not-allowed"}}>
+        <button onClick={()=>{ getPeople().then(p=>setPeople(p)); setShowModal(true); }} disabled={!selectedForm} style={{display:"flex",alignItems:"center",gap:8,padding:"10px 20px",borderRadius:10,border:"none",background:selectedForm?"linear-gradient(135deg,#D97706,#F59E0B)":"#21262D",color:selectedForm?"#000":"#4b5563",fontSize:13,fontWeight:700,cursor:selectedForm?"pointer":"not-allowed"}}>
           <Plus size={16}/> {fillerPool.length>0?"Add Connection":"Set Up Connections"}
         </button>
       </div>
