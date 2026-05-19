@@ -104,7 +104,7 @@ function RenameModal({ form, onSave, onClose, saving=false }) {
         </button>
         <button onClick={()=>canSave&&onSave({...form,name:name.trim(),description:desc.trim()})} disabled={!canSave}
           style={{ flex:2, padding:"11px 0", borderRadius:10, border:"none", background:canSave?`linear-gradient(135deg,${color}cc,${color})`:"#161B22", color:canSave?"#000":"#374151", fontSize:13, fontWeight:700, cursor:canSave?"pointer":"not-allowed", fontFamily:"inherit", transition:"all 0.2s", display:"flex", alignItems:"center", justifyContent:"center", gap:6 }}>
-          {saving ? "Saving..." : <>{saving ? "Saving..." : <>{saving ? "Saving..." : <><Check size={14}/> Save Changes</>}</>}</>}
+          {saving ? "Saving..." : <>{saving ? "Saving..." : <>{saving ? "Saving..." : <>{saving ? "Saving..." : <><Check size={14}/> Save Changes</>}</>}</>}</>}
         </button>
       </div>
     </Modal>
@@ -333,7 +333,7 @@ export default function FormsList({ onEdit }) {
   const [loading, setLoading] = useState(false);
   const [creating, setCreating] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [saving, setSaving] = useState(false);
+
 
   // Removed duplicate setSaving state here
   const [selected, setSelected] = useState(null);
