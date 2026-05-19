@@ -284,7 +284,14 @@ export default function Marking(){
       setLoading(false);
       // subs loaded above
       // getMarkingConfig().then(cfg=>{ if(cfg) setConfig(cfg); });
-    getMarkingConfig().then(cfg=>{ if(cfg) setConfig(cfg); }).catch(()=>{});
+    getMarkingConfig().then(cfg=>{
+      if(cfg && fl.length>0){
+        const validIds=fl.map(f=>f.id);
+        cfg.teamMembers.forms=(cfg.teamMembers.forms||[]).filter(f=>validIds.includes(f.formId));
+        cfg.teamLeaders.forms=(cfg.teamLeaders.forms||[]).filter(f=>validIds.includes(f.formId));
+        setConfig(cfg);
+      }
+    }).catch(()=>{});
       Promise.all(fl.map(f=>
         getSubmissions(f.id).then(subs=>{
           setAllSubs(prev=>({...prev,[f.id]:subs}));
