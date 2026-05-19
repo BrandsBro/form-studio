@@ -378,7 +378,23 @@ export default function FormPage(){
     setStep("form");
   }
 
-  if(loading)return<div style={{minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",background:"#0D1117"}}><p style={{color:"#6b7280"}}>Loading...</p></div>;
+  if(loading)return(
+    <div style={{minHeight:"100vh",background:"#0D1117",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:24,padding:20}}>
+      <style>{"@keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}@keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}"}</style>
+      <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:16}}>
+        <svg style={{width:40,height:40,animation:"spin 1s linear infinite"}} viewBox="0 0 24 24" fill="none">
+          <circle cx="12" cy="12" r="10" stroke="#21262D" strokeWidth="3"/>
+          <path d="M4 12a8 8 0 018-8" stroke="#F59E0B" strokeWidth="3" strokeLinecap="round"/>
+        </svg>
+        <p style={{color:"#6b7280",fontSize:14,margin:0}}>Loading your review form...</p>
+      </div>
+      <div style={{width:"min(480px,100%)",display:"flex",flexDirection:"column",gap:12}}>
+        <div style={{height:60,borderRadius:14,background:"linear-gradient(90deg,#161B22 25%,#21262D 50%,#161B22 75%)",backgroundSize:"200% 100%",animation:"shimmer 1.5s infinite"}}/>
+        <div style={{height:200,borderRadius:14,background:"linear-gradient(90deg,#161B22 25%,#21262D 50%,#161B22 75%)",backgroundSize:"200% 100%",animation:"shimmer 1.5s infinite"}}/>
+        {[1,2,3].map(i=><div key={i} style={{height:80,borderRadius:12,background:"linear-gradient(90deg,#161B22 25%,#21262D 50%,#161B22 75%)",backgroundSize:"200% 100%",animation:"shimmer 1.5s infinite"}}/>)}
+      </div>
+    </div>
+  );
   if(notFound)return(
     <div style={{minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",background:"#0D1117",padding:24}}>
       <div style={{textAlign:"center"}}>
