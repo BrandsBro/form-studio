@@ -12,13 +12,11 @@ const EMPTY_CONFIG={
   teamLeaders:{forms:[],maxForms:5},
 };
 
-function getSubmissionsForForm(formId){
-  try{return JSON.parse(localStorage.getItem("submissions_"+formId)||"[]");}catch(e){return[];}
-}
+
 
 // Calculate average score for a person on a form across all reviewers
-function getPersonFormAvg(personName, formId, formFields){
-  const subs=getSubmissionsForForm(formId);
+function getPersonFormAvg(personName, formId, formFields, allSubs={}){
+  const subs=allSubs[formId]||[];
   const personSubs=subs.filter(s=>s.personName===personName);
   if(!personSubs.length)return null;
   const ratingFields=formFields.filter(f=>f.type==="rating");
@@ -31,14 +29,14 @@ function getPersonFormAvg(personName, formId, formFields){
 }
 
 // Calculate final weighted score for a person
-function calcFinalScore(personName, configForms, allForms){
+function calcFinalScore(personName, configForms, allForms, allSubs={}){
   let totalWeight=0;
   let weightedSum=0;
   let hasData=false;
   configForms.forEach(cf=>{
     const form=allForms.find(f=>f.id===cf.formId);
     if(!form)return;
-    const avg=getPersonFormAvg(personName,cf.formId,form.fields||[]);
+    const avg=getPersonFormAvg(personName,cf.formId,form.fields||[],allSubs);
     if(avg!==null){
       weightedSum+=avg*(cf.weight/100);
       totalWeight+=cf.weight;
@@ -171,9 +169,9 @@ function ScoreBar({score,max=5}){
 }
 
 // ── Leaderboard ───────────────────────────────────────────────────────────────
-function Leaderboard({title,icon,color,people,configForms,allForms}){
+function Leaderboard({title,icon,color,people,configForms,allForms,allSubs={}}){
   const scored=people.map(p=>{
-    const score=calcFinalScore(p.name,configForms,allForms);
+    const score=calcFinalScore(p.name,configForms,allForms,allSubs);
     return{...p,score};
   }).sort((a,b)=>{
     if(a.score===null&&b.score===null)return 0;
@@ -235,7 +233,7 @@ function Leaderboard({title,icon,color,people,configForms,allForms}){
               <div style={{display:"flex",gap:4,flexShrink:0}}>
                 {configForms.map(cf=>{
                   const form=allForms.find(f=>f.id===cf.formId);
-                  const avg=form?getPersonFormAvg(person.name,cf.formId,form.fields||[]):null;
+                  const avg=form?getPersonFormAvg(person.name,cf.formId,form.fields||[],allSubs):null;
                   return(
                     <div key={cf.formId} title={cf.name+": "+(avg!==null?avg.toFixed(2):"N/A")}
                       style={{width:28,height:28,borderRadius:6,background:avg!==null?(avg>=4?"rgba(34,197,94,0.15)":avg>=3?"rgba(245,158,11,0.15)":"rgba(239,68,68,0.15)"):"#21262D",display:"flex",alignItems:"center",justifyContent:"center",fontSize:10,fontWeight:700,color:avg!==null?(avg>=4?"#22c55e":avg>=3?"#F59E0B":"#ef4444"):"#4b5563"}}>
@@ -273,6 +271,7 @@ export default function Marking(){
   const [people,setPeople]=useState([]);
   const [config,setConfig]=useState(EMPTY_CONFIG);
   const [saved,setSaved]=useState(false);
+  const [loading,setLoading]=useState(true);
   const [view,setView]=useState("config");
   
   useEffect(()=>{
@@ -283,9 +282,18 @@ export default function Marking(){
       setAllSubs(subsMap);
       const sc=localStorage.getItem("marking_config");
       if(sc){try{setConfig(JSON.parse(sc));}catch(e){}}
-    }); // Fixed: Properly closed the .then() block here
+      setLoading(false);
+    });
   },[]);
 
+  if(loading) return(
+    <div style={{display:"flex",flexDirection:"column",gap:16}}>
+      <style>{"@keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}"}</style>
+      <div style={{display:"flex",justifyContent:"space-between"}}><div style={{display:"flex",flexDirection:"column",gap:6}}><div style={{width:120,height:24,borderRadius:8,background:"linear-gradient(90deg,#161B22 25%,#21262D 50%,#161B22 75%)",backgroundSize:"200% 100%",animation:"shimmer 1.5s infinite"}}/><div style={{width:200,height:14,borderRadius:6,background:"linear-gradient(90deg,#161B22 25%,#21262D 50%,#161B22 75%)",backgroundSize:"200% 100%",animation:"shimmer 1.5s infinite"}}/></div><div style={{width:120,height:36,borderRadius:9,background:"linear-gradient(90deg,#161B22 25%,#21262D 50%,#161B22 75%)",backgroundSize:"200% 100%",animation:"shimmer 1.5s infinite"}}/></div>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(140px,1fr))",gap:10}}>{[1,2,3,4].map(i=>(<div key={i} style={{background:"#161B22",border:"1px solid #21262D",borderRadius:10,padding:"12px 16px",display:"flex",flexDirection:"column",gap:6}}><div style={{width:"40%",height:24,borderRadius:6,background:"linear-gradient(90deg,#161B22 25%,#21262D 50%,#161B22 75%)",backgroundSize:"200% 100%",animation:"shimmer 1.5s infinite"}}/><div style={{width:"60%",height:12,borderRadius:4,background:"linear-gradient(90deg,#161B22 25%,#21262D 50%,#161B22 75%)",backgroundSize:"200% 100%",animation:"shimmer 1.5s infinite"}}/></div>))}</div>
+      {[1,2].map(i=>(<div key={i} style={{background:"#161B22",border:"1px solid #21262D",borderRadius:14,padding:20,display:"flex",flexDirection:"column",gap:12}}><div style={{width:"50%",height:18,borderRadius:6,background:"linear-gradient(90deg,#161B22 25%,#21262D 50%,#161B22 75%)",backgroundSize:"200% 100%",animation:"shimmer 1.5s infinite"}}/>{[1,2,3].map(j=>(<div key={j} style={{height:48,borderRadius:10,background:"linear-gradient(90deg,#161B22 25%,#21262D 50%,#161B22 75%)",backgroundSize:"200% 100%",animation:"shimmer 1.5s infinite"}}/>))}</div>))}
+    </div>
+  );
   const teamMembers=people.filter(p=>(p.designations||[]).includes("Team Member"));
   const teamLeaders=people.filter(p=>!(p.designations||[]).includes("Team Member"));
 
@@ -373,15 +381,13 @@ export default function Marking(){
           )}
           <Leaderboard
             title="Team Members Leaderboard" icon="👥" color="#10B981"
-            people={teamMembers}
-            configForms={config.teamMembers.forms}
-            allForms={forms}
+            people={teamMembers} configForms={config.teamMembers.forms}
+            allForms={forms} allSubs={allSubs}
           />
           <Leaderboard
             title="Team Leaders Leaderboard" icon="⭐" color="#F59E0B"
-            people={teamLeaders}
-            configForms={config.teamLeaders.forms}
-            allForms={forms}
+            people={teamLeaders} configForms={config.teamLeaders.forms}
+            allForms={forms} allSubs={allSubs}
           />
         </div>
       )}
