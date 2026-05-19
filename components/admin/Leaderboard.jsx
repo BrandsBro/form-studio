@@ -107,6 +107,7 @@ export default function Leaderboard(){
       subsMap[f.id] = s;
     }));
     setAllSubs(subsMap);
+    setLoading(false);
     getMarkingConfig().then(cfg=>{ if(cfg) setConfig(cfg); }).catch(()=>{});
   });
   },[]);
