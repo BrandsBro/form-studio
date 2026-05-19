@@ -196,18 +196,24 @@ export default function Connections({defaultFormId}){
     await sheetSaveForms(updated);
   }
 
-  function handleSave({pool,connections:conns}){
-    const updated=forms.map(f=>f.id===selectedFormId?{...f,fillerPool:pool,connections:conns}:f);
-    persistForms(updated);
+  async function handleSave({pool,connections:conns}){
+    const fresh=await getForms();
+    const base=fresh.length>0?fresh:forms;
+    const updated=base.map(f=>f.id===selectedFormId?{...f,fillerPool:pool,connections:conns}:f);
+    setForms(updated);
+    await sheetSaveForms(updated);
     setShowModal(false);
     setEditingConn(null);
   }
 
   function handleEditConn(conn){setShowModal(true);setEditingConn(conn);}
 
-  function handleDeleteConn(id){
-    const updated=forms.map(f=>f.id===selectedFormId?{...f,connections:connections.filter(c=>c.id!==id)}:f);
-    persistForms(updated);
+  async function handleDeleteConn(id){
+    const fresh=await getForms();
+    const base=fresh.length>0?fresh:forms;
+    const updated=base.map(f=>f.id===selectedFormId?{...f,connections:(f.connections||[]).filter(c=>c.id!==id)}:f);
+    setForms(updated);
+    await sheetSaveForms(updated);
   }
 
   function handleRemoveReviewee(connId,name){
