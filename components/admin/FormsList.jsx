@@ -104,7 +104,7 @@ function RenameModal({ form, onSave, onClose, saving=false }) {
         </button>
         <button onClick={()=>canSave&&onSave({...form,name:name.trim(),description:desc.trim()})} disabled={!canSave}
           style={{ flex:2, padding:"11px 0", borderRadius:10, border:"none", background:canSave?`linear-gradient(135deg,${color}cc,${color})`:"#161B22", color:canSave?"#000":"#374151", fontSize:13, fontWeight:700, cursor:canSave?"pointer":"not-allowed", fontFamily:"inherit", transition:"all 0.2s", display:"flex", alignItems:"center", justifyContent:"center", gap:6 }}>
-          {saving ? "Saving..." : <>{saving ? "Saving..." : <>{saving ? "Saving..." : <>{saving ? "Saving..." : <><Check size={14}/> Save Changes</>}</>}</>}</>}
+          {saving ? <><svg style={{width:14,height:14,animation:"spin 1s linear infinite",marginRight:6}} viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" opacity="0.25"/><path fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"/></svg>Saving...</> : <><Check size={14}/> Save Changes</>}
         </button>
       </div>
     </Modal>
