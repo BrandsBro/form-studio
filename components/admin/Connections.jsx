@@ -13,7 +13,7 @@ function AddConnModal({people,existingPool,existingConns,editingConn,onSave,onCl
   const [pool,setPool]=useState(existingPool.map(n=>people.find(p=>p.name===n)||{name:n,email:""}));
   const [reviewer,setReviewer]=useState(editingConn?people.find(p=>p.name===editingConn.reviewerName)||null:null);
   const [reviewees,setReviewees]=useState(editingConn?editingConn.revieweeNames.map(n=>people.find(p=>p.name===n)||{name:n,email:""}):[] );
-  const [savedConns,setSavedConns]=useState(existingConns);
+  const [savedConns,setSavedConns]=useState(editingConn?existingConns.filter(c=>c.reviewerName!==editingConn.reviewerName):existingConns);
   const [saving,setSaving]=useState(false);
 
   useEffect(()=>{const h=e=>e.key==="Escape"&&onClose();window.addEventListener("keydown",h);return()=>window.removeEventListener("keydown",h);},[]);
