@@ -381,6 +381,7 @@ export default function FormsList({ onEdit }) {
     const updated=[...fresh,nf];
     setForms(updated);
     await saveForms(updated);
+    getForms().then(setForms);
     setCreating(false);
   }
   
