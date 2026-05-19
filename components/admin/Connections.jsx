@@ -207,7 +207,7 @@ export default function Connections({defaultFormId}){
     const updated=base.map(f=>f.id===selectedFormId?{...f,fillerPool:pool,connections:conns}:f);
     setForms(updated);
     await sheetSaveForms(updated);
-    getForms().then(fl=>setForms(fl));
+    setTimeout(()=>getForms().then(fl=>{ setForms(fl); }),1500);
     setShowModal(false);
     setEditingConn(null);
   }
