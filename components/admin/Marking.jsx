@@ -272,6 +272,7 @@ export default function Marking(){
   const [people,setPeople]=useState([]);
   const [config,setConfig]=useState(EMPTY_CONFIG);
   const [saved,setSaved]=useState(false);
+  const [saving,setSaving]=useState(false);
   const [loading,setLoading]=useState(true);
   const [subsLoaded,setSubsLoaded]=useState(false);
   const [view,setView]=useState("config");
@@ -304,7 +305,9 @@ export default function Marking(){
   const teamLeaders=people.filter(p=>!(p.designations||[]).includes("Team Member"));
 
   async function saveConfig(){
+    setSaving(true);
     await saveMarkingConfig(config);
+    setSaving(false);
     setSaved(true);
     setTimeout(()=>setSaved(false),2000);
   }
@@ -325,8 +328,8 @@ export default function Marking(){
         <div style={{display:"flex",gap:10,alignItems:"center"}}>
           
           <button onClick={saveConfig}
-            style={{padding:"8px 18px",borderRadius:9,border:"none",background:saved?"#16a34a":"linear-gradient(135deg,#D97706,#F59E0B)",color:"#000",fontSize:13,fontWeight:700,cursor:"pointer",display:"flex",alignItems:"center",gap:6}}>
-            <Save size={14}/>{saved?"Saved!":"Save Config"}
+            style={{padding:"8px 18px",borderRadius:9,border:"none",background:saving?"#374151":saved?"#16a34a":"linear-gradient(135deg,#D97706,#F59E0B)",color:"#000",fontSize:13,fontWeight:700,cursor:"pointer",display:"flex",alignItems:"center",gap:6}}>
+            {saving?<svg style={{width:14,height:14,animation:"spin 1s linear infinite"}} viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" opacity="0.25"/><path fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"/></svg>:<Save size={14}/>}{saving?"Saving...":saved?"Saved!":"Save Config"}
           </button>
         </div>
       </div>

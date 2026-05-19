@@ -40,6 +40,7 @@ export default function ReReview(){
   const [editThreshold,setEditThreshold]=useState(false);
   const [invalidated,setInvalidated]=useState([]);
   const [refresh,setRefresh]=useState(0);
+  const [invalidating,setInvalidating]=useState(null);
   const [loading,setLoading]=useState(true);
 
   useEffect(()=>{
@@ -63,9 +64,11 @@ export default function ReReview(){
     setRefresh(r=>r+1);
   }
 
-  function handleInvalidate(reviewerEmail,personName,formId){
+  async function handleInvalidate(reviewerEmail,personName,formId){
+    setInvalidating(reviewerEmail+personName+formId);
     invalidateSubmission(reviewerEmail,personName,formId);
     setRefresh(r=>r+1);
+    setInvalidating(null);
   }
   function handleRestore(reviewerEmail,personName,formId){
     restoreSubmission(reviewerEmail,personName,formId);
@@ -248,8 +251,9 @@ export default function ReReview(){
                       </div>
                     )}
                     <button onClick={()=>handleInvalidate(f.reviewerEmail,f.leader.name,f.form.id)}
-                      style={{padding:"10px 18px",borderRadius:9,border:"none",background:"linear-gradient(135deg,#dc2626,#ef4444)",color:"white",fontSize:13,fontWeight:700,cursor:"pointer"}}>
-                      Mark Invalid
+                      disabled={!!invalidating}
+                      style={{padding:"10px 18px",borderRadius:9,border:"none",background:invalidating===f.reviewerEmail+f.leader.name+f.form.id?"#374151":"linear-gradient(135deg,#dc2626,#ef4444)",color:"white",fontSize:13,fontWeight:700,cursor:"pointer",display:"flex",alignItems:"center",gap:6}}>
+                      {invalidating===f.reviewerEmail+f.leader.name+f.form.id?<><svg style={{width:14,height:14,animation:"spin 1s linear infinite"}} viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" opacity="0.25"/><path fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"/></svg>Processing...</>:"Mark Invalid"}
                     </button>
                   </div>
                 </div>
