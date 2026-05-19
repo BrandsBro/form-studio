@@ -1,8 +1,8 @@
 "use client";
-// spin keyframe added via style tag in JSX
-import { getForms, saveForms } from "@/lib/sheets";
+
+import { getForms, saveForms, getPeople } from "@/lib/sheets";
 import { useState, useEffect } from "react";
-import { Plus, Trash2, X, ArrowRight, ArrowLeft, Copy, Check } from "lucide-react";
+import { Plus, Trash2, X, ArrowRight, ArrowLeft, Check } from "lucide-react";
 
 const THEMES = { amber:"#F59E0B", blue:"#3B82F6", green:"#10B981", rose:"#F43F5E", violet:"#8B5CF6", cyan:"#06B6D4" };
 const EF = { name:"New Form", description:"", active:true, badgeLabel:"Monthly Performance Review", quote:"As a team you have the right to measure your team leader wisely.", theme:"amber", customColor:"", fields:[], connections:[] };
@@ -17,7 +17,7 @@ function Modal({ onClose, children, width = 500 }) {
     const handler = e => e.key === "Escape" && onClose();
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
-  }, []);
+  }, [onClose]);
 
   return (
     <div style={{ position:"fixed", inset:0, zIndex:300, display:"flex", alignItems:"center", justifyContent:"center", padding:20 }}>
@@ -28,9 +28,6 @@ function Modal({ onClose, children, width = 500 }) {
     </div>
   );
 }
-
-
-
 
 // ── Rename Modal ──────────────────────────────────────────────────────────────
 function RenameModal({ form, onSave, onClose, saving=false }) {
@@ -327,33 +324,44 @@ function FormConnections({ form, onUpdate, onBack, employees, executives }) {
 }
 
 // ── Forms List ────────────────────────────────────────────────────────────────
-
-
 function Skeleton({w="100%",h=20,r=8}){
   return <div style={{width:w,height:h,borderRadius:r,background:"linear-gradient(90deg,#161B22,#21262D,#161B22)",backgroundSize:"200% 100%",animation:"shimmer 1.5s infinite"}} />;
 }
 
-export default function FormsList({ onEdit, onOpenConnections }) {
+export default function FormsList({ onEdit }) {
   const [forms, setForms] = useState([]);
   const [loading, setLoading] = useState(false);
   const [creating, setCreating] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [saving, setSaving] = useState(false);
+  const [saving, setSaving] = useState(false); 
+  // Removed duplicate setSaving state here
   const [selected, setSelected] = useState(null);
   const [renamingForm, setRenamingForm] = useState(null);
-    const [employees, setEmployees] = useState([]);
+  const [employees, setEmployees] = useState([]);
   const [executives, setExecutives] = useState([]);
 
-  useEffect(()=>{
+  useEffect(() => {
     setLoading(true);
-    getForms().then(data=>{
-      setForms(data);
+    
+    // Fetch both Forms and People data simultaneously 
+    Promise.all([
+      getForms().catch(() => []),
+      getPeople ? getPeople().catch(() => []) : Promise.resolve([])
+    ]).then(([formData, peopleData]) => {
+      setForms(formData || []);
+      
+      if (peopleData && peopleData.length) {
+        // Broad filter for assigning mock roles if undefined
+        setEmployees(peopleData.filter(p => p.role !== "Executive" && p.tag !== "Executive"));
+        setExecutives(peopleData.filter(p => p.role === "Executive" || p.tag === "Executive"));
+      }
+      
       setLoading(false);
-    }).catch(()=>setLoading(false));
-  },[]);
+    });
+  }, []);
 
-  function persistForms(list) { setForms(list); saveForms(list); }
   function handleUpdate(updated) { const list=forms.map(f=>f.id===updated.id?updated:f); setForms(list); saveForms(list); setSelected(updated); }
+  
   async function handleRename(updated) {
     setSaving(true);
     const list=forms.map(f=>f.id===updated.id?updated:f);
@@ -362,6 +370,7 @@ export default function FormsList({ onEdit, onOpenConnections }) {
     setSaving(false);
     setRenamingForm(null);
   }
+  
   async function createForm() {
     if(creating) return;
     setCreating(true);
@@ -373,29 +382,23 @@ export default function FormsList({ onEdit, onOpenConnections }) {
     await saveForms(updated);
     setCreating(false);
   }
-  async function dupForm(form) {
-    const fresh = await getForms();
-    if(!fresh.length) return;
-    const copy = {...form,id:"form_"+Date.now(),name:form.name+" (Copy)",createdAt:new Date().toISOString().slice(0,10)};
-    const updated = [...fresh, copy];
-    setForms(updated);
-    saveForms(updated);
-  }
+  
   async function delForm(id) {
     const updated = forms.filter(f=>f.id!==id);
     setForms(updated);
     await saveForms(updated);
-    // Reload from Sheets to confirm
     getForms().then(data=>setForms(data));
   }
+  
   async function toggleActive(id) {
     const fresh = await getForms();
-    if(!fresh.length) return; // guard against empty
+    if(!fresh.length) return; 
     const updated = fresh.map(f=>f.id===id?{...f,active:!f.active}:f);
     setForms(updated);
     await saveForms(updated);
   }
 
+  // Local routing to connections view
   if (selected) {
     const fresh = forms.find(f=>f.id===selected.id)||selected;
     return <FormConnections form={fresh} onUpdate={handleUpdate} onBack={()=>setSelected(null)} employees={employees} executives={executives}/>;
@@ -419,8 +422,15 @@ export default function FormsList({ onEdit, onOpenConnections }) {
       </div>
     </div>
   );
+
   return (
     <div style={{ display:"flex", flexDirection:"column", gap:20 }}>
+      {/* Required CSS keyframes injected via styled blocks */}
+      <style>{`
+        @keyframes shimmer { 0% { background-position:200% 0 } 100% { background-position:-200% 0 } }
+        @keyframes spin { 100% { transform: rotate(360deg); } }
+      `}</style>
+
       <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", flexWrap:"wrap", gap:12 }}>
         <div>
           <h2 style={{ color:"white", fontSize:18, fontWeight:700, margin:0, fontFamily:"var(--font-playfair)" }}>Forms</h2>
@@ -485,7 +495,7 @@ export default function FormsList({ onEdit, onOpenConnections }) {
                   onMouseOver={e=>e.currentTarget.style.opacity="0.85"} onMouseOut={e=>e.currentTarget.style.opacity="1"}>
                   ✏️ Edit
                 </button>
-                <button onClick={()=>onOpenConnections&&onOpenConnections(form.id)}
+                <button onClick={() => setSelected(form)}
                   style={{ padding:"8px 0", borderRadius:9, border:`1px solid ${color}44`, background:color+"10", color, fontSize:12, fontWeight:600, cursor:"pointer" }}>
                   🔗 Connections
                 </button>
@@ -518,5 +528,4 @@ export default function FormsList({ onEdit, onOpenConnections }) {
       {renamingForm && <RenameModal form={renamingForm} onSave={handleRename} onClose={()=>setRenamingForm(null)} saving={saving}/>}
     </div>
   );
-
 }
