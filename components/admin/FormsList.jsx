@@ -1,6 +1,6 @@
 "use client";
 
-import { getForms, saveForms, getPeople, deleteForm as sheetDeleteForm, getMarkingConfig, saveMarkingConfig } from "@/lib/sheets";
+import { getForms, saveForms, deleteForm as sheetDeleteForm, getMarkingConfig, saveMarkingConfig } from "@/lib/sheets";
 import { useState, useEffect } from "react";
 import { Plus, Trash2, X, ArrowRight, ArrowLeft, Check } from "lucide-react";
 
@@ -347,7 +347,7 @@ export default function FormsList({ onEdit }) {
     // Fetch both Forms and People data simultaneously 
     Promise.all([
       getForms().catch(() => []),
-      getPeople ? getPeople().catch(() => []) : Promise.resolve([])
+      Promise.resolve([])
     ]).then(([formData, peopleData]) => {
       setForms(formData || []);
       
