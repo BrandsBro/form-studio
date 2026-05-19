@@ -97,7 +97,7 @@ function StepReviewList({form,conn,reviewerEmail,onStart,onBack,allSubs=[]}){
         )}
 
         <div style={{display:"flex",flexDirection:"column",gap:10,marginBottom:24}}>
-          {conn.revieweeNames.map((name,i)=>{
+          {conn.revieweeNames.filter(n=>!reviewed.includes(n)).map((name,i)=>{
             const isDone=reviewed.includes(name);
             const isNext=!isDone&&pending[0]===name;
             const c=gc(name);
