@@ -1,5 +1,5 @@
 "use client";
-import { getForms, getPeople, getSubmissions, getMarkingConfig, getReReview, getFlagged, getConnections } from "@/lib/sheets";
+import { getForms, getPeople, getSubmissions, getMarkingConfig, getReReview, getFlagged } from "@/lib/sheets";
 import { useState, useEffect } from "react";
 
 function gi(n=""){return n.split(" ").map(x=>x[0]).join("").toUpperCase().slice(0,2)||"?";}
@@ -115,7 +115,7 @@ export default function Leaderboard(){
   const [forms,setForms]=useState([]);
   const [allSubs,setAllSubs]=useState({});
   const [people,setPeople]=useState([]);
-  const [connections,setConnections]=useState([]);
+  
   const [config,setConfig]=useState({teamMembers:{forms:[]},teamLeaders:{forms:[]}});
   const [loading,setLoading]=useState(true);
   const [configLoaded,setConfigLoaded]=useState(false);
@@ -123,10 +123,10 @@ export default function Leaderboard(){
   const [flaggedData,setFlaggedData]=useState([]);
 
   useEffect(()=>{
-    Promise.all([getForms(),getPeople(),getConnections()]).then(async([fl,p,conns])=>{
+    Promise.all([getForms(),getPeople()]).then(async([fl,p])=>{
       setForms(fl);
       setPeople(p);
-      setConnections(conns||[]);
+      
       const subsMap={};
       await Promise.all(fl.map(async f=>{
         try{ subsMap[f.id]=await getSubmissions(f.id); }catch{ subsMap[f.id]=[]; }
@@ -142,18 +142,7 @@ export default function Leaderboard(){
   const tlRrConfig=rrData.find(r=>r.personName==="__TL_CONFIG__")||null;
   const tmRrConfig=rrData.find(r=>r.personName==="__TM_CONFIG__")||null;
 
-  // Detect lone TMs using Connections — TM assigned to only 1 TL
-  function isLoneTM(personName){
-    // Count how many TLs have this person in their connections
-    let tlCount=0;
-    connections.forEach(conn=>{
-      const conns=conn.connections||[];
-      conns.forEach(c=>{
-        if(c.reviewees&&c.reviewees.some(r=>r.name===personName||r===personName)) tlCount++;
-      });
-    });
-    return tlCount<=1;
-  }
+
 
   const allScored=people.map(p=>{
     const isTM=(p.designations||[]).includes("Team Member");
