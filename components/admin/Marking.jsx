@@ -1,54 +1,43 @@
 "use client";
 import { getForms, getPeople, getSubmissions, getMarkingConfig, saveMarkingConfig } from "@/lib/sheets";
 import { useState, useEffect } from "react";
-import { Trophy, Medal, Save, Plus, X, ChevronDown, ChevronUp } from "lucide-react";
+import { Save, X, ChevronDown, ChevronUp } from "lucide-react";
 
 function gi(n=""){return n.split(" ").map(x=>x[0]).join("").toUpperCase().slice(0,2)||"?";}
 function gc(n=""){const c=["#F59E0B","#3B82F6","#10B981","#F43F5E","#8B5CF6","#06B6D4","#F97316"];return c[(n.charCodeAt(0)||0)%c.length];}
 function Av({name="",size=36}){const color=gc(name);return<div style={{width:size,height:size,borderRadius:"50%",background:color+"18",border:"2px solid "+color+"44",display:"flex",alignItems:"center",justifyContent:"center",fontSize:size*0.33,fontWeight:700,color,flexShrink:0}}>{gi(name)}</div>;}
 
-const EMPTY_CONFIG={
-  teamMembers:{forms:[],maxForms:3},
-  teamLeaders:{forms:[],maxForms:5},
-};
+const EMPTY_CONFIG={teamMembers:{forms:[],maxForms:3},teamLeaders:{forms:[],maxForms:5}};
 
-
-
-// Calculate average score for a person on a form across all reviewers
+// Step 1: For each form, get average score for a person across all reviewers
 function getPersonFormAvg(personName, formId, formFields, allSubs={}){
-  const subs=allSubs[formId]||[];
-  const personSubs=subs.filter(s=>s.personName===personName);
-  if(!personSubs.length)return null;
-  const ratingFields=formFields.filter(f=>f.type==="rating");
-  if(!ratingFields.length)return null;
-  const totals=personSubs.map(s=>{
-    const vals=ratingFields.map(f=>s.values?.[f.id]||0);
-    return vals.reduce((a,b)=>a+b,0)/vals.length;
-  });
-  return totals.reduce((a,b)=>a+b,0)/totals.length;
+  const subs=(allSubs[formId]||[]).filter(s=>s.personName===personName);
+  if(!subs.length) return null;
+  const rFields=formFields.filter(f=>f.type==="rating");
+  if(!rFields.length) return null;
+  // Average score per reviewer
+  const reviewerAvgs=subs.map(s=>rFields.map(f=>s.values?.[f.id]||0).reduce((a,b)=>a+b,0)/rFields.length);
+  // Average across all reviewers
+  return reviewerAvgs.reduce((a,b)=>a+b,0)/reviewerAvgs.length;
 }
 
-// Calculate final weighted score for a person
+// Step 2: Final score = sum of (formAvg * weight/100) for each form
+// Weights sum to 100, result is out of 5
 function calcFinalScore(personName, configForms, allForms, allSubs={}){
-  let totalWeight=0;
-  let weightedSum=0;
-  let hasData=false;
+  let weightedSum=0, hasData=false;
   configForms.forEach(cf=>{
     const form=allForms.find(f=>f.id===cf.formId);
-    if(!form)return;
-    const avg=getPersonFormAvg(personName,cf.formId,form.fields||[],allSubs);
+    if(!form) return;
+    const avg=getPersonFormAvg(personName, cf.formId, form.fields||[], allSubs);
     if(avg!==null){
-      weightedSum+=avg*(cf.weight/100);
-      totalWeight+=cf.weight;
+      weightedSum += avg*(cf.weight/100);
       hasData=true;
     }
   });
-  if(!hasData)return null;
-  return totalWeight>0?(weightedSum/(totalWeight/100))*100/100:null;
+  return hasData ? weightedSum : null;
 }
 
-// ── Form Weight Configurator ──────────────────────────────────────────────────
-let dragFormIdx = null;
+let dragFormIdx=null;
 
 function FormConfigurator({title,icon,color,configForms,maxForms,allForms,onChange}){
   const [open,setOpen]=useState(true);
@@ -57,17 +46,12 @@ function FormConfigurator({title,icon,color,configForms,maxForms,allForms,onChan
   const availForms=allForms.filter(f=>!configForms.find(cf=>cf.formId===f.id));
 
   function addForm(formId){
-    if(configForms.length>=maxForms)return;
+    if(configForms.length>=maxForms) return;
     const form=allForms.find(f=>f.id===formId);
-    if(!form)return;
-    const defaultWeight=Math.max(0,Math.floor(remaining/1));
-    onChange([...configForms,{formId,name:form.name,weight:defaultWeight}]);
+    if(!form) return;
+    onChange([...configForms,{formId,name:form.name,weight:0}]);
   }
-
-  function removeForm(formId){
-    onChange(configForms.filter(f=>f.formId!==formId));
-  }
-
+  function removeForm(formId){ onChange(configForms.filter(f=>f.formId!==formId)); }
   function updateWeight(formId,w){
     const val=Math.min(100,Math.max(0,parseInt(w)||0));
     onChange(configForms.map(f=>f.formId===formId?{...f,weight:val}:f));
@@ -75,7 +59,6 @@ function FormConfigurator({title,icon,color,configForms,maxForms,allForms,onChan
 
   return(
     <div style={{background:"#161B22",border:"1px solid #21262D",borderRadius:14,overflow:"hidden"}}>
-      {/* Header */}
       <div onClick={()=>setOpen(o=>!o)} style={{padding:"16px 20px",display:"flex",alignItems:"center",justifyContent:"space-between",cursor:"pointer",borderBottom:open?"1px solid #21262D":"none"}}>
         <div style={{display:"flex",alignItems:"center",gap:12}}>
           <div style={{width:36,height:36,borderRadius:10,background:color+"18",border:"1px solid "+color+"33",display:"flex",alignItems:"center",justifyContent:"center",fontSize:18}}>{icon}</div>
@@ -90,26 +73,15 @@ function FormConfigurator({title,icon,color,configForms,maxForms,allForms,onChan
           {open?<ChevronUp size={16} color="#6b7280"/>:<ChevronDown size={16} color="#6b7280"/>}
         </div>
       </div>
-
       {open&&(
         <div style={{padding:20,display:"flex",flexDirection:"column",gap:12}}>
-          {/* Selected forms */}
           {configForms.map((cf,i)=>(
-            <div key={cf.formId}
-              draggable
+            <div key={cf.formId} draggable
               onDragStart={e=>{dragFormIdx=i;e.dataTransfer.effectAllowed="move";}}
-              onDragOver={e=>{
-                e.preventDefault();
-                if(dragFormIdx===null||dragFormIdx===i)return;
-                const arr=[...configForms];
-                const[r]=arr.splice(dragFormIdx,1);
-                arr.splice(i,0,r);
-                dragFormIdx=i;
-                onChange(arr);
-              }}
+              onDragOver={e=>{e.preventDefault();if(dragFormIdx===null||dragFormIdx===i)return;const arr=[...configForms];const[r]=arr.splice(dragFormIdx,1);arr.splice(i,0,r);dragFormIdx=i;onChange(arr);}}
               onDragEnd={()=>{dragFormIdx=null;}}
               style={{display:"flex",alignItems:"center",gap:12,background:"#0D1117",border:"1px solid #21262D",borderRadius:10,padding:"12px 14px",cursor:"grab"}}>
-              <span style={{color:"#374151",fontSize:16,cursor:"grab",flexShrink:0}}>⠿</span>
+              <span style={{color:"#374151",fontSize:16,flexShrink:0}}>⠿</span>
               <div style={{width:28,height:28,borderRadius:"50%",background:color+"18",border:"1px solid "+color+"33",display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,fontWeight:700,color,flexShrink:0}}>{i+1}</div>
               <p style={{color:"white",fontSize:13,fontWeight:500,margin:0,flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{cf.name}</p>
               <div style={{display:"flex",alignItems:"center",gap:6,flexShrink:0}}>
@@ -123,8 +95,6 @@ function FormConfigurator({title,icon,color,configForms,maxForms,allForms,onChan
               </button>
             </div>
           ))}
-
-          {/* Add form */}
           {configForms.length<maxForms&&availForms.length>0&&(
             <select onChange={e=>{if(e.target.value)addForm(e.target.value);e.target.value="";}}
               style={{background:"#0D1117",border:"1px dashed #30363D",borderRadius:10,padding:"10px 14px",color:"#6b7280",fontSize:13,outline:"none",cursor:"pointer",width:"100%"}}
@@ -133,17 +103,11 @@ function FormConfigurator({title,icon,color,configForms,maxForms,allForms,onChan
               {availForms.map(f=><option key={f.id} value={f.id} style={{background:"#161B22",color:"white"}}>{f.name}</option>)}
             </select>
           )}
-
           {configForms.length>=maxForms&&<p style={{color:"#4b5563",fontSize:12,textAlign:"center",margin:0}}>Maximum {maxForms} forms selected</p>}
           {availForms.length===0&&configForms.length<maxForms&&<p style={{color:"#4b5563",fontSize:12,textAlign:"center",margin:0}}>{allForms.length===0?"No forms created yet":"No more forms available"}</p>}
-
-          {/* Weight distribution helper */}
           {configForms.length>0&&totalWeight!==100&&(
-            <button onClick={()=>{
-              const equal=Math.floor(100/configForms.length);
-              const rem=100-(equal*configForms.length);
-              onChange(configForms.map((f,i)=>({...f,weight:equal+(i===0?rem:0)})));
-            }} style={{padding:"8px 0",borderRadius:9,border:"1px solid #21262D",background:"transparent",color:"#6b7280",fontSize:12,cursor:"pointer",transition:"all 0.2s"}}
+            <button onClick={()=>{const equal=Math.floor(100/configForms.length);const rem=100-(equal*configForms.length);onChange(configForms.map((f,i)=>({...f,weight:equal+(i===0?rem:0)})));}}
+              style={{padding:"8px 0",borderRadius:9,border:"1px solid #21262D",background:"transparent",color:"#6b7280",fontSize:12,cursor:"pointer"}}
               onMouseOver={e=>e.currentTarget.style.color="white"} onMouseOut={e=>e.currentTarget.style.color="#6b7280"}>
               Auto-distribute equally
             </button>
@@ -154,7 +118,6 @@ function FormConfigurator({title,icon,color,configForms,maxForms,allForms,onChan
   );
 }
 
-// ── Score Bar ─────────────────────────────────────────────────────────────────
 function ScoreBar({score,max=5}){
   const pct=(score/max)*100;
   const color=score>=4?"#22c55e":score>=3?"#F59E0B":score>=2?"#f97316":"#ef4444";
@@ -168,23 +131,17 @@ function ScoreBar({score,max=5}){
   );
 }
 
-// ── Leaderboard ───────────────────────────────────────────────────────────────
 function Leaderboard({title,icon,color,people,configForms,allForms,allSubs={}}){
-  const scored=people.map(p=>{
-    const score=calcFinalScore(p.name,configForms,allForms,allSubs);
-    return{...p,score};
-  }).sort((a,b)=>{
-    if(a.score===null&&b.score===null)return 0;
-    if(a.score===null)return 1;
-    if(b.score===null)return -1;
-    return b.score-a.score;
-  });
-
+  const scored=people.map(p=>({...p,score:calcFinalScore(p.name,configForms,allForms,allSubs)}))
+    .sort((a,b)=>{
+      if(a.score===null&&b.score===null)return 0;
+      if(a.score===null)return 1;
+      if(b.score===null)return -1;
+      return b.score-a.score;
+    });
   const ranked=scored.filter(p=>p.score!==null);
   const unscored=scored.filter(p=>p.score===null);
-
   const medals=["🥇","🥈","🥉"];
-
   return(
     <div style={{background:"#161B22",border:"1px solid #21262D",borderRadius:14,overflow:"hidden"}}>
       <div style={{padding:"16px 20px",borderBottom:"1px solid #21262D",display:"flex",alignItems:"center",gap:12}}>
@@ -194,7 +151,6 @@ function Leaderboard({title,icon,color,people,configForms,allForms,allSubs={}}){
           <p style={{color:"#6b7280",fontSize:12,margin:"2px 0 0"}}>{ranked.length} scored · {unscored.length} pending</p>
         </div>
       </div>
-
       {configForms.length===0?(
         <div style={{padding:"40px 20px",textAlign:"center",color:"#4b5563"}}>
           <p style={{margin:0,fontSize:13}}>Configure forms and weights above to see scores.</p>
@@ -205,38 +161,27 @@ function Leaderboard({title,icon,color,people,configForms,allForms,allSubs={}}){
             <div key={person.id} style={{display:"flex",alignItems:"center",gap:14,padding:"14px 16px",background:i<3?"#0D1117":"transparent",border:"1px solid "+(i<3?color+"22":"#21262D"),borderRadius:12,transition:"all 0.2s"}}
               onMouseOver={e=>e.currentTarget.style.borderColor=color+"44"}
               onMouseOut={e=>e.currentTarget.style.borderColor=i<3?color+"22":"#21262D"}>
-
-              {/* Rank */}
               <div style={{width:32,textAlign:"center",flexShrink:0}}>
-                {i<3
-                  ?<span style={{fontSize:20}}>{medals[i]}</span>
-                  :<span style={{fontSize:14,fontWeight:700,color:"#4b5563"}}>#{i+1}</span>
-                }
+                {i<3?<span style={{fontSize:20}}>{medals[i]}</span>:<span style={{fontSize:14,fontWeight:700,color:"#4b5563"}}>#{i+1}</span>}
               </div>
-
               <Av name={person.name} size={40}/>
-
               <div style={{flex:1,minWidth:0}}>
                 <p style={{color:"white",fontSize:13,fontWeight:600,margin:0}}>{person.name}</p>
                 <div style={{display:"flex",gap:4,marginTop:3,flexWrap:"wrap"}}>
-                  {person.designations?.map(d=>(
-                    <span key={d} style={{fontSize:10,color:"#6b7280",background:"#21262D",padding:"1px 6px",borderRadius:999}}>{d}</span>
-                  ))}
+                  {(person.designations||[]).map(d=><span key={d} style={{fontSize:10,color:"#6b7280",background:"#21262D",padding:"1px 6px",borderRadius:999}}>{d}</span>)}
                 </div>
               </div>
-
               <div style={{minWidth:180,display:"flex",alignItems:"center",gap:10}}>
                 <ScoreBar score={person.score}/>
               </div>
-
-              {/* Form breakdown tooltip */}
               <div style={{display:"flex",gap:4,flexShrink:0}}>
                 {configForms.map(cf=>{
                   const form=allForms.find(f=>f.id===cf.formId);
                   const avg=form?getPersonFormAvg(person.name,cf.formId,form.fields||[],allSubs):null;
+                  const c=avg!==null?(avg>=4?"#22c55e":avg>=3?"#F59E0B":"#ef4444"):"#4b5563";
                   return(
-                    <div key={cf.formId} title={cf.name+": "+(avg!==null?avg.toFixed(2):"N/A")}
-                      style={{width:28,height:28,borderRadius:6,background:avg!==null?(avg>=4?"rgba(34,197,94,0.15)":avg>=3?"rgba(245,158,11,0.15)":"rgba(239,68,68,0.15)"):"#21262D",display:"flex",alignItems:"center",justifyContent:"center",fontSize:10,fontWeight:700,color:avg!==null?(avg>=4?"#22c55e":avg>=3?"#F59E0B":"#ef4444"):"#4b5563"}}>
+                    <div key={cf.formId} title={`${cf.name} (${cf.weight}%): ${avg!==null?avg.toFixed(2):"N/A"}`}
+                      style={{width:28,height:28,borderRadius:6,background:avg!==null?(avg>=4?"rgba(34,197,94,0.15)":avg>=3?"rgba(245,158,11,0.15)":"rgba(239,68,68,0.15)"):"#21262D",display:"flex",alignItems:"center",justifyContent:"center",fontSize:10,fontWeight:700,color:c}}>
                       {avg!==null?avg.toFixed(1):"—"}
                     </div>
                   );
@@ -244,7 +189,6 @@ function Leaderboard({title,icon,color,people,configForms,allForms,allSubs={}}){
               </div>
             </div>
           ))}
-
           {unscored.length>0&&(
             <div style={{marginTop:8,paddingTop:12,borderTop:"1px solid #21262D"}}>
               <p style={{color:"#4b5563",fontSize:11,margin:"0 0 8px",textTransform:"uppercase",letterSpacing:"0.06em"}}>Not yet scored</p>
@@ -264,7 +208,6 @@ function Leaderboard({title,icon,color,people,configForms,allForms,allSubs={}}){
   );
 }
 
-// ── Main ──────────────────────────────────────────────────────────────────────
 export default function Marking(){
   const [forms,setForms]=useState([]);
   const [allSubs,setAllSubs]=useState({});
@@ -275,22 +218,20 @@ export default function Marking(){
   const [loading,setLoading]=useState(true);
   const [subsLoaded,setSubsLoaded]=useState(false);
   const [view,setView]=useState("config");
-  
+
   useEffect(()=>{
-    Promise.all([getForms(), getPeople()]).then(([fl, p])=>{
+    Promise.all([getForms(),getPeople()]).then(([fl,p])=>{
       setForms(fl);
       setPeople(p);
       setLoading(false);
-      // subs loaded above
-      // getMarkingConfig().then(cfg=>{ if(cfg) setConfig(cfg); });
-    getMarkingConfig().then(cfg=>{
-      if(cfg && fl.length>0){
-        const validIds=fl.map(f=>f.id);
-        cfg.teamMembers.forms=(cfg.teamMembers.forms||[]).filter(f=>validIds.includes(f.formId));
-        cfg.teamLeaders.forms=(cfg.teamLeaders.forms||[]).filter(f=>validIds.includes(f.formId));
-        setConfig(cfg);
-      }
-    }).catch(()=>{});
+      getMarkingConfig().then(cfg=>{
+        if(cfg&&fl.length>0){
+          const validIds=fl.map(f=>f.id);
+          cfg.teamMembers.forms=(cfg.teamMembers.forms||[]).filter(f=>validIds.includes(f.formId));
+          cfg.teamLeaders.forms=(cfg.teamLeaders.forms||[]).filter(f=>validIds.includes(f.formId));
+          setConfig(cfg);
+        }
+      }).catch(()=>{});
       Promise.all(fl.map(f=>
         getSubmissions(f.id).then(subs=>{
           setAllSubs(prev=>({...prev,[f.id]:subs}));
@@ -302,13 +243,35 @@ export default function Marking(){
   if(loading||!subsLoaded) return(
     <div style={{display:"flex",flexDirection:"column",gap:16}}>
       <style>{"@keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}"}</style>
-      <div style={{display:"flex",justifyContent:"space-between"}}><div style={{display:"flex",flexDirection:"column",gap:6}}><div style={{width:120,height:24,borderRadius:8,background:"linear-gradient(90deg,#161B22 25%,#21262D 50%,#161B22 75%)",backgroundSize:"200% 100%",animation:"shimmer 1.5s infinite"}}/><div style={{width:200,height:14,borderRadius:6,background:"linear-gradient(90deg,#161B22 25%,#21262D 50%,#161B22 75%)",backgroundSize:"200% 100%",animation:"shimmer 1.5s infinite"}}/></div><div style={{width:120,height:36,borderRadius:9,background:"linear-gradient(90deg,#161B22 25%,#21262D 50%,#161B22 75%)",backgroundSize:"200% 100%",animation:"shimmer 1.5s infinite"}}/></div>
-      <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(140px,1fr))",gap:10}}>{[1,2,3,4].map(i=>(<div key={i} style={{background:"#161B22",border:"1px solid #21262D",borderRadius:10,padding:"12px 16px",display:"flex",flexDirection:"column",gap:6}}><div style={{width:"40%",height:24,borderRadius:6,background:"linear-gradient(90deg,#161B22 25%,#21262D 50%,#161B22 75%)",backgroundSize:"200% 100%",animation:"shimmer 1.5s infinite"}}/><div style={{width:"60%",height:12,borderRadius:4,background:"linear-gradient(90deg,#161B22 25%,#21262D 50%,#161B22 75%)",backgroundSize:"200% 100%",animation:"shimmer 1.5s infinite"}}/></div>))}</div>
-      {[1,2].map(i=>(<div key={i} style={{background:"#161B22",border:"1px solid #21262D",borderRadius:14,padding:20,display:"flex",flexDirection:"column",gap:12}}><div style={{width:"50%",height:18,borderRadius:6,background:"linear-gradient(90deg,#161B22 25%,#21262D 50%,#161B22 75%)",backgroundSize:"200% 100%",animation:"shimmer 1.5s infinite"}}/>{[1,2,3].map(j=>(<div key={j} style={{height:48,borderRadius:10,background:"linear-gradient(90deg,#161B22 25%,#21262D 50%,#161B22 75%)",backgroundSize:"200% 100%",animation:"shimmer 1.5s infinite"}}/>))}</div>))}
+      <div style={{display:"flex",justifyContent:"space-between"}}>
+        <div style={{display:"flex",flexDirection:"column",gap:6}}>
+          <div style={{width:120,height:24,borderRadius:8,background:"linear-gradient(90deg,#161B22 25%,#21262D 50%,#161B22 75%)",backgroundSize:"200% 100%",animation:"shimmer 1.5s infinite"}}/>
+          <div style={{width:200,height:14,borderRadius:6,background:"linear-gradient(90deg,#161B22 25%,#21262D 50%,#161B22 75%)",backgroundSize:"200% 100%",animation:"shimmer 1.5s infinite"}}/>
+        </div>
+        <div style={{width:120,height:36,borderRadius:9,background:"linear-gradient(90deg,#161B22 25%,#21262D 50%,#161B22 75%)",backgroundSize:"200% 100%",animation:"shimmer 1.5s infinite"}}/>
+      </div>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(140px,1fr))",gap:10}}>
+        {[1,2,3,4].map(i=>(
+          <div key={i} style={{background:"#161B22",border:"1px solid #21262D",borderRadius:10,padding:"12px 16px",display:"flex",flexDirection:"column",gap:6}}>
+            <div style={{width:"40%",height:24,borderRadius:6,background:"linear-gradient(90deg,#161B22 25%,#21262D 50%,#161B22 75%)",backgroundSize:"200% 100%",animation:"shimmer 1.5s infinite"}}/>
+            <div style={{width:"60%",height:12,borderRadius:4,background:"linear-gradient(90deg,#161B22 25%,#21262D 50%,#161B22 75%)",backgroundSize:"200% 100%",animation:"shimmer 1.5s infinite"}}/>
+          </div>
+        ))}
+      </div>
+      {[1,2].map(i=>(
+        <div key={i} style={{background:"#161B22",border:"1px solid #21262D",borderRadius:14,padding:20,display:"flex",flexDirection:"column",gap:12}}>
+          <div style={{width:"50%",height:18,borderRadius:6,background:"linear-gradient(90deg,#161B22 25%,#21262D 50%,#161B22 75%)",backgroundSize:"200% 100%",animation:"shimmer 1.5s infinite"}}/>
+          {[1,2,3].map(j=>(<div key={j} style={{height:48,borderRadius:10,background:"linear-gradient(90deg,#161B22 25%,#21262D 50%,#161B22 75%)",backgroundSize:"200% 100%",animation:"shimmer 1.5s infinite"}}/>))}
+        </div>
+      ))}
     </div>
   );
+
   const teamMembers=people.filter(p=>(p.designations||[]).includes("Team Member"));
   const teamLeaders=people.filter(p=>!(p.designations||[]).includes("Team Member"));
+  const tmTotal=config.teamMembers.forms.reduce((a,f)=>a+f.weight,0);
+  const tlTotal=config.teamLeaders.forms.reduce((a,f)=>a+f.weight,0);
+  const configValid=tmTotal===100&&tlTotal===100;
 
   async function saveConfig(){
     setSaving(true);
@@ -318,29 +281,20 @@ export default function Marking(){
     setTimeout(()=>setSaved(false),2000);
   }
 
-  const tmTotal=config.teamMembers.forms.reduce((a,f)=>a+f.weight,0);
-  const tlTotal=config.teamLeaders.forms.reduce((a,f)=>a+f.weight,0);
-  const configValid=tmTotal===100&&tlTotal===100;
-
   return(
     <div style={{display:"flex",flexDirection:"column",gap:20}}>
-
-      {/* Header */}
       <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",flexWrap:"wrap",gap:12}}>
         <div>
           <h2 style={{color:"white",fontSize:18,fontWeight:700,margin:0,fontFamily:"var(--font-playfair)"}}>Marking</h2>
           <p style={{color:"#6b7280",fontSize:13,margin:"3px 0 0"}}>Configure form weights → calculate final scores → leaderboard</p>
         </div>
-        <div style={{display:"flex",gap:10,alignItems:"center"}}>
-          
-          <button onClick={saveConfig}
-            style={{padding:"8px 18px",borderRadius:9,border:"none",background:saving?"#374151":saved?"#16a34a":"linear-gradient(135deg,#D97706,#F59E0B)",color:"#000",fontSize:13,fontWeight:700,cursor:"pointer",display:"flex",alignItems:"center",gap:6}}>
-            {saving?<svg style={{width:14,height:14,animation:"spin 1s linear infinite"}} viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" opacity="0.25"/><path fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"/></svg>:<Save size={14}/>}{saving?"Saving...":saved?"Saved!":"Save Config"}
-          </button>
-        </div>
+        <button onClick={saveConfig}
+          style={{padding:"8px 18px",borderRadius:9,border:"none",background:saving?"#374151":saved?"#16a34a":"linear-gradient(135deg,#D97706,#F59E0B)",color:saving||saved?"white":"#000",fontSize:13,fontWeight:700,cursor:"pointer",display:"flex",alignItems:"center",gap:6}}>
+          {saving?<svg style={{width:14,height:14,animation:"spin 1s linear infinite"}} viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" opacity="0.25"/><path fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"/></svg>:<Save size={14}/>}
+          {saving?"Saving...":saved?"Saved!":"Save Config"}
+        </button>
       </div>
 
-      {/* Stats */}
       <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(140px,1fr))",gap:10}}>
         {[
           {l:"Team Members",v:teamMembers.length,c:"#10B981"},
@@ -355,23 +309,14 @@ export default function Marking(){
         ))}
       </div>
 
-      {/* Config view */}
-      {view !== "leaderboard" && (
+      {view!=="leaderboard"&&(
         <div style={{display:"flex",flexDirection:"column",gap:16}}>
-          <FormConfigurator
-            title="Team Members" icon="👥" color="#10B981"
-            configForms={config.teamMembers.forms}
-            maxForms={config.teamMembers.maxForms}
-            allForms={forms}
-            onChange={forms=>setConfig(c=>({...c,teamMembers:{...c.teamMembers,forms}}))}
-          />
-          <FormConfigurator
-            title="Team Leaders" icon="⭐" color="#F59E0B"
-            configForms={config.teamLeaders.forms}
-            maxForms={config.teamLeaders.maxForms}
-            allForms={forms}
-            onChange={forms=>setConfig(c=>({...c,teamLeaders:{...c.teamLeaders,forms}}))}
-          />
+          <FormConfigurator title="Team Members" icon="👥" color="#10B981"
+            configForms={config.teamMembers.forms} maxForms={config.teamMembers.maxForms}
+            allForms={forms} onChange={f=>setConfig(c=>({...c,teamMembers:{...c.teamMembers,forms:f}}))}/>
+          <FormConfigurator title="Team Leaders" icon="⭐" color="#F59E0B"
+            configForms={config.teamLeaders.forms} maxForms={config.teamLeaders.maxForms}
+            allForms={forms} onChange={f=>setConfig(c=>({...c,teamLeaders:{...c.teamLeaders,forms:f}}))}/>
           {!configValid&&config.teamMembers.forms.length>0&&config.teamLeaders.forms.length>0&&(
             <div style={{background:"rgba(245,158,11,0.08)",border:"1px solid rgba(245,158,11,0.2)",borderRadius:10,padding:"12px 16px",fontSize:13,color:"#F59E0B",textAlign:"center"}}>
               ⚠️ Both sections must total exactly 100% before viewing the leaderboard.
@@ -386,24 +331,18 @@ export default function Marking(){
         </div>
       )}
 
-      {/* Leaderboard view */}
       {view==="leaderboard"&&(
         <div style={{display:"flex",flexDirection:"column",gap:16}}>
-          {!configValid&&(
-            <div style={{background:"rgba(239,68,68,0.08)",border:"1px solid rgba(239,68,68,0.2)",borderRadius:10,padding:"12px 16px",fontSize:13,color:"#ef4444",textAlign:"center"}}>
-              ⚠️ Please configure and save form weights (both must total 100%) first.
-            </div>
-          )}
-          <Leaderboard
-            title="Team Members Leaderboard" icon="👥" color="#10B981"
+          <button onClick={()=>setView("config")}
+            style={{alignSelf:"flex-start",padding:"8px 16px",borderRadius:9,border:"1px solid #21262D",background:"transparent",color:"#6b7280",fontSize:13,cursor:"pointer"}}>
+            ← Back to Config
+          </button>
+          <Leaderboard title="Team Members Leaderboard" icon="👥" color="#10B981"
             people={teamMembers} configForms={config.teamMembers.forms}
-            allForms={forms} allSubs={allSubs}
-          />
-          <Leaderboard
-            title="Team Leaders Leaderboard" icon="⭐" color="#F59E0B"
+            allForms={forms} allSubs={allSubs}/>
+          <Leaderboard title="Team Leaders Leaderboard" icon="⭐" color="#F59E0B"
             people={teamLeaders} configForms={config.teamLeaders.forms}
-            allForms={forms} allSubs={allSubs}
-          />
+            allForms={forms} allSubs={allSubs}/>
         </div>
       )}
     </div>
