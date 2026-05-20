@@ -122,7 +122,8 @@ export default function ReReview(){
   const [threshold,setThreshold]=useState(60);
   const [editThreshold,setEditThreshold]=useState(false);
   const [flagged,setFlagged]=useState({}); // {reviewerEmail_personName_formId: true}
-  const [expanded,setExpanded]=useState({}); // which person's replacement selector is open
+  const [expanded,setExpanded]=useState({});
+  const [selectedFormId,setSelectedFormId]=useState(""); // which person's replacement selector is open
 
   useEffect(()=>{
     Promise.all([getForms(),getPeople(),getMarkingConfig(),getReReview()]).then(async([fl,p,cfg,rr])=>{
@@ -160,34 +161,29 @@ export default function ReReview(){
     setExpanded(prev=>({...prev,[key]:!prev[key]}));
   }
 
-  // ── Team Leaders: find reviewers below threshold ───────────────────────────
   const tlConfig=config.teamLeaders.forms;
   const teamLeaders=people.filter(p=>!(p.designations||[]).includes("Team Member"));
 
-  // For each TL config form, find all reviewers who gave below threshold
+  // Only check selected form
   const tlFlags=[];
-  tlConfig.forEach(cf=>{
-    const form=forms.find(f=>f.id===cf.formId);
-    if(!form) return;
-    const subs=allSubs[cf.formId]||[];
-    // Get unique persons reviewed on this form
-    const persons=[...new Set(subs.map(s=>s.personName))];
-    persons.forEach(personName=>{
-      const personSubs=subs.filter(s=>s.personName===personName);
-      personSubs.forEach(sub=>{
-        const score=getReviewerScore(sub.reviewerEmail,personName,cf.formId,form.fields||[],allSubs);
-        if(score===null) return;
-        const pct=(score/5)*100;
-        if(pct<=threshold){
-          tlFlags.push({
-            personName, formId:cf.formId, formName:form.name,
-            formWeight:cf.weight, reviewerEmail:sub.reviewerEmail,
-            score, pct:pct.toFixed(1)
-          });
-        }
+  if(selectedFormId){
+    const cf=tlConfig.find(f=>f.formId===selectedFormId);
+    const form=forms.find(f=>f.id===selectedFormId);
+    if(cf&&form){
+      const subs=allSubs[selectedFormId]||[];
+      const persons=[...new Set(subs.map(s=>s.personName))];
+      persons.forEach(personName=>{
+        subs.filter(s=>s.personName===personName).forEach(sub=>{
+          const score=getReviewerScore(sub.reviewerEmail,personName,selectedFormId,form.fields||[],allSubs);
+          if(score===null) return;
+          const pct=(score/5)*100;
+          if(pct<=threshold){
+            tlFlags.push({personName,formId:selectedFormId,formName:form.name,formWeight:cf.weight,reviewerEmail:sub.reviewerEmail,score,pct:pct.toFixed(1)});
+          }
+        });
       });
-    });
-  });
+    }
+  }
 
   // ── Team Members: auto-detect lone TMs ────────────────────────────────────
   const deptGroups={};
@@ -270,7 +266,24 @@ export default function ReReview(){
           <span style={{fontSize:11,color:"#6b7280",background:"#21262D",padding:"2px 10px",borderRadius:999}}>Reviewers below {threshold}% threshold</span>
         </div>
 
-        {tlFlags.length===0?(
+        {/* Form selector */}
+        <div style={{display:"flex",alignItems:"center",gap:12,padding:"14px 16px",background:"#161B22",border:"1px solid #21262D",borderRadius:10}}>
+          <p style={{color:"#9ca3af",fontSize:13,margin:0,flexShrink:0}}>Select form to check:</p>
+          <select value={selectedFormId} onChange={e=>setSelectedFormId(e.target.value)}
+            style={{flex:1,background:"#0D1117",border:"1px solid #21262D",borderRadius:8,padding:"8px 12px",color:selectedFormId?"white":"#6b7280",fontSize:13,outline:"none"}}>
+            <option value="">-- Pick a form --</option>
+            {tlConfig.map(cf=><option key={cf.formId} value={cf.formId} style={{background:"#161B22"}}>{cf.name} ({cf.weight}%)</option>)}
+          </select>
+        </div>
+
+        {!selectedFormId?(
+          <div style={{textAlign:"center",padding:"24px 0",color:"#4b5563",fontSize:13}}>Select a form above to see reviewers</div>
+        ):tlFlags.length===0?(
+          <div style={{textAlign:"center",padding:"24px 0",background:"#161B22",border:"1px solid rgba(34,197,94,0.2)",borderRadius:12,color:"#22c55e",fontSize:13,fontWeight:600}}>
+            ✓ No reviewers below {threshold}% threshold on this form
+          </div>
+        ) : tlFlags.length===0?(
+        
           <div style={{textAlign:"center",padding:"28px 0",background:"#161B22",border:"1px solid rgba(34,197,94,0.2)",borderRadius:12,color:"#22c55e",fontSize:13,fontWeight:600}}>
             ✓ No reviewers below threshold
           </div>
