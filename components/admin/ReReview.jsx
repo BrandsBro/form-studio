@@ -101,6 +101,7 @@ export default function ReReview(){
   const [tmSaving,setTmSaving]=useState(false);
   const [tmSaved,setTmSaved]=useState(false);
   const [tmSavingFor,setTmSavingFor]=useState(null);
+  const [tmRemoving,setTmRemoving]=useState(null);
 
   useEffect(()=>{
     getForms().then(async fl=>{
@@ -317,10 +318,14 @@ export default function ReReview(){
 <div style={{display:"flex",gap:8}}>
                   {flaggedData.find(f=>f.personName===person.name&&f.type==="TM")&&(
                     <button onClick={async()=>{
+                      setTmRemoving(person.name);
                       await deleteFlagged({personName:person.name,formId:tmConfig.flaggedFormId||flaggedData.find(f=>f.personName===person.name&&f.type==="TM")?.formId,reviewerEmail:""});
                       setFlaggedData(prev=>prev.filter(f=>!(f.personName===person.name&&f.type==="TM")));
-                    }} style={{padding:"8px 14px",borderRadius:8,border:"1px solid rgba(239,68,68,0.3)",background:"transparent",color:"#ef4444",fontSize:12,cursor:"pointer",display:"flex",alignItems:"center",gap:4}}>
-                      <Trash2 size={12}/> Remove
+                      setTmRemoving(null);
+                    }} disabled={tmRemoving===person.name}
+                    style={{padding:"8px 14px",borderRadius:8,border:"1px solid rgba(239,68,68,0.3)",background:"transparent",color:tmRemoving===person.name?"#6b7280":"#ef4444",fontSize:12,cursor:"pointer",display:"flex",alignItems:"center",gap:4}}>
+                      {tmRemoving===person.name?<svg style={{width:12,height:12,animation:"spin 1s linear infinite"}} viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" opacity="0.25"/><path fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"/></svg>:<Trash2 size={12}/>}
+                      {tmRemoving===person.name?"Removing...":"Remove"}
                     </button>
                   )}
                   <button onClick={()=>saveTMConfig(person.name)}
@@ -354,13 +359,17 @@ export default function ReReview(){
                   </p>
                 </div>
               </div>
-              <button onClick={async()=>{
+<button onClick={async()=>{
                 const key=`${f.reviewerEmail}_${f.personName}_${f.formId}`;
+                setInvalidating(key);
                 await deleteFlagged({personName:f.personName,formId:f.formId,reviewerEmail:f.reviewerEmail});
                 setFlaggedData(prev=>prev.filter((_,idx)=>idx!==i));
                 setInvalidated(prev=>({...prev,[key]:false}));
-              }} style={{padding:"6px 12px",borderRadius:8,border:"1px solid #21262D",background:"transparent",color:"#9ca3af",fontSize:12,cursor:"pointer",display:"flex",alignItems:"center",gap:4}}>
-                <RotateCcw size={12}/> Restore
+                setInvalidating(null);
+              }} disabled={invalidating===`${f.reviewerEmail}_${f.personName}_${f.formId}`}
+              style={{padding:"6px 12px",borderRadius:8,border:"1px solid #21262D",background:"transparent",color:"#9ca3af",fontSize:12,cursor:"pointer",display:"flex",alignItems:"center",gap:4}}>
+                {invalidating===`${f.reviewerEmail}_${f.personName}_${f.formId}`?<svg style={{width:12,height:12,animation:"spin 1s linear infinite"}} viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" opacity="0.25"/><path fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"/></svg>:<RotateCcw size={12}/>}
+                {invalidating===`${f.reviewerEmail}_${f.personName}_${f.formId}`?"Removing...":"Restore"}
               </button>
             </div>
           ))}
