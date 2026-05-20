@@ -1,5 +1,5 @@
 "use client";
-import { getForms, getPeople, getSubmissions, getMarkingConfig } from "@/lib/sheets";
+import { getForms, getPeople, getSubmissions, getMarkingConfig, getReReview } from "@/lib/sheets";
 import { useState, useEffect } from "react";
 
 function gi(n=""){return n.split(" ").map(x=>x[0]).join("").toUpperCase().slice(0,2)||"?";}
@@ -16,10 +16,26 @@ function getPersonFormAvg(personName,formId,formFields,allSubs={}){
   return reviewerAvgs.reduce((a,b)=>a+b,0)/reviewerAvgs.length;
 }
 
-// Step 2: final score = sum(formAvg * weight/100), weights sum to 100, result out of 5
-function calcScore(personName,configForms,allForms,allSubs={}){
+// Step 2: final score = sum(formAvg * weight/100), with ReReview adjustments
+function calcScore(personName,configForms,allForms,allSubs={},rrData=[]){
+  // Check if this person has a ReReview config
+  const rr=rrData.find(r=>r.personName===personName||(r.personName==="__TL_CONFIG__"&&r.type==="TL")||(r.personName==="__TM_CONFIG__"&&r.type==="TM"));
+  
+  // Build adjusted weights
+  let adjustedForms=[...configForms];
+  if(rr&&rr.flaggedFormId){
+    // Remove flagged form
+    adjustedForms=adjustedForms.filter(cf=>cf.formId!==rr.flaggedFormId);
+    // Add replacement weights to existing forms
+    adjustedForms=adjustedForms.map(cf=>{
+      if(cf.formId===rr.replace1Id) return{...cf,weight:cf.weight+Number(rr.replace1Pct)};
+      if(cf.formId===rr.replace2Id) return{...cf,weight:cf.weight+Number(rr.replace2Pct)};
+      return cf;
+    });
+  }
+
   let weightedSum=0,hasData=false;
-  configForms.forEach(cf=>{
+  adjustedForms.forEach(cf=>{
     const form=allForms.find(f=>f.id===cf.formId);
     if(!form)return;
     const avg=getPersonFormAvg(personName,cf.formId,form.fields||[],allSubs);
@@ -103,6 +119,7 @@ export default function Leaderboard(){
   const [config,setConfig]=useState({teamMembers:{forms:[]},teamLeaders:{forms:[]}});
   const [loading,setLoading]=useState(true);
   const [configLoaded,setConfigLoaded]=useState(false);
+  const [rrData,setRrData]=useState([]);
 
   useEffect(()=>{
     Promise.all([getForms(),getPeople()]).then(async([fl,p])=>{
@@ -115,13 +132,17 @@ export default function Leaderboard(){
       setAllSubs(subsMap);
       setLoading(false);
       getMarkingConfig().then(cfg=>{ if(cfg) setConfig(cfg); setConfigLoaded(true); }).catch(()=>setConfigLoaded(true));
+      getReReview().then(rr=>setRrData(rr||[])).catch(()=>{});
     }).catch(()=>{ setLoading(false); setConfigLoaded(true); });
   },[]);
 
   const allScored=people.map(p=>{
     const isTM=(p.designations||[]).includes("Team Member");
     const configForms=isTM?config.teamMembers.forms:config.teamLeaders.forms;
-    const score=calcScore(p.name,configForms,forms,allSubs);
+    // Get person-specific rr or type-based rr
+    const personRr=rrData.find(r=>r.personName===p.name) ||
+      (isTM?rrData.find(r=>r.personName==="__TM_CONFIG__"):rrData.find(r=>r.personName==="__TL_CONFIG__"));
+    const score=calcScore(p.name,configForms,forms,allSubs,personRr?[personRr]:[]);
     return{...p,score,isTM,configForms};
   }).sort((a,b)=>{
     if(a.score===null&&b.score===null)return 0;
