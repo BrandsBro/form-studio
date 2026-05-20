@@ -307,7 +307,29 @@ export default function ReReview(){
         title="Team Member Re-Review (Lone TM)" color="#8B5CF6" icon="👥"
         configForms={tmConfigForms} allForms={forms}
         config={tmConfig} onConfigChange={setTmConfig}
-        onSave={()=>{}} saving={tmSaving} saved={tmSaved}>
+        onSave={async()=>{
+        setTmSaving(true);
+        const flaggedForm=config.teamMembers.forms.find(cf=>cf.formId===tmConfig.flaggedFormId);
+        // Save for each lone TM
+        await Promise.all(loneTMs.map(({person})=>saveReReview({
+          personName:person.name, type:"TM",
+          flaggedFormId:tmConfig.flaggedFormId,
+          flaggedFormName:flaggedForm?.name||"",
+          replace1Id:tmConfig.r1Id,
+          replace1Name:config.teamMembers.forms.find(cf=>cf.formId===tmConfig.r1Id)?.name||"",
+          replace1Pct:tmConfig.r1Pct,
+          replace2Id:tmConfig.r2Id,
+          replace2Name:config.teamMembers.forms.find(cf=>cf.formId===tmConfig.r2Id)?.name||"",
+          replace2Pct:tmConfig.r2Pct,
+        })));
+        setRrData(prev=>{
+          const filtered=prev.filter(r=>r.type!=="TM");
+          const newEntries=loneTMs.map(({person})=>({personName:person.name,type:"TM",flaggedFormId:tmConfig.flaggedFormId,flaggedFormName:flaggedForm?.name||"",replace1Id:tmConfig.r1Id,replace1Pct:tmConfig.r1Pct,replace2Id:tmConfig.r2Id,replace2Pct:tmConfig.r2Pct}));
+          return [...filtered,...newEntries];
+        });
+        setTmSaving(false); setTmSaved(true);
+        setTimeout(()=>setTmSaved(false),2000);
+      }} saving={tmSaving} saved={tmSaved}>
 
         {loneTMs.length===0?(
           <div style={{textAlign:"center",padding:"20px",background:"#161B22",borderRadius:10,border:"1px solid rgba(139,92,246,0.2)",color:"#8B5CF6",fontSize:13,fontWeight:600}}>
