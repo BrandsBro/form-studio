@@ -7,6 +7,7 @@ function gi(n=""){return n.split(" ").map(x=>x[0]).join("").toUpperCase().slice(
 function gc(n=""){const c=["#F59E0B","#3B82F6","#10B981","#F43F5E","#8B5CF6","#06B6D4","#F97316"];return c[(n.charCodeAt(0)||0)%c.length];}
 function Av({name="",size=36}){const color=gc(name);return<div style={{width:size,height:size,borderRadius:"50%",background:color+"18",border:"2px solid "+color+"44",display:"flex",alignItems:"center",justifyContent:"center",fontSize:size*0.33,fontWeight:700,color,flexShrink:0}}>{gi(name)}</div>;}
 function Skel({w="100%",h=20,r=8}){return<div style={{width:w,height:h,borderRadius:r,background:"linear-gradient(90deg,#161B22 25%,#21262D 50%,#161B22 75%)",backgroundSize:"200% 100%",animation:"shimmer 1.5s infinite"}}/>;}
+function Spinner(){return<svg style={{width:12,height:12,animation:"spin 1s linear infinite"}} viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" opacity="0.25"/><path fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"/></svg>;}
 
 function getReviewerScore(reviewerEmail,personName,formId,formFields,allSubs){
   const sub=(allSubs[formId]||[]).find(s=>s.personName===personName&&s.reviewerEmail===reviewerEmail);
@@ -17,6 +18,9 @@ function getReviewerScore(reviewerEmail,personName,formId,formFields,allSubs){
 }
 
 function ConfigPanel({title,color,configForms,config,onConfigChange,onSave,saving,saved,children}){
+  const flaggedWeight=configForms.find(cf=>cf.formId===config.flaggedFormId)?.weight||0;
+  const total=(config.r1Pct||0)+(config.r2Pct||0);
+  const valid=config.flaggedFormId&&config.r1Id&&config.r2Id&&total===flaggedWeight;
   return(
     <div style={{display:"flex",flexDirection:"column",gap:12}}>
       <div style={{display:"flex",alignItems:"center",gap:10,paddingBottom:8,borderBottom:"1px solid #21262D"}}>
@@ -57,23 +61,20 @@ function ConfigPanel({title,color,configForms,config,onConfigChange,onSave,savin
             style={{width:56,background:"#0D1117",border:"1px solid #21262D",borderRadius:7,padding:"8px",color:"white",fontSize:13,outline:"none",textAlign:"center"}}/>
           <span style={{color:"#6b7280",fontSize:13}}>%</span>
         </div>
-        {config.flaggedFormId&&config.r1Id&&config.r2Id&&(()=>{
-          const flaggedWeight=configForms.find(cf=>cf.formId===config.flaggedFormId)?.weight||0;
-          const total=(config.r1Pct||0)+(config.r2Pct||0);
-          const valid=total===flaggedWeight;
-          return(
-            <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",flexWrap:"wrap",gap:8}}>
-              <span style={{fontSize:12,color:valid?"#22c55e":total>flaggedWeight?"#ef4444":"#F59E0B"}}>
-                {valid?`✓ ${total}% = ${flaggedWeight}% correct`:total>flaggedWeight?`${total}% over by ${total-flaggedWeight}%`:`${total}% / ${flaggedWeight}% needed`}
-              </span>
-              {onSave&&<button onClick={onSave} disabled={!valid||saving}
+        {config.flaggedFormId&&config.r1Id&&config.r2Id&&(
+          <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",flexWrap:"wrap",gap:8}}>
+            <span style={{fontSize:12,color:valid?"#22c55e":total>flaggedWeight?"#ef4444":"#F59E0B"}}>
+              {valid?`✓ ${total}% = ${flaggedWeight}% correct`:total>flaggedWeight?`${total}% over by ${total-flaggedWeight}%`:`${total}% / ${flaggedWeight}% needed`}
+            </span>
+            {onSave&&(
+              <button onClick={onSave} disabled={!valid||saving}
                 style={{padding:"8px 18px",borderRadius:8,border:"none",background:valid&&!saving?saved?"#16a34a":"linear-gradient(135deg,#D97706,#F59E0B)":"#21262D",color:valid&&!saving?"#000":"#4b5563",fontSize:12,fontWeight:700,cursor:valid&&!saving?"pointer":"not-allowed",display:"flex",alignItems:"center",gap:5}}>
-                {saving?<svg style={{width:12,height:12,animation:"spin 1s linear infinite"}} viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" opacity="0.25"/><path fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"/></svg>:<Save size={12}/>}
+                {saving?<Spinner/>:<Save size={12}/>}
                 {saving?"Saving...":saved?"Saved!":"Save Config"}
-              </button>}
-            </div>
-          );
-        })()}
+              </button>
+            )}
+          </div>
+        )}
       </div>
       {children}
     </div>
@@ -92,11 +93,9 @@ export default function ReReview(){
   const [editThreshold,setEditThreshold]=useState(false);
   const [invalidated,setInvalidated]=useState({});
   const [invalidating,setInvalidating]=useState(null);
-
   const [tlConfig,setTlConfig]=useState({flaggedFormId:"",r1Id:"",r1Pct:0,r2Id:"",r2Pct:0});
   const [tlSaving,setTlSaving]=useState(false);
   const [tlSaved,setTlSaved]=useState(false);
-
   const [tmConfig,setTmConfig]=useState({flaggedFormId:"",r1Id:"",r1Pct:0,r2Id:"",r2Pct:0});
   const [tmSaving,setTmSaving]=useState(false);
   const [tmSaved,setTmSaved]=useState(false);
@@ -108,23 +107,21 @@ export default function ReReview(){
       setForms(fl);
       getPeople().then(setPeople);
       getMarkingConfig().then(cfg=>{ if(cfg) setConfig(cfg); }).catch(()=>{});
-      // Load flagged data
       getFlagged().then(fl2=>{
         setFlaggedData(fl2||[]);
         const inv={};
-        (fl2||[]).forEach(f=>{ inv[`${f.reviewerEmail}_${f.personName}_${f.formId}`]=true; });
+        (fl2||[]).filter(f=>f.type==="TL").forEach(f=>{ inv[`${f.reviewerEmail}_${f.personName}_${f.formId}`]=true; });
         setInvalidated(inv);
       }).catch(()=>{});
-      // Load ReReview config
       getReReview().then(rr=>{
         setRrData(rr||[]);
-        const tlSaved=rr?.find(r=>r.personName==="__TL_CONFIG__");
-        if(tlSaved){
-          if(tlSaved.threshold) setThreshold(Number(tlSaved.threshold));
-          setTlConfig({flaggedFormId:tlSaved.flaggedFormId,r1Id:tlSaved.replace1Id,r1Pct:Number(tlSaved.replace1Pct),r2Id:tlSaved.replace2Id,r2Pct:Number(tlSaved.replace2Pct)});
+        const tls=rr?.find(r=>r.personName==="__TL_CONFIG__");
+        if(tls){
+          if(tls.threshold) setThreshold(Number(tls.threshold));
+          setTlConfig({flaggedFormId:tls.flaggedFormId,r1Id:tls.replace1Id,r1Pct:Number(tls.replace1Pct),r2Id:tls.replace2Id,r2Pct:Number(tls.replace2Pct)});
         }
-        const tmSaved=rr?.find(r=>r.personName==="__TM_CONFIG__");
-        if(tmSaved) setTmConfig({flaggedFormId:tmSaved.flaggedFormId,r1Id:tmSaved.replace1Id,r1Pct:Number(tmSaved.replace1Pct),r2Id:tmSaved.replace2Id,r2Pct:Number(tmSaved.replace2Pct)});
+        const tms=rr?.find(r=>r.personName==="__TM_CONFIG__");
+        if(tms) setTmConfig({flaggedFormId:tms.flaggedFormId,r1Id:tms.replace1Id,r1Pct:Number(tms.replace1Pct),r2Id:tms.replace2Id,r2Pct:Number(tms.replace2Pct)});
       }).catch(()=>{});
       const subsMap={};
       await Promise.all(fl.map(async f=>{ try{ subsMap[f.id]=await getSubmissions(f.id); }catch{ subsMap[f.id]=[]; } }));
@@ -135,8 +132,8 @@ export default function ReReview(){
 
   async function saveTLConfig(){
     setTlSaving(true);
-    const flaggedForm=config.teamLeaders.forms.find(cf=>cf.formId===tlConfig.flaggedFormId);
-    await saveReReview({personName:"__TL_CONFIG__",type:"TL",threshold,flaggedFormId:tlConfig.flaggedFormId,flaggedFormName:flaggedForm?.name||"",replace1Id:tlConfig.r1Id,replace1Name:config.teamLeaders.forms.find(cf=>cf.formId===tlConfig.r1Id)?.name||"",replace1Pct:tlConfig.r1Pct,replace2Id:tlConfig.r2Id,replace2Name:config.teamLeaders.forms.find(cf=>cf.formId===tlConfig.r2Id)?.name||"",replace2Pct:tlConfig.r2Pct});
+    const ff=config.teamLeaders.forms.find(cf=>cf.formId===tlConfig.flaggedFormId);
+    await saveReReview({personName:"__TL_CONFIG__",type:"TL",threshold,flaggedFormId:tlConfig.flaggedFormId,flaggedFormName:ff?.name||"",replace1Id:tlConfig.r1Id,replace1Name:config.teamLeaders.forms.find(cf=>cf.formId===tlConfig.r1Id)?.name||"",replace1Pct:tlConfig.r1Pct,replace2Id:tlConfig.r2Id,replace2Name:config.teamLeaders.forms.find(cf=>cf.formId===tlConfig.r2Id)?.name||"",replace2Pct:tlConfig.r2Pct});
     setRrData(prev=>[...prev.filter(r=>r.personName!=="__TL_CONFIG__"),{personName:"__TL_CONFIG__",type:"TL",flaggedFormId:tlConfig.flaggedFormId,replace1Id:tlConfig.r1Id,replace1Pct:tlConfig.r1Pct,replace2Id:tlConfig.r2Id,replace2Pct:tlConfig.r2Pct}]);
     setTlSaving(false); setTlSaved(true);
     setTimeout(()=>setTlSaved(false),2000);
@@ -144,12 +141,19 @@ export default function ReReview(){
 
   async function saveTMConfig(personName){
     setTmSaving(true); setTmSavingFor(personName);
-    const flaggedForm=config.teamMembers.forms.find(cf=>cf.formId===tmConfig.flaggedFormId);
-    // Save to Flagged sheet ONLY
-    await saveFlagged({personName,type:"TM",formId:tmConfig.flaggedFormId,formName:flaggedForm?.name||"",reviewerEmail:""});
-    setFlaggedData(prev=>[...prev.filter(f=>!(f.personName===personName&&f.type==="TM")),{personName,type:"TM",formId:tmConfig.flaggedFormId,formName:flaggedForm?.name||"",reviewerEmail:""}]);
+    const ff=config.teamMembers.forms.find(cf=>cf.formId===tmConfig.flaggedFormId);
+    await saveFlagged({personName,type:"TM",formId:tmConfig.flaggedFormId,formName:ff?.name||"",reviewerEmail:""});
+    setFlaggedData(prev=>[...prev.filter(f=>!(f.personName===personName&&f.type==="TM")),{personName,type:"TM",formId:tmConfig.flaggedFormId,formName:ff?.name||"",reviewerEmail:""}]);
     setTmSaving(false); setTmSavingFor(null); setTmSaved(true);
     setTimeout(()=>setTmSaved(false),2000);
+  }
+
+  async function removeTMFlagged(personName){
+    setTmRemoving(personName);
+    const entry=flaggedData.find(f=>f.personName===personName&&f.type==="TM");
+    if(entry) await deleteFlagged({personName,formId:entry.formId,reviewerEmail:""});
+    setFlaggedData(prev=>prev.filter(f=>!(f.personName===personName&&f.type==="TM")));
+    setTmRemoving(null);
   }
 
   async function toggleInvalidate(key,personName,formId,formName,reviewerEmail){
@@ -178,6 +182,9 @@ export default function ReReview(){
     .map(([dept,m])=>({dept,person:m.find(p=>(p.designations||[]).includes("Team Member"))}))
     .filter(x=>x.person);
   const tmConfigForms=config.teamMembers.forms;
+  const tmFlaggedWeight=tmConfigForms.find(cf=>cf.formId===tmConfig.flaggedFormId)?.weight||0;
+  const tmTotal=(tmConfig.r1Pct||0)+(tmConfig.r2Pct||0);
+  const tmValid=tmConfig.flaggedFormId&&tmConfig.r1Id&&tmConfig.r2Id&&tmTotal===tmFlaggedWeight;
 
   if(loading) return(
     <div style={{display:"flex",flexDirection:"column",gap:16}}>
@@ -219,8 +226,8 @@ export default function ReReview(){
       <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(130px,1fr))",gap:10}}>
         {[
           {l:"TL Invalidated",v:flaggedData.filter(f=>f.type==="TL").length,c:"#ef4444"},
-          {l:"Lone TMs",v:loneTMs.length,c:"#8B5CF6"},
-          {l:"TL Config",v:tlConfig.flaggedFormId?"Set":"Not set",c:tlConfig.flaggedFormId?"#22c55e":"#6b7280"},
+          {l:"Lone TMs Flagged",v:flaggedData.filter(f=>f.type==="TM").length,c:"#8B5CF6"},
+          {l:"TL Config",v:rrData.find(r=>r.personName==="__TL_CONFIG__")?"Set":"Not set",c:rrData.find(r=>r.personName==="__TL_CONFIG__")?"#22c55e":"#6b7280"},
           {l:"TM Config",v:rrData.find(r=>r.personName==="__TM_CONFIG__")?"Set":"Not set",c:rrData.find(r=>r.personName==="__TM_CONFIG__")?"#22c55e":"#6b7280"},
         ].map(s=>(
           <div key={s.l} style={{background:"#161B22",border:"1px solid #21262D",borderRadius:10,padding:"12px 16px"}}>
@@ -237,7 +244,7 @@ export default function ReReview(){
         {tlConfig.flaggedFormId&&tlFlaggedForm&&(
           <div style={{display:"flex",flexDirection:"column",gap:8}}>
             <p style={{color:"#9ca3af",fontSize:12,margin:0}}>
-              Reviewers on <span style={{color:"#F59E0B",fontWeight:600}}>{tlFlaggedForm.name}</span> — click Invalidate to flag:
+              Reviewers on <span style={{color:"#F59E0B",fontWeight:600}}>{tlFlaggedForm.name}</span> — Invalidate to flag:
             </p>
             {tlPersons.length===0?(
               <div style={{textAlign:"center",padding:"20px",background:"#161B22",borderRadius:10,border:"1px solid #21262D",color:"#4b5563",fontSize:13}}>
@@ -271,7 +278,7 @@ export default function ReReview(){
                             <button onClick={()=>toggleInvalidate(key,personName,tlConfig.flaggedFormId,tlFlaggedForm.name,sub.reviewerEmail)}
                               disabled={!!invalidating}
                               style={{padding:"5px 12px",borderRadius:7,border:"1px solid "+(isInv?"rgba(34,197,94,0.4)":"#21262D"),background:isInv?"rgba(34,197,94,0.1)":"transparent",color:isInv?"#22c55e":"#9ca3af",fontSize:11,fontWeight:700,cursor:"pointer",display:"flex",alignItems:"center",gap:4}}>
-                              {isInvalidating?<svg style={{width:11,height:11,animation:"spin 1s linear infinite"}} viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" opacity="0.25"/><path fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"/></svg>:null}
+                              {isInvalidating&&<Spinner/>}
                               {isInvalidating?"...":(isInv?"Restore":"Invalidate")}
                             </button>
                           )}
@@ -291,8 +298,8 @@ export default function ReReview(){
         configForms={tmConfigForms} config={tmConfig} onConfigChange={setTmConfig}
         onSave={async()=>{
           setTmSaving(true);
-          const flaggedForm=config.teamMembers.forms.find(cf=>cf.formId===tmConfig.flaggedFormId);
-          await saveReReview({personName:"__TM_CONFIG__",type:"TM",flaggedFormId:tmConfig.flaggedFormId,flaggedFormName:flaggedForm?.name||"",replace1Id:tmConfig.r1Id,replace1Name:config.teamMembers.forms.find(cf=>cf.formId===tmConfig.r1Id)?.name||"",replace1Pct:tmConfig.r1Pct,replace2Id:tmConfig.r2Id,replace2Name:config.teamMembers.forms.find(cf=>cf.formId===tmConfig.r2Id)?.name||"",replace2Pct:tmConfig.r2Pct});
+          const ff=config.teamMembers.forms.find(cf=>cf.formId===tmConfig.flaggedFormId);
+          await saveReReview({personName:"__TM_CONFIG__",type:"TM",flaggedFormId:tmConfig.flaggedFormId,flaggedFormName:ff?.name||"",replace1Id:tmConfig.r1Id,replace1Name:config.teamMembers.forms.find(cf=>cf.formId===tmConfig.r1Id)?.name||"",replace1Pct:tmConfig.r1Pct,replace2Id:tmConfig.r2Id,replace2Name:config.teamMembers.forms.find(cf=>cf.formId===tmConfig.r2Id)?.name||"",replace2Pct:tmConfig.r2Pct});
           setRrData(prev=>[...prev.filter(r=>r.personName!=="__TM_CONFIG__"),{personName:"__TM_CONFIG__",type:"TM",flaggedFormId:tmConfig.flaggedFormId,replace1Id:tmConfig.r1Id,replace1Pct:tmConfig.r1Pct,replace2Id:tmConfig.r2Id,replace2Pct:tmConfig.r2Pct}]);
           setTmSaving(false); setTmSaved(true);
           setTimeout(()=>setTmSaved(false),2000);
@@ -304,36 +311,32 @@ export default function ReReview(){
           </div>
         ):(
           loneTMs.map(({dept,person})=>{
-            const existingSave=rrData.find(r=>r.personName===person.name&&r.type==="TM");
+            const isSaved=flaggedData.some(f=>f.personName===person.name&&f.type==="TM");
             return(
-              <div key={person.name} style={{background:"#161B22",border:"1px solid rgba(139,92,246,0.3)",borderRadius:12,padding:16,display:"flex",alignItems:"center",justifyContent:"space-between",gap:12,flexWrap:"wrap"}}>
+              <div key={person.name} style={{background:"#161B22",border:"1px solid "+(isSaved?"rgba(34,197,94,0.3)":"rgba(139,92,246,0.3)"),borderRadius:12,padding:16,display:"flex",alignItems:"center",justifyContent:"space-between",gap:12,flexWrap:"wrap"}}>
                 <div style={{display:"flex",alignItems:"center",gap:12}}>
                   <Av name={person.name} size={40}/>
                   <div>
                     <p style={{color:"white",fontSize:14,fontWeight:700,margin:0}}>{person.name}</p>
                     <p style={{color:"#8B5CF6",fontSize:12,margin:"3px 0 0"}}>⚠️ Only TM in {dept}</p>
-                    {existingSave&&<p style={{color:"#22c55e",fontSize:11,margin:"2px 0 0"}}>✓ Config saved</p>}
+                    {isSaved&&<p style={{color:"#22c55e",fontSize:11,margin:"2px 0 0"}}>✓ Flagged</p>}
                   </div>
                 </div>
-<div style={{display:"flex",gap:8}}>
-                  {flaggedData.find(f=>f.personName===person.name&&f.type==="TM")&&(
-                    <button onClick={async()=>{
-                      setTmRemoving(person.name);
-                      await deleteFlagged({personName:person.name,formId:tmConfig.flaggedFormId||flaggedData.find(f=>f.personName===person.name&&f.type==="TM")?.formId,reviewerEmail:""});
-                      setFlaggedData(prev=>prev.filter(f=>!(f.personName===person.name&&f.type==="TM")));
-                      setTmRemoving(null);
-                    }} disabled={tmRemoving===person.name}
-                    style={{padding:"8px 14px",borderRadius:8,border:"1px solid rgba(239,68,68,0.3)",background:"transparent",color:tmRemoving===person.name?"#6b7280":"#ef4444",fontSize:12,cursor:"pointer",display:"flex",alignItems:"center",gap:4}}>
-                      {tmRemoving===person.name?<svg style={{width:12,height:12,animation:"spin 1s linear infinite"}} viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" opacity="0.25"/><path fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"/></svg>:<Trash2 size={12}/>}
+                <div style={{display:"flex",gap:8}}>
+                  {isSaved?(
+                    <button onClick={()=>removeTMFlagged(person.name)} disabled={tmRemoving===person.name}
+                      style={{padding:"8px 14px",borderRadius:8,border:"1px solid rgba(239,68,68,0.3)",background:"transparent",color:tmRemoving===person.name?"#6b7280":"#ef4444",fontSize:12,cursor:"pointer",display:"flex",alignItems:"center",gap:4}}>
+                      {tmRemoving===person.name?<Spinner/>:<Trash2 size={12}/>}
                       {tmRemoving===person.name?"Removing...":"Remove"}
                     </button>
+                  ):(
+                    <button onClick={()=>saveTMConfig(person.name)}
+                      disabled={!tmValid||tmSaving}
+                      style={{padding:"8px 16px",borderRadius:8,border:"none",background:tmValid&&!tmSaving?"linear-gradient(135deg,#7C3AED,#8B5CF6)":"#21262D",color:tmValid?"white":"#4b5563",fontSize:12,fontWeight:700,cursor:tmValid&&!tmSaving?"pointer":"not-allowed",display:"flex",alignItems:"center",gap:5}}>
+                      {tmSavingFor===person.name?<Spinner/>:<Save size={12}/>}
+                      {tmSavingFor===person.name?"Saving...":"Save for "+person.name}
+                    </button>
                   )}
-                  {!flaggedData.find(f=>f.personName===person.name&&f.type==="TM")&&<button onClick={()=>saveTMConfig(person.name)}
-                    disabled={!tmConfig.flaggedFormId||!tmConfig.r1Id||!tmConfig.r2Id||tmSaving||(()=>{const fw=config.teamMembers.forms.find(cf=>cf.formId===tmConfig.flaggedFormId)?.weight||0;return (tmConfig.r1Pct+tmConfig.r2Pct)!==fw;})()}
-                    style={{padding:"8px 16px",borderRadius:8,border:"none",background:tmConfig.flaggedFormId&&tmConfig.r1Id&&tmConfig.r2Id&&!tmSaving?"linear-gradient(135deg,#7C3AED,#8B5CF6)":"#21262D",color:tmConfig.flaggedFormId&&tmConfig.r1Id&&tmConfig.r2Id?"white":"#4b5563",fontSize:12,fontWeight:700,cursor:"pointer",display:"flex",alignItems:"center",gap:5}}>
-                    {tmSavingFor===person.name?<svg style={{width:12,height:12,animation:"spin 1s linear infinite"}} viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" opacity="0.25"/><path fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"/></svg>:<Save size={12}/>}
-                    {tmSavingFor===person.name?"Saving...":flaggedData.find(f=>f.personName===person.name&&f.type==="TM")?"Update":"Save for "+person.name}
-                  </button>
                 </div>
               </div>
             );
@@ -341,14 +344,14 @@ export default function ReReview(){
         )}
       </ConfigPanel>
 
-      {/* ── FLAGGED REVIEWERS ── */}
-      {flaggedData.length>0&&(
+      {/* ── FLAGGED REVIEWERS (TL) ── */}
+      {flaggedData.filter(f=>f.type==="TL").length>0&&(
         <div style={{display:"flex",flexDirection:"column",gap:12}}>
           <div style={{display:"flex",alignItems:"center",gap:10,paddingBottom:8,borderBottom:"1px solid #21262D"}}>
             <div style={{width:10,height:10,borderRadius:"50%",background:"#ef4444"}}/>
-            <p style={{color:"white",fontSize:15,fontWeight:700,margin:0}}>Flagged Reviewers ({flaggedData.length})</p>
+            <p style={{color:"white",fontSize:15,fontWeight:700,margin:0}}>Flagged Reviewers ({flaggedData.filter(f=>f.type==="TL").length})</p>
           </div>
-          {flaggedData.map((f,i)=>(
+          {flaggedData.filter(f=>f.type==="TL").map((f,i)=>(
             <div key={i} style={{background:"#161B22",border:"1px solid rgba(239,68,68,0.2)",borderRadius:12,padding:14,display:"flex",alignItems:"center",justifyContent:"space-between",gap:12,flexWrap:"wrap"}}>
               <div style={{display:"flex",alignItems:"center",gap:10}}>
                 <Av name={f.personName} size={36}/>
@@ -359,7 +362,7 @@ export default function ReReview(){
                   </p>
                 </div>
               </div>
-<button onClick={async()=>{
+              <button onClick={async()=>{
                 const key=`${f.reviewerEmail}_${f.personName}_${f.formId}`;
                 setInvalidating(key);
                 await deleteFlagged({personName:f.personName,formId:f.formId,reviewerEmail:f.reviewerEmail});
@@ -368,38 +371,8 @@ export default function ReReview(){
                 setInvalidating(null);
               }} disabled={invalidating===`${f.reviewerEmail}_${f.personName}_${f.formId}`}
               style={{padding:"6px 12px",borderRadius:8,border:"1px solid #21262D",background:"transparent",color:"#9ca3af",fontSize:12,cursor:"pointer",display:"flex",alignItems:"center",gap:4}}>
-                {invalidating===`${f.reviewerEmail}_${f.personName}_${f.formId}`?<svg style={{width:12,height:12,animation:"spin 1s linear infinite"}} viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" opacity="0.25"/><path fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"/></svg>:<RotateCcw size={12}/>}
+                {invalidating===`${f.reviewerEmail}_${f.personName}_${f.formId}`?<Spinner/>:<RotateCcw size={12}/>}
                 {invalidating===`${f.reviewerEmail}_${f.personName}_${f.formId}`?"Removing...":"Restore"}
-              </button>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {/* ── SAVED RE-REVIEWS ── */}
-      {rrData.filter(r=>r.personName!=="__TL_CONFIG__"&&r.personName!=="__TM_CONFIG__").length>0&&(
-        <div style={{display:"flex",flexDirection:"column",gap:12}}>
-          <div style={{display:"flex",alignItems:"center",gap:10,paddingBottom:8,borderBottom:"1px solid #21262D"}}>
-            <div style={{width:10,height:10,borderRadius:"50%",background:"#22c55e"}}/>
-            <p style={{color:"white",fontSize:15,fontWeight:700,margin:0}}>Saved Re-Reviews</p>
-          </div>
-          {rrData.filter(r=>r.personName!=="__TL_CONFIG__"&&r.personName!=="__TM_CONFIG__").map((r,i)=>(
-            <div key={i} style={{background:"#161B22",border:"1px solid rgba(34,197,94,0.2)",borderRadius:12,padding:16,display:"flex",alignItems:"center",justifyContent:"space-between",gap:12,flexWrap:"wrap"}}>
-              <div style={{display:"flex",alignItems:"center",gap:10}}>
-                <Av name={r.personName} size={36}/>
-                <div>
-                  <p style={{color:"white",fontSize:13,fontWeight:700,margin:0}}>{r.personName}
-                    <span style={{marginLeft:8,fontSize:10,color:r.type==="TL"?"#F59E0B":"#8B5CF6",background:r.type==="TL"?"rgba(245,158,11,0.1)":"rgba(139,92,246,0.1)",padding:"1px 6px",borderRadius:999}}>{r.type}</span>
-                  </p>
-                  <p style={{color:"#6b7280",fontSize:11,margin:"3px 0 0"}}>
-                    <span style={{color:"#ef4444"}}>{r.flaggedFormName}</span> →
-                    <span style={{color:"#22c55e"}}> {r.replace1Name} ({r.replace1Pct}%) + {r.replace2Name} ({r.replace2Pct}%)</span>
-                  </p>
-                </div>
-              </div>
-              <button onClick={async()=>{ await deleteReReview({personName:r.personName,flaggedFormId:r.flaggedFormId}); setRrData(prev=>prev.filter(x=>!(x.personName===r.personName&&x.flaggedFormId===r.flaggedFormId))); }}
-                style={{padding:"6px 12px",borderRadius:8,border:"1px solid rgba(239,68,68,0.3)",background:"transparent",color:"#ef4444",fontSize:12,cursor:"pointer",display:"flex",alignItems:"center",gap:4}}>
-                <Trash2 size={12}/> Remove
               </button>
             </div>
           ))}
