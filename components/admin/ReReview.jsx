@@ -121,6 +121,7 @@ export default function ReReview(){
   const [tmConfig,setTmConfig]=useState({flaggedFormId:"",r1Id:"",r1Pct:0,r2Id:"",r2Pct:0});
   const [tmSaving,setTmSaving]=useState(false);
   const [tmSaved,setTmSaved]=useState(false);
+  const [tmSavingFor,setTmSavingFor]=useState(null);
 
   useEffect(()=>{
     getForms().then(async fl=>{
@@ -158,6 +159,7 @@ export default function ReReview(){
 
   async function saveTMConfig(personName){
     setTmSaving(true);
+    setTmSavingFor(personName);
     const flaggedForm=config.teamMembers.forms.find(cf=>cf.formId===tmConfig.flaggedFormId);
     await saveReReview({
       personName, type:"TM",
@@ -171,7 +173,7 @@ export default function ReReview(){
       replace2Pct:tmConfig.r2Pct,
     });
     setRrData(prev=>[...prev.filter(r=>!(r.personName===personName&&r.type==="TM")),{personName,type:"TM",flaggedFormId:tmConfig.flaggedFormId,replace1Id:tmConfig.r1Id,replace1Pct:tmConfig.r1Pct,replace2Id:tmConfig.r2Id,replace2Pct:tmConfig.r2Pct}]);
-    setTmSaving(false); setTmSaved(true);
+    setTmSaving(false); setTmSavingFor(null); setTmSaved(true);
     setTimeout(()=>setTmSaved(false),2000);
   }
 
@@ -327,8 +329,8 @@ export default function ReReview(){
                 <button onClick={()=>saveTMConfig(person.name)}
                   disabled={!tmConfig.flaggedFormId||!tmConfig.r1Id||!tmConfig.r2Id||tmSaving}
                   style={{padding:"8px 16px",borderRadius:8,border:"none",background:tmConfig.flaggedFormId&&tmConfig.r1Id&&tmConfig.r2Id&&!tmSaving?"linear-gradient(135deg,#7C3AED,#8B5CF6)":"#21262D",color:tmConfig.flaggedFormId&&tmConfig.r1Id&&tmConfig.r2Id?"white":"#4b5563",fontSize:12,fontWeight:700,cursor:"pointer",display:"flex",alignItems:"center",gap:5}}>
-                  {tmSaving?<svg style={{width:12,height:12,animation:"spin 1s linear infinite"}} viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" opacity="0.25"/><path fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"/></svg>:<Save size={12}/>}
-                  {tmSaving?"Saving...":existingSave?"Update":"Save for "+person.name}
+                  {tmSavingFor===person.name?<svg style={{width:12,height:12,animation:"spin 1s linear infinite"}} viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" opacity="0.25"/><path fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"/></svg>:<Save size={12}/>}
+                  {tmSavingFor===person.name?"Saving...":existingSave?"Update":"Save for "+person.name}
                 </button>
               </div>
             );
