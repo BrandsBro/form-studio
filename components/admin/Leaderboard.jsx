@@ -1,44 +1,46 @@
 "use client";
-import { getForms, getPeople, getSubmissions, getMarkingConfig, getReReview } from "@/lib/sheets";
+import { getForms, getPeople, getSubmissions, getMarkingConfig, getReReview, getFlagged } from "@/lib/sheets";
 import { useState, useEffect } from "react";
 
 function gi(n=""){return n.split(" ").map(x=>x[0]).join("").toUpperCase().slice(0,2)||"?";}
 function gc(n=""){const c=["#F59E0B","#3B82F6","#10B981","#F43F5E","#8B5CF6","#06B6D4","#F97316"];return c[(n.charCodeAt(0)||0)%c.length];}
 function Av({name="",size=36}){const color=gc(name);return<div style={{width:size,height:size,borderRadius:"50%",background:color+"18",border:"2px solid "+color+"44",display:"flex",alignItems:"center",justifyContent:"center",fontSize:size*0.33,fontWeight:700,color,flexShrink:0}}>{gi(name)}</div>;}
 
-// Step 1: average score for a person on one form across all reviewers
-function getPersonFormAvg(personName,formId,formFields,allSubs={}){
-  const subs=(allSubs[formId]||[]).filter(s=>s.personName===personName);
-  if(!subs.length)return null;
+// Get average score for a person on a form, optionally excluding flagged reviewers
+function getPersonFormAvg(personName,formId,formFields,allSubs={},excludeEmails=[]){
+  const subs=(allSubs[formId]||[]).filter(s=>s.personName===personName&&!excludeEmails.includes(s.reviewerEmail));
+  if(!subs.length) return null;
   const rFields=formFields.filter(f=>f.type==="rating");
-  if(!rFields.length)return null;
+  if(!rFields.length) return null;
   const reviewerAvgs=subs.map(s=>rFields.map(f=>s.values?.[f.id]||0).reduce((a,b)=>a+b,0)/rFields.length);
   return reviewerAvgs.reduce((a,b)=>a+b,0)/reviewerAvgs.length;
 }
 
-// Step 2: final score = sum(formAvg * weight/100), with ReReview adjustments
-function calcScore(personName,configForms,allForms,allSubs={},rrData=[]){
-  // Check if this person has a ReReview config
-  const rr=rrData.find(r=>r.personName===personName||(r.personName==="__TL_CONFIG__"&&r.type==="TL")||(r.personName==="__TM_CONFIG__"&&r.type==="TM"));
-  
-  // Build adjusted weights
+// Calculate final score with ReReview + Flagged adjustments
+function calcScore(personName, configForms, allForms, allSubs={}, rrConfig=null, flaggedEntries=[]){
   let adjustedForms=[...configForms];
-  if(rr&&rr.flaggedFormId){
+
+  if(rrConfig&&rrConfig.flaggedFormId){
     // Remove flagged form
-    adjustedForms=adjustedForms.filter(cf=>cf.formId!==rr.flaggedFormId);
-    // Add replacement weights to existing forms
+    adjustedForms=adjustedForms.filter(cf=>cf.formId!==rrConfig.flaggedFormId);
+    // Add replacement % on top of existing weights
     adjustedForms=adjustedForms.map(cf=>{
-      if(cf.formId===rr.replace1Id) return{...cf,weight:cf.weight+Number(rr.replace1Pct)};
-      if(cf.formId===rr.replace2Id) return{...cf,weight:cf.weight+Number(rr.replace2Pct)};
+      if(cf.formId===rrConfig.replace1Id) return{...cf,weight:cf.weight+Number(rrConfig.replace1Pct)};
+      if(cf.formId===rrConfig.replace2Id) return{...cf,weight:cf.weight+Number(rrConfig.replace2Pct)};
       return cf;
     });
   }
 
-  let weightedSum=0,hasData=false;
+  let weightedSum=0, hasData=false;
   adjustedForms.forEach(cf=>{
     const form=allForms.find(f=>f.id===cf.formId);
-    if(!form)return;
-    const avg=getPersonFormAvg(personName,cf.formId,form.fields||[],allSubs);
+    if(!form) return;
+    // Get flagged reviewer emails for this person on this form
+    const excludeEmails=flaggedEntries
+      .filter(f=>f.personName===personName&&f.formId===cf.formId&&f.type==="TL")
+      .map(f=>f.reviewerEmail)
+      .filter(Boolean);
+    const avg=getPersonFormAvg(personName,cf.formId,form.fields||[],allSubs,excludeEmails);
     if(avg!==null){weightedSum+=avg*(cf.weight/100);hasData=true;}
   });
   return hasData?weightedSum:null;
@@ -56,7 +58,7 @@ function ScoreBar({score}){
   );
 }
 
-function Board({title,icon,color,people,allForms,allSubs={},configForms=[]}){
+function Board({title,icon,color,people,allForms,allSubs={},configForms=[],rrConfig=null,flaggedEntries=[]}){
   const ranked=people.filter(p=>p.score!==null).sort((a,b)=>b.score-a.score);
   const pending=people.filter(p=>p.score===null);
   return(
@@ -83,7 +85,8 @@ function Board({title,icon,color,people,allForms,allSubs={},configForms=[]}){
             <div style={{display:"flex",gap:4,flexShrink:0}}>
               {configForms.map(cf=>{
                 const form=allForms.find(f=>f.id===cf.formId);
-                const avg=form?getPersonFormAvg(person.name,cf.formId,form.fields||[],allSubs):null;
+                const excludeEmails=flaggedEntries.filter(f=>f.personName===person.name&&f.formId===cf.formId&&f.type==="TL").map(f=>f.reviewerEmail).filter(Boolean);
+                const avg=form?getPersonFormAvg(person.name,cf.formId,form.fields||[],allSubs,excludeEmails):null;
                 const c=avg!==null?(avg>=4?"#22c55e":avg>=3?"#F59E0B":"#ef4444"):"#4b5563";
                 return(
                   <div key={cf.formId} title={`${cf.name} (${cf.weight}%): ${avg!==null?avg.toFixed(2):"N/A"}`}
@@ -120,6 +123,7 @@ export default function Leaderboard(){
   const [loading,setLoading]=useState(true);
   const [configLoaded,setConfigLoaded]=useState(false);
   const [rrData,setRrData]=useState([]);
+  const [flaggedData,setFlaggedData]=useState([]);
 
   useEffect(()=>{
     Promise.all([getForms(),getPeople()]).then(async([fl,p])=>{
@@ -133,17 +137,25 @@ export default function Leaderboard(){
       setLoading(false);
       getMarkingConfig().then(cfg=>{ if(cfg) setConfig(cfg); setConfigLoaded(true); }).catch(()=>setConfigLoaded(true));
       getReReview().then(rr=>setRrData(rr||[])).catch(()=>{});
+      getFlagged().then(fl2=>setFlaggedData(fl2||[])).catch(()=>{});
     }).catch(()=>{ setLoading(false); setConfigLoaded(true); });
   },[]);
+
+  const tlRrConfig=rrData.find(r=>r.personName==="__TL_CONFIG__")||null;
+  const tmRrConfig=rrData.find(r=>r.personName==="__TM_CONFIG__")||null;
 
   const allScored=people.map(p=>{
     const isTM=(p.designations||[]).includes("Team Member");
     const configForms=isTM?config.teamMembers.forms:config.teamLeaders.forms;
-    // Get person-specific rr or type-based rr
-    const personRr=rrData.find(r=>r.personName===p.name) ||
-      (isTM?rrData.find(r=>r.personName==="__TM_CONFIG__"):rrData.find(r=>r.personName==="__TL_CONFIG__"));
-    const score=calcScore(p.name,configForms,forms,allSubs,personRr?[personRr]:[]);
-    return{...p,score,isTM,configForms};
+
+    // Check if person is flagged
+    const isFlagged=flaggedData.some(f=>f.personName===p.name);
+
+    // Get appropriate RR config
+    const rrConfig=isFlagged?(isTM?tmRrConfig:tlRrConfig):null;
+
+    const score=calcScore(p.name,configForms,forms,allSubs,rrConfig,flaggedData);
+    return{...p,score,isTM,configForms,isFlagged};
   }).sort((a,b)=>{
     if(a.score===null&&b.score===null)return 0;
     if(a.score===null)return 1;
@@ -218,7 +230,9 @@ export default function Leaderboard(){
                   </div>
                   <Av name={person.name} size={44}/>
                   <div style={{flex:1,minWidth:0}}>
-                    <p style={{color:"white",fontSize:14,fontWeight:700,margin:0}}>{person.name}</p>
+                    <p style={{color:"white",fontSize:14,fontWeight:700,margin:0}}>{person.name}
+                      {person.isFlagged&&<span style={{marginLeft:6,fontSize:10,color:"#ef4444",background:"rgba(239,68,68,0.1)",padding:"1px 6px",borderRadius:999}}>⚠️ ReReview</span>}
+                    </p>
                     <div style={{display:"flex",gap:4,marginTop:4,flexWrap:"wrap",alignItems:"center"}}>
                       <span style={{fontSize:10,color:person.isTM?"#10B981":"#F59E0B",background:person.isTM?"rgba(16,185,129,0.12)":"rgba(245,158,11,0.12)",padding:"2px 8px",borderRadius:999,fontWeight:600}}>
                         {person.isTM?"Team Member":"Team Leader"}
@@ -232,7 +246,8 @@ export default function Leaderboard(){
                   <div style={{display:"flex",gap:4,flexShrink:0}}>
                     {(person.configForms||[]).map(cf=>{
                       const form=forms.find(f=>f.id===cf.formId);
-                      const avg=form?getPersonFormAvg(person.name,cf.formId,form.fields||[],allSubs):null;
+                      const excludeEmails=flaggedData.filter(f=>f.personName===person.name&&f.formId===cf.formId&&f.type==="TL").map(f=>f.reviewerEmail).filter(Boolean);
+                      const avg=form?getPersonFormAvg(person.name,cf.formId,form.fields||[],allSubs,excludeEmails):null;
                       const c=avg!==null?(avg>=4?"#22c55e":avg>=3?"#F59E0B":"#ef4444"):"#4b5563";
                       return(
                         <div key={cf.formId} title={`${cf.name} (${cf.weight}%): ${avg!==null?avg.toFixed(2):"N/A"}`}
@@ -265,12 +280,14 @@ export default function Leaderboard(){
       {!noConfig&&(
         <Board title="Team Leaders" icon="⭐" color="#F59E0B"
           people={teamLeaders} allForms={forms} allSubs={allSubs}
-          configForms={config.teamLeaders.forms}/>
+          configForms={config.teamLeaders.forms}
+          rrConfig={tlRrConfig} flaggedEntries={flaggedData}/>
       )}
       {!noConfig&&(
         <Board title="Team Members" icon="👥" color="#10B981"
           people={teamMembers} allForms={forms} allSubs={allSubs}
-          configForms={config.teamMembers.forms}/>
+          configForms={config.teamMembers.forms}
+          rrConfig={tmRrConfig} flaggedEntries={flaggedData}/>
       )}
     </div>
   );
