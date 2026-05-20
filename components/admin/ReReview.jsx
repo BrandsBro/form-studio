@@ -270,9 +270,9 @@ export default function ReReview(){
                           {belowThreshold&&(
                             <button onClick={()=>toggleInvalidate(key,personName,tlConfig.flaggedFormId,tlFlaggedForm.name,sub.reviewerEmail)}
                               disabled={!!invalidating}
-                              style={{padding:"5px 12px",borderRadius:7,border:"1px solid "+(isInv?"rgba(239,68,68,0.4)":"#21262D"),background:isInv?"rgba(239,68,68,0.1)":"transparent",color:isInv?"#ef4444":"#9ca3af",fontSize:11,fontWeight:700,cursor:"pointer",display:"flex",alignItems:"center",gap:4}}>
+                              style={{padding:"5px 12px",borderRadius:7,border:"1px solid "+(isInv?"rgba(34,197,94,0.4)":"#21262D"),background:isInv?"rgba(34,197,94,0.1)":"transparent",color:isInv?"#22c55e":"#9ca3af",fontSize:11,fontWeight:700,cursor:"pointer",display:"flex",alignItems:"center",gap:4}}>
                               {isInvalidating?<svg style={{width:11,height:11,animation:"spin 1s linear infinite"}} viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" opacity="0.25"/><path fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"/></svg>:null}
-                              {isInvalidating?"...":(isInv?"✓ Invalidated":"Invalidate")}
+                              {isInvalidating?"...":(isInv?"Restore":"Invalidate")}
                             </button>
                           )}
                         </div>
