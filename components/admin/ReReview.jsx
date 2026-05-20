@@ -310,9 +310,8 @@ export default function ReReview(){
         onSave={async()=>{
         setTmSaving(true);
         const flaggedForm=config.teamMembers.forms.find(cf=>cf.formId===tmConfig.flaggedFormId);
-        // Save for each lone TM
-        await Promise.all(loneTMs.map(({person})=>saveReReview({
-          personName:person.name, type:"TM",
+        await saveReReview({
+          personName:"__TM_CONFIG__", type:"TM",
           flaggedFormId:tmConfig.flaggedFormId,
           flaggedFormName:flaggedForm?.name||"",
           replace1Id:tmConfig.r1Id,
@@ -321,12 +320,8 @@ export default function ReReview(){
           replace2Id:tmConfig.r2Id,
           replace2Name:config.teamMembers.forms.find(cf=>cf.formId===tmConfig.r2Id)?.name||"",
           replace2Pct:tmConfig.r2Pct,
-        })));
-        setRrData(prev=>{
-          const filtered=prev.filter(r=>r.type!=="TM");
-          const newEntries=loneTMs.map(({person})=>({personName:person.name,type:"TM",flaggedFormId:tmConfig.flaggedFormId,flaggedFormName:flaggedForm?.name||"",replace1Id:tmConfig.r1Id,replace1Pct:tmConfig.r1Pct,replace2Id:tmConfig.r2Id,replace2Pct:tmConfig.r2Pct}));
-          return [...filtered,...newEntries];
         });
+        setRrData(prev=>[...prev.filter(r=>r.personName!=="__TM_CONFIG__"),{personName:"__TM_CONFIG__",type:"TM",flaggedFormId:tmConfig.flaggedFormId,replace1Id:tmConfig.r1Id,replace1Pct:tmConfig.r1Pct,replace2Id:tmConfig.r2Id,replace2Pct:tmConfig.r2Pct}]);
         setTmSaving(false); setTmSaved(true);
         setTimeout(()=>setTmSaved(false),2000);
       }} saving={tmSaving} saved={tmSaved}>
