@@ -329,7 +329,7 @@ export default function ReReview(){
                     </button>
                   )}
                   {!flaggedData.find(f=>f.personName===person.name&&f.type==="TM")&&<button onClick={()=>saveTMConfig(person.name)}
-                    disabled={!tmConfig.flaggedFormId||!tmConfig.r1Id||!tmConfig.r2Id||tmSaving||(()=>{const fw=config.teamMembers.forms.find(cf=>cf.formId===tmConfig.flaggedFormId)?.weight||0;return(tmConfig.r1Pct+tmConfig.r2Pct)!==fw;})()}
+                    disabled={!tmConfig.flaggedFormId||!tmConfig.r1Id||!tmConfig.r2Id||tmSaving||(()=>{const fw=config.teamMembers.forms.find(cf=>cf.formId===tmConfig.flaggedFormId)?.weight||0;return (tmConfig.r1Pct+tmConfig.r2Pct)!==fw;})()}
                     style={{padding:"8px 16px",borderRadius:8,border:"none",background:tmConfig.flaggedFormId&&tmConfig.r1Id&&tmConfig.r2Id&&!tmSaving?"linear-gradient(135deg,#7C3AED,#8B5CF6)":"#21262D",color:tmConfig.flaggedFormId&&tmConfig.r1Id&&tmConfig.r2Id?"white":"#4b5563",fontSize:12,fontWeight:700,cursor:"pointer",display:"flex",alignItems:"center",gap:5}}>
                     {tmSavingFor===person.name?<svg style={{width:12,height:12,animation:"spin 1s linear infinite"}} viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" opacity="0.25"/><path fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"/></svg>:<Save size={12}/>}
                     {tmSavingFor===person.name?"Saving...":flaggedData.find(f=>f.personName===person.name&&f.type==="TM")?"Update":"Save for "+person.name}
