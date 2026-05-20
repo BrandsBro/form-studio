@@ -1,12 +1,12 @@
 "use client";
-import { getForms, getPeople, getSubmissions, getMarkingConfig, getReReview, getFlagged } from "@/lib/sheets";
+import { getForms, getPeople, getSubmissions, getMarkingConfig, getReReview, getFlagged, getConnections } from "@/lib/sheets";
 import { useState, useEffect } from "react";
 
 function gi(n=""){return n.split(" ").map(x=>x[0]).join("").toUpperCase().slice(0,2)||"?";}
 function gc(n=""){const c=["#F59E0B","#3B82F6","#10B981","#F43F5E","#8B5CF6","#06B6D4","#F97316"];return c[(n.charCodeAt(0)||0)%c.length];}
 function Av({name="",size=36}){const color=gc(name);return<div style={{width:size,height:size,borderRadius:"50%",background:color+"18",border:"2px solid "+color+"44",display:"flex",alignItems:"center",justifyContent:"center",fontSize:size*0.33,fontWeight:700,color,flexShrink:0}}>{gi(name)}</div>;}
 
-// Get average score for a person on a form, optionally excluding flagged reviewers
+// Get avg for a person on a form, excluding flagged reviewer emails
 function getPersonFormAvg(personName,formId,formFields,allSubs={},excludeEmails=[]){
   const subs=(allSubs[formId]||[]).filter(s=>s.personName===personName&&!excludeEmails.includes(s.reviewerEmail));
   if(!subs.length) return null;
@@ -16,30 +16,24 @@ function getPersonFormAvg(personName,formId,formFields,allSubs={},excludeEmails=
   return reviewerAvgs.reduce((a,b)=>a+b,0)/reviewerAvgs.length;
 }
 
-// Calculate final score with ReReview + Flagged adjustments
-function calcScore(personName, configForms, allForms, allSubs={}, rrConfig=null, flaggedEntries=[]){
+// Final score with ReReview + Flagged adjustments
+function calcScore(personName,configForms,allForms,allSubs={},rrConfig=null,flaggedEntries=[]){
   let adjustedForms=[...configForms];
-
   if(rrConfig&&rrConfig.flaggedFormId){
-    // Remove flagged form
     adjustedForms=adjustedForms.filter(cf=>cf.formId!==rrConfig.flaggedFormId);
-    // Add replacement % on top of existing weights
     adjustedForms=adjustedForms.map(cf=>{
       if(cf.formId===rrConfig.replace1Id) return{...cf,weight:cf.weight+Number(rrConfig.replace1Pct)};
       if(cf.formId===rrConfig.replace2Id) return{...cf,weight:cf.weight+Number(rrConfig.replace2Pct)};
       return cf;
     });
   }
-
-  let weightedSum=0, hasData=false;
+  let weightedSum=0,hasData=false;
   adjustedForms.forEach(cf=>{
     const form=allForms.find(f=>f.id===cf.formId);
     if(!form) return;
-    // Get flagged reviewer emails for this person on this form
     const excludeEmails=flaggedEntries
       .filter(f=>f.personName===personName&&f.formId===cf.formId&&f.type==="TL")
-      .map(f=>f.reviewerEmail)
-      .filter(Boolean);
+      .map(f=>f.reviewerEmail).filter(Boolean);
     const avg=getPersonFormAvg(personName,cf.formId,form.fields||[],allSubs,excludeEmails);
     if(avg!==null){weightedSum+=avg*(cf.weight/100);hasData=true;}
   });
@@ -78,7 +72,9 @@ function Board({title,icon,color,people,allForms,allSubs={},configForms=[],rrCon
             </div>
             <Av name={person.name} size={36}/>
             <div style={{flex:1,minWidth:0}}>
-              <p style={{color:"white",fontSize:13,fontWeight:700,margin:0}}>{person.name}</p>
+              <p style={{color:"white",fontSize:13,fontWeight:700,margin:0}}>{person.name}
+                {person.isFlagged&&<span style={{marginLeft:6,fontSize:9,color:"#F59E0B",background:"rgba(245,158,11,0.1)",padding:"1px 5px",borderRadius:999}}>⚠️ RR</span>}
+              </p>
               <p style={{color:"#6b7280",fontSize:11,margin:"4px 0 0"}}>{(person.designations||[]).filter(d=>d!=="Team Member").join(", ")}</p>
             </div>
             <div style={{minWidth:160}}><ScoreBar score={person.score}/></div>
@@ -119,6 +115,7 @@ export default function Leaderboard(){
   const [forms,setForms]=useState([]);
   const [allSubs,setAllSubs]=useState({});
   const [people,setPeople]=useState([]);
+  const [connections,setConnections]=useState([]);
   const [config,setConfig]=useState({teamMembers:{forms:[]},teamLeaders:{forms:[]}});
   const [loading,setLoading]=useState(true);
   const [configLoaded,setConfigLoaded]=useState(false);
@@ -126,9 +123,10 @@ export default function Leaderboard(){
   const [flaggedData,setFlaggedData]=useState([]);
 
   useEffect(()=>{
-    Promise.all([getForms(),getPeople()]).then(async([fl,p])=>{
+    Promise.all([getForms(),getPeople(),getConnections()]).then(async([fl,p,conns])=>{
       setForms(fl);
       setPeople(p);
+      setConnections(conns||[]);
       const subsMap={};
       await Promise.all(fl.map(async f=>{
         try{ subsMap[f.id]=await getSubmissions(f.id); }catch{ subsMap[f.id]=[]; }
@@ -144,16 +142,25 @@ export default function Leaderboard(){
   const tlRrConfig=rrData.find(r=>r.personName==="__TL_CONFIG__")||null;
   const tmRrConfig=rrData.find(r=>r.personName==="__TM_CONFIG__")||null;
 
+  // Detect lone TMs using Connections — TM assigned to only 1 TL
+  function isLoneTM(personName){
+    // Count how many TLs have this person in their connections
+    let tlCount=0;
+    connections.forEach(conn=>{
+      const conns=conn.connections||[];
+      conns.forEach(c=>{
+        if(c.reviewees&&c.reviewees.some(r=>r.name===personName||r===personName)) tlCount++;
+      });
+    });
+    return tlCount<=1;
+  }
+
   const allScored=people.map(p=>{
     const isTM=(p.designations||[]).includes("Team Member");
     const configForms=isTM?config.teamMembers.forms:config.teamLeaders.forms;
-
-    // Check if person is flagged
     const isFlagged=flaggedData.some(f=>f.personName===p.name);
-
-    // Get appropriate RR config
+    // Only apply RR config if person is flagged
     const rrConfig=isFlagged?(isTM?tmRrConfig:tlRrConfig):null;
-
     const score=calcScore(p.name,configForms,forms,allSubs,rrConfig,flaggedData);
     return{...p,score,isTM,configForms,isFlagged};
   }).sort((a,b)=>{
@@ -231,7 +238,7 @@ export default function Leaderboard(){
                   <Av name={person.name} size={44}/>
                   <div style={{flex:1,minWidth:0}}>
                     <p style={{color:"white",fontSize:14,fontWeight:700,margin:0}}>{person.name}
-                      {person.isFlagged&&<span style={{marginLeft:6,fontSize:10,color:"#ef4444",background:"rgba(239,68,68,0.1)",padding:"1px 6px",borderRadius:999}}>⚠️ ReReview</span>}
+                      {person.isFlagged&&<span style={{marginLeft:6,fontSize:10,color:"#F59E0B",background:"rgba(245,158,11,0.1)",padding:"1px 6px",borderRadius:999}}>⚠️ ReReview</span>}
                     </p>
                     <div style={{display:"flex",gap:4,marginTop:4,flexWrap:"wrap",alignItems:"center"}}>
                       <span style={{fontSize:10,color:person.isTM?"#10B981":"#F59E0B",background:person.isTM?"rgba(16,185,129,0.12)":"rgba(245,158,11,0.12)",padding:"2px 8px",borderRadius:999,fontWeight:600}}>
