@@ -57,7 +57,7 @@ function StepEmail({form,onNext}){
 
 function StepReviewList({form,conn,reviewerEmail,onStart,onBack,allSubs=[]}){
   const t=getTheme(form);
-  const reviewed=allSubs.filter(s=>s.reviewerEmail===reviewerEmail).map(s=>s.personName);
+  const reviewed=allSubs.filter(s=>s.reviewerEmail?.toLowerCase()===reviewerEmail?.toLowerCase()).map(s=>s.personName);
   const pending=conn.revieweeNames.filter(n=>!reviewed.includes(n));
   const allDone=pending.length===0;
   return(
