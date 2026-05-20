@@ -177,7 +177,26 @@ function StepForm({form,reviewerEmail,personName,isMulti,onDone,onBack,allSubs=[
   async function submit(){
     const errs={};let hasErr=false;
     (form.fields||[]).forEach(f=>{if(f.required&&!vals[f.id]){errs[f.id]=true;hasErr=true;}});
-    if(hasErr){setErrors(errs);return;}
+    if(hasErr){
+      setErrors(errs);
+      const firstId=Object.keys(errs)[0];
+      setTimeout(()=>{
+        const el=document.getElementById("q_"+firstId);
+        if(el) el.scrollIntoView({behavior:"smooth",block:"center"});
+      },100);
+      return;
+    }
+    if(hasErr){
+      setErrors(errs);
+      // Scroll to first error
+      const firstErrId=Object.keys(errs)[0];
+      setTimeout(()=>{
+        const el=document.getElementById("q_"+firstErrId);
+        if(el) el.scrollIntoView({behavior:"smooth",block:"center"});
+      },100);
+      return;
+    }
+    // handled above
     setLoading(true);
     try{
       // Save to Sheets only
@@ -240,8 +259,8 @@ try{ const freshS=await getSubmissions(form.id); onSubsUpdate&&onSubsUpdate(fres
         <div style={{display:"flex",flexDirection:"column",gap:12}}>
           {(form.fields||[]).map(field=>{
             if(field.type==="rating"){qi++;const n=qi;return(
-              <QuestionCard key={field.id} number={n} question={field.label} answered={!!vals[field.id]}>
-                <RatingScale value={vals[field.id]||null} onChange={v=>change(field.id,v)} error={!!errors[field.id]} accentColor={t.primary}/>
+              <div id={"q_"+field.id} key={field.id}><QuestionCard number={n} question={field.label} answered={!!vals[field.id]} error={!!errors[field.id]}>
+                <RatingScale value={vals[field.id]||null} onChange={v=>change(field.id,v)} error={!!errors[field.id]} accentColor={t.primary}/></QuestionCard></div>
               </QuestionCard>
             );}
             if(field.type==="textarea")return(
