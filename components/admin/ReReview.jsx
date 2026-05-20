@@ -144,9 +144,9 @@ export default function ReReview(){
   async function saveTMConfig(personName){
     setTmSaving(true); setTmSavingFor(personName);
     const flaggedForm=config.teamMembers.forms.find(cf=>cf.formId===tmConfig.flaggedFormId);
-    await saveReReview({personName,type:"TM",flaggedFormId:tmConfig.flaggedFormId,flaggedFormName:flaggedForm?.name||"",replace1Id:tmConfig.r1Id,replace1Name:config.teamMembers.forms.find(cf=>cf.formId===tmConfig.r1Id)?.name||"",replace1Pct:tmConfig.r1Pct,replace2Id:tmConfig.r2Id,replace2Name:config.teamMembers.forms.find(cf=>cf.formId===tmConfig.r2Id)?.name||"",replace2Pct:tmConfig.r2Pct});
-
-    setRrData(prev=>[...prev.filter(r=>!(r.personName===personName&&r.type==="TM")),{personName,type:"TM",flaggedFormId:tmConfig.flaggedFormId,replace1Id:tmConfig.r1Id,replace1Pct:tmConfig.r1Pct,replace2Id:tmConfig.r2Id,replace2Pct:tmConfig.r2Pct}]);
+    // Save to Flagged sheet ONLY
+    await saveFlagged({personName,type:"TM",formId:tmConfig.flaggedFormId,formName:flaggedForm?.name||"",reviewerEmail:""});
+    setFlaggedData(prev=>[...prev.filter(f=>!(f.personName===personName&&f.type==="TM")),{personName,type:"TM",formId:tmConfig.flaggedFormId,formName:flaggedForm?.name||"",reviewerEmail:""}]);
     setTmSaving(false); setTmSavingFor(null); setTmSaved(true);
     setTimeout(()=>setTmSaved(false),2000);
   }
