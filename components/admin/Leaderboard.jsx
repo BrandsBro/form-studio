@@ -132,10 +132,17 @@ export default function Leaderboard(){
         try{ subsMap[f.id]=await getSubmissions(f.id); }catch{ subsMap[f.id]=[]; }
       }));
       setAllSubs(subsMap);
+      // Load all config data before showing leaderboard
+      const [cfg,rr,fl2]=await Promise.all([
+        getMarkingConfig().catch(()=>null),
+        getReReview().catch(()=>[]),
+        getFlagged().catch(()=>[])
+      ]);
+      if(cfg) setConfig(cfg);
+      setRrData(rr||[]);
+      setFlaggedData(fl2||[]);
+      setConfigLoaded(true);
       setLoading(false);
-      getMarkingConfig().then(cfg=>{ if(cfg) setConfig(cfg); setConfigLoaded(true); }).catch(()=>setConfigLoaded(true));
-      getReReview().then(rr=>setRrData(rr||[])).catch(()=>{});
-      getFlagged().then(fl2=>setFlaggedData(fl2||[])).catch(()=>{});
     }).catch(()=>{ setLoading(false); setConfigLoaded(true); });
   },[]);
 
