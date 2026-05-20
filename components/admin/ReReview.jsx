@@ -132,11 +132,12 @@ export default function ReReview(){
         setRrData(rr||[]);
         // Restore TL config
         const tlSaved=rr?.find(r=>r.personName==="__TL_CONFIG__");
-        if(tlSaved) setTlConfig({
+        if(tlSaved){ if(tlSaved.threshold) setThreshold(Number(tlSaved.threshold));
+        setTlConfig({
           flaggedFormId:tlSaved.flaggedFormId,
           r1Id:tlSaved.replace1Id, r1Pct:Number(tlSaved.replace1Pct),
           r2Id:tlSaved.replace2Id, r2Pct:Number(tlSaved.replace2Pct)
-        });
+        });}
         // Restore TM config
         const tmSaved=rr?.find(r=>r.personName==="__TM_CONFIG__");
         if(tmSaved) setTmConfig({
