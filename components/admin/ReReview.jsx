@@ -160,6 +160,7 @@ export default function ReReview(){
     const flaggedForm=config.teamLeaders.forms.find(cf=>cf.formId===tlConfig.flaggedFormId);
     await saveReReview({
       personName:"__TL_CONFIG__", type:"TL",
+      threshold:threshold,
       flaggedFormId:tlConfig.flaggedFormId,
       flaggedFormName:flaggedForm?.name||"",
       replace1Id:tlConfig.r1Id,
