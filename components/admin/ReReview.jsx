@@ -131,14 +131,15 @@ export default function ReReview(){
   if(selectedFormId){
     const cf=tlConfig.find(f=>f.formId===selectedFormId);
     const form=forms.find(f=>f.id===selectedFormId);
-    if(cf&&form){
+    const formWeight=cf?.weight||0;
+    if(form){
       const subs=allSubs[selectedFormId]||[];
       [...new Set(subs.map(s=>s.personName))].forEach(personName=>{
         subs.filter(s=>s.personName===personName).forEach(sub=>{
           const score=getReviewerScore(sub.reviewerEmail,personName,selectedFormId,form.fields||[],allSubs);
           if(score===null) return;
           const pct=(score/5)*100;
-          if(pct<=threshold) tlFlags.push({personName,formId:selectedFormId,formName:form.name,formWeight:cf.weight,reviewerEmail:sub.reviewerEmail,score,pct:pct.toFixed(1)});
+          if(pct<=threshold) tlFlags.push({personName,formId:selectedFormId,formName:form.name,formWeight:formWeight,reviewerEmail:sub.reviewerEmail,score,pct:pct.toFixed(1)});
         });
       });
     }
@@ -218,7 +219,7 @@ export default function ReReview(){
           <select value={selectedFormId} onChange={e=>setSelectedFormId(e.target.value)}
             style={{flex:1,background:"#0D1117",border:"1px solid #21262D",borderRadius:8,padding:"8px 12px",color:selectedFormId?"white":"#6b7280",fontSize:13,outline:"none"}}>
             <option value="">-- Pick a form --</option>
-            {tlConfig.map(cf=><option key={cf.formId} value={cf.formId} style={{background:"#161B22"}}>{cf.name} ({cf.weight}% weight)</option>)}
+            {forms.map(f=>{const cfg=tlConfig.find(cf=>cf.formId===f.id);return(<option key={f.id} value={f.id} style={{background:"#161B22"}}>{f.name}{cfg?" ("+cfg.weight+"% weight)":""}</option>);})}
           </select>
         </div>
 
