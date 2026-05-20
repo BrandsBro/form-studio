@@ -18,12 +18,13 @@ function getPersonFormAvg(personName,formId,formFields,allSubs={}){
 }
 
 function calcScore(personName,configForms,allForms,allSubs){
-  let weightedSum=0,totalWeight=0,hasData=false;
+  let weightedSum=0,hasData=false;
   configForms.forEach(cf=>{
     const form=allForms.find(f=>f.id===cf.formId);
     if(!form)return;
     const avg=getPersonFormAvg(personName,cf.formId,form.fields||[],allSubs);
-    if(avg!==null){weightedSum+=avg*(cf.weight/100);totalWeight+=cf.weight;hasData=true;}
+    // avg * weight/100 — weights should sum to 100
+    if(avg!==null){weightedSum+=avg*(cf.weight/100);hasData=true;}
   });
   if(!hasData)return null;
   return totalWeight>0?(weightedSum/(totalWeight/100))*100/100:null;
