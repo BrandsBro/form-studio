@@ -54,7 +54,7 @@ function StepEmail({form,onNext}){
           <button onClick={handleNext}
             style={{width:"100%",padding:"13px 0",borderRadius:10,border:"none",background:"linear-gradient(135deg,"+t.primary+"cc,"+t.primary+")",color:"#000",fontSize:14,fontWeight:700,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:8}}>
             Continue <ChevronRight size={18}/>
-          </button>
+          </div>
         </div>
       </div>
     </div>
@@ -80,7 +80,7 @@ function StepReviewList({form,conn,reviewerEmail,onStart,onBack,allSubs=[]}){
         </div>
         <h2 style={{color:"white",fontSize:20,fontWeight:700,margin:"0 0 6px",fontFamily:"var(--font-playfair)"}}>Your Reviews</h2>
         <p style={{color:"#6b7280",fontSize:14,margin:"0 0 20px"}}>
-          {allDone?"All reviews completed! You can edit any previous review below.":reviewed.length===0?"You have "+conn.revieweeNames.length+" people to review.":"Progress: "+reviewed.length+" of "+conn.revieweeNames.length+" completed."}
+          {allDone?"All reviews completed!"::reviewed.length===0?"You have "+conn.revieweeNames.length+" people to review.":"Progress: "+reviewed.length+" of "+conn.revieweeNames.length+" completed."}
         </p>
 
         {/* Progress */}
@@ -114,11 +114,11 @@ function StepReviewList({form,conn,reviewerEmail,onStart,onBack,allSubs=[]}){
                 <div style={{flex:1}}>
                   <p style={{color:"white",fontSize:15,fontWeight:600,margin:0}}>{name}</p>
                   <p style={{color:isDone?"#22c55e":isNext?c:"#4b5563",fontSize:12,margin:"3px 0 0",fontWeight:isNext?600:400}}>
-                    {isDone?"✓ Reviewed — click to edit":isNext?"Start →":"Pending"}
+                    {isDone?"✓ Reviewed":isNext?"Start →":"Pending"}
                   </p>
                 </div>
                 <div style={{flexShrink:0}}>
-                  {isDone&&<span style={{fontSize:11,color:"#22c55e",background:"rgba(34,197,94,0.1)",padding:"4px 12px",borderRadius:999,fontWeight:600}}>Edit</span>}
+                  
                   {isNext&&<span style={{fontSize:11,color:c,background:c+"18",padding:"4px 12px",borderRadius:999,fontWeight:600}}>Next →</span>}
                   {!isDone&&!isNext&&<span style={{fontSize:11,color:"#4b5563",background:"#21262D",padding:"4px 12px",borderRadius:999}}>Pending</span>}
                 </div>
@@ -342,18 +342,18 @@ function StepSuccess({form,conn,reviewerEmail,onEdit,allSubs=[],formId}){
         </p>
         <div style={{display:"flex",flexDirection:"column",gap:8,marginBottom:24}}>
           {conn.revieweeNames.map(name=>(
-            <button key={name} onClick={()=>onEdit(name)}
+            <div key={name}
               style={{display:"flex",alignItems:"center",gap:10,background:"#161B22",border:"1px solid #21262D",borderRadius:10,padding:"10px 14px",cursor:"pointer",textAlign:"left",transition:"all 0.2s",width:"100%"}}
               onMouseOver={e=>e.currentTarget.style.borderColor="#F59E0B44"}
               onMouseOut={e=>e.currentTarget.style.borderColor="#21262D"}>
               <span style={{color:"#22c55e",fontSize:16}}>✓</span>
               <Av name={name} size={28}/>
               <p style={{color:"white",fontSize:13,margin:0,flex:1}}>{name}</p>
-              <span style={{fontSize:11,color:"#6b7280",background:"#21262D",padding:"3px 10px",borderRadius:999}}>Edit</span>
+              <span style={{fontSize:11,color:"#22c55e",background:"rgba(34,197,94,0.1)",padding:"3px 10px",borderRadius:999}}>✓ Done</span>
             </button>
           ))}
         </div>
-        <p style={{color:"#4b5563",fontSize:12}}>Click any name above to edit your review.</p>
+        
 {allFormsCompleted ? (
   <div style={{marginTop:20,background:"rgba(34,197,94,0.1)",border:"1px solid rgba(34,197,94,0.3)",borderRadius:14,padding:"20px 24px",textAlign:"center"}}>
     <div style={{fontSize:36,marginBottom:8}}>🎉</div>
