@@ -128,7 +128,23 @@ export default function ReReview(){
       setForms(fl);
       getPeople().then(setPeople);
       getMarkingConfig().then(cfg=>{ if(cfg) setConfig(cfg); }).catch(()=>{});
-      getReReview().then(rr=>setRrData(rr||[])).catch(()=>{});
+      getReReview().then(rr=>{
+        setRrData(rr||[]);
+        // Restore TL config
+        const tlSaved=rr?.find(r=>r.personName==="__TL_CONFIG__");
+        if(tlSaved) setTlConfig({
+          flaggedFormId:tlSaved.flaggedFormId,
+          r1Id:tlSaved.replace1Id, r1Pct:Number(tlSaved.replace1Pct),
+          r2Id:tlSaved.replace2Id, r2Pct:Number(tlSaved.replace2Pct)
+        });
+        // Restore TM config
+        const tmSaved=rr?.find(r=>r.personName==="__TM_CONFIG__");
+        if(tmSaved) setTmConfig({
+          flaggedFormId:tmSaved.flaggedFormId,
+          r1Id:tmSaved.replace1Id, r1Pct:Number(tmSaved.replace1Pct),
+          r2Id:tmSaved.replace2Id, r2Pct:Number(tmSaved.replace2Pct)
+        });
+      }).catch(()=>{});
       const subsMap={};
       await Promise.all(fl.map(async f=>{
         try{ subsMap[f.id]=await getSubmissions(f.id); }catch{ subsMap[f.id]=[]; }
