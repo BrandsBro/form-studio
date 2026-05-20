@@ -145,9 +145,7 @@ export default function ReReview(){
     setTmSaving(true); setTmSavingFor(personName);
     const flaggedForm=config.teamMembers.forms.find(cf=>cf.formId===tmConfig.flaggedFormId);
     await saveReReview({personName,type:"TM",flaggedFormId:tmConfig.flaggedFormId,flaggedFormName:flaggedForm?.name||"",replace1Id:tmConfig.r1Id,replace1Name:config.teamMembers.forms.find(cf=>cf.formId===tmConfig.r1Id)?.name||"",replace1Pct:tmConfig.r1Pct,replace2Id:tmConfig.r2Id,replace2Name:config.teamMembers.forms.find(cf=>cf.formId===tmConfig.r2Id)?.name||"",replace2Pct:tmConfig.r2Pct});
-    // Also save to Flagged sheet
-    await saveFlagged({personName,type:"TM",formId:tmConfig.flaggedFormId,formName:flaggedForm?.name||"",reviewerEmail:""});
-    setFlaggedData(prev=>[...prev.filter(f=>!(f.personName===personName&&f.type==="TM")),{personName,type:"TM",formId:tmConfig.flaggedFormId,formName:flaggedForm?.name||"",reviewerEmail:""}]);
+
     setRrData(prev=>[...prev.filter(r=>!(r.personName===personName&&r.type==="TM")),{personName,type:"TM",flaggedFormId:tmConfig.flaggedFormId,replace1Id:tmConfig.r1Id,replace1Pct:tmConfig.r1Pct,replace2Id:tmConfig.r2Id,replace2Pct:tmConfig.r2Pct}]);
     setTmSaving(false); setTmSavingFor(null); setTmSaved(true);
     setTimeout(()=>setTmSaved(false),2000);
