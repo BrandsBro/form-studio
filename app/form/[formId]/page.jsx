@@ -259,9 +259,9 @@ try{ const freshS=await getSubmissions(form.id); onSubsUpdate&&onSubsUpdate(fres
         <div style={{display:"flex",flexDirection:"column",gap:12}}>
           {(form.fields||[]).map(field=>{
             if(field.type==="rating"){qi++;const n=qi;return(
-              <div id={"q_"+field.id} key={field.id}><QuestionCard number={n} question={field.label} answered={!!vals[field.id]} error={!!errors[field.id]}>
-                <RatingScale value={vals[field.id]||null} onChange={v=>change(field.id,v)} error={!!errors[field.id]} accentColor={t.primary}/></QuestionCard></div>
-              </QuestionCard>
+<div id={"q_"+field.id} key={field.id}><QuestionCard number={n} question={field.label} answered={!!vals[field.id]} error={!!errors[field.id]}>
+<RatingScale value={vals[field.id]||null} onChange={v=>change(field.id,v)} error={!!errors[field.id]} accentColor={t.primary}/>
+</QuestionCard></div>
             );}
             if(field.type==="textarea")return(
               <div key={field.id} style={{borderRadius:12,padding:20,background:"#161B22",border:"1px solid #21262D"}}>
