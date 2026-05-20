@@ -86,9 +86,23 @@ function StepReviewList({form,conn,reviewerEmail,onStart,onBack,allSubs=[]}){
           </div>
         )}
         <div style={{display:"flex",flexDirection:"column",gap:10,marginBottom:24}}>
-          {conn.revieweeNames.filter(n=>!reviewed.includes(n)).map((name,i)=>{
-            const isNext=pending[0]===name;
+          {conn.revieweeNames.map((name,i)=>{
+            const isDone=reviewed.includes(name);
+            const isNext=!isDone&&pending[0]===name;
             const c=gc(name);
+            if(isDone) return(
+              <div key={name} style={{display:"flex",alignItems:"center",gap:14,padding:"14px 16px",borderRadius:12,border:"1px solid #22c55e33",background:"rgba(34,197,94,0.05)",textAlign:"left",width:"100%"}}>
+                <div style={{width:36,height:36,borderRadius:"50%",background:"rgba(34,197,94,0.15)",border:"2px solid #22c55e",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+                  <Check size={16} color="#22c55e"/>
+                </div>
+                <Av name={name} size={40}/>
+                <div style={{flex:1}}>
+                  <p style={{color:"white",fontSize:15,fontWeight:600,margin:0}}>{name}</p>
+                  <p style={{color:"#22c55e",fontSize:12,margin:"3px 0 0",fontWeight:600}}>✓ Reviewed</p>
+                </div>
+                <span style={{fontSize:11,color:"#22c55e",background:"rgba(34,197,94,0.1)",padding:"4px 12px",borderRadius:999,fontWeight:600}}>Done</span>
+              </div>
+            );
             return(
               <button key={name} onClick={()=>onStart(name)}
                 style={{display:"flex",alignItems:"center",gap:14,padding:"14px 16px",borderRadius:12,border:"1px solid "+(isNext?c+"55":"#21262D"),background:isNext?c+"08":"#161B22",cursor:"pointer",textAlign:"left",width:"100%"}}
