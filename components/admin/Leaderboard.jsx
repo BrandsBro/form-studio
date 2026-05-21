@@ -78,6 +78,16 @@ export default function Leaderboard(){
           catch{ subsMap[f.id]=[]; }
         }));
         setAllSubs(subsMap);
+        // DEBUG
+        console.log("=== LEADERBOARD DEBUG ===");
+        console.log("forms:", (fl||[]).length);
+        console.log("people:", (p||[]).length);
+        console.log("markingGroups:", (mg||[]).length);
+        console.log("groups in config:", (cfg?.groups||[]).length);
+        console.log("subsMap keys:", Object.keys(subsMap).length);
+        console.log("sample sub:", Object.values(subsMap)[0]?.[0]);
+        console.log("sample mg:", (mg||[])[0]);
+        console.log("sample group:", (cfg?.groups||[])[0]);
       }catch(e){
         console.error("Leaderboard load error:",e);
       }
