@@ -1,6 +1,6 @@
 "use client";
 import { getForms, getSubmissions } from "@/lib/sheets";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { ChevronRight, CheckCircle, Clock } from "lucide-react";
 
 function getColor(form){const T={amber:"#F59E0B",blue:"#3B82F6",green:"#10B981",rose:"#F43F5E",violet:"#8B5CF6",cyan:"#06B6D4"};return form?.customColor||T[form?.theme]||"#F59E0B";}
@@ -10,8 +10,15 @@ export default function Home(){
   const [email,setEmail]=useState("");
   const [err,setErr]=useState("");
   const [myForms,setMyForms]=useState(null);
-  const [finding,setFinding]=useState(false);
+  const [finding,setFinding]=useState(()=>{
+    if(typeof window!=="undefined"){
+      const params=new URLSearchParams(window.location.search);
+      return !!params.get("email");
+    }
+    return false;
+  });
   const [formProgress,setFormProgress]=useState({});
+  const loadedRef=useRef(false);
 
   async function handleFindWithEmail(e){
     setFinding(true);setErr("");setMyForms(null);
@@ -36,6 +43,8 @@ export default function Home(){
   }
 
   useEffect(()=>{
+    if(loadedRef.current) return;
+    loadedRef.current=true;
     const params=new URLSearchParams(window.location.search);
     const e=params.get("email");
     if(e){
