@@ -1,7 +1,7 @@
 "use client";
 import { getForms, getPeople, getSubmissions, getMarkingConfig, getReReview, saveReReview, deleteReReview, getFlagged, saveFlagged, deleteFlagged, getMarkingGroups } from "@/lib/sheets";
 import { useState, useEffect } from "react";
-import { Settings, Save, Trash2, RotateCcw } from "lucide-react";
+import { Settings, Save, Trash2, RotateCcw, X } from "lucide-react";
 
 function gi(n=""){return n.split(" ").map(x=>x[0]).join("").toUpperCase().slice(0,2)||"?";}
 function gc(n=""){const c=["#F59E0B","#3B82F6","#10B981","#F43F5E","#8B5CF6","#06B6D4","#F97316"];return c[(n.charCodeAt(0)||0)%c.length];}
@@ -17,28 +17,44 @@ function getReviewerScore(reviewerEmail,personName,formId,formFields,allSubs){
   return rFields.map(f=>sub.values?.[f.id]||0).reduce((a,b)=>a+b,0)/rFields.length;
 }
 
-// Per-person config panel — shows group forms as replacement options
+// Per-person config panel — dynamic replacement forms
 function PersonConfigPanel({personName,groupForms,allForms,existingRR,onSave,onDelete}){
   const [flaggedFormId,setFlaggedFormId]=useState(existingRR?.flaggedFormId||"");
-  const [r1Id,setR1Id]=useState(existingRR?.replace1Id||"");
-  const [r1Pct,setR1Pct]=useState(Number(existingRR?.replace1Pct)||0);
-  const [r2Id,setR2Id]=useState(existingRR?.replace2Id||"");
-  const [r2Pct,setR2Pct]=useState(Number(existingRR?.replace2Pct)||0);
+  const [replacements,setReplacements]=useState(
+    existingRR?.replace1Id?[
+      {formId:existingRR.replace1Id,pct:Number(existingRR.replace1Pct)},
+      {formId:existingRR.replace2Id,pct:Number(existingRR.replace2Pct)},
+    ].filter(r=>r.formId):
+    [{formId:"",pct:0}]
+  );
   const [saving,setSaving]=useState(false);
 
   const flaggedWeight=groupForms.find(f=>f.formId===flaggedFormId)?.weight||0;
-  const total=r1Pct+r2Pct;
-  const valid=flaggedFormId&&r1Id&&r2Id&&r1Id!==r2Id&&total===flaggedWeight;
-  const replaceOptions=groupForms.filter(f=>f.formId!==flaggedFormId);
+  const totalPct=replacements.reduce((a,r)=>a+r.pct,0);
+  const usedIds=new Set(replacements.map(r=>r.formId).filter(Boolean));
+  const valid=flaggedFormId&&replacements.every(r=>r.formId)&&totalPct===flaggedWeight;
+
+  function updateR(i,key,val){ setReplacements(prev=>prev.map((r,idx)=>idx===i?{...r,[key]:val}:r)); }
+  function addR(){ setReplacements(prev=>[...prev,{formId:"",pct:0}]); }
+  function removeR(i){ setReplacements(prev=>prev.filter((_,idx)=>idx!==i)); }
 
   async function doSave(){
     setSaving(true);
     const ff=allForms.find(f=>f.id===flaggedFormId);
-    const rf1=allForms.find(f=>f.id===r1Id);
-    const rf2=allForms.find(f=>f.id===r2Id);
-    await onSave({flaggedFormId,flaggedFormName:ff?.name||"",replace1Id:r1Id,replace1Name:rf1?.name||"",replace1Pct:r1Pct,replace2Id:r2Id,replace2Name:rf2?.name||"",replace2Pct:r2Pct});
+    const data={
+      flaggedFormId,flaggedFormName:ff?.name||"",
+      replace1Id:replacements[0]?.formId||"",
+      replace1Name:allForms.find(f=>f.id===replacements[0]?.formId)?.name||"",
+      replace1Pct:replacements[0]?.pct||0,
+      replace2Id:replacements[1]?.formId||"",
+      replace2Name:allForms.find(f=>f.id===replacements[1]?.formId)?.name||"",
+      replace2Pct:replacements[1]?.pct||0,
+    };
+    await onSave(data);
     setSaving(false);
   }
+
+  const replaceOptions=groupForms.filter(f=>f.formId!==flaggedFormId);
 
   return(
     <div style={{background:"#0D1117",border:"1px solid #21262D",borderRadius:10,padding:14,display:"flex",flexDirection:"column",gap:10,marginTop:8}}>
@@ -51,37 +67,39 @@ function PersonConfigPanel({personName,groupForms,allForms,existingRR,onSave,onD
           {groupForms.map(f=><option key={f.formId} value={f.formId} style={{background:"#161B22"}}>{f.name} ({f.weight}%)</option>)}
         </select>
       </div>
-      {/* Replace 1 */}
-      <div style={{display:"flex",alignItems:"center",gap:10}}>
-        <span style={{color:"#22c55e",fontSize:12,fontWeight:600,minWidth:90,flexShrink:0}}>Replace 1:</span>
-        <select value={r1Id} onChange={e=>setR1Id(e.target.value)}
-          style={{flex:1,background:"#161B22",border:"1px solid #21262D",borderRadius:7,padding:"7px 10px",color:r1Id?"white":"#6b7280",fontSize:12,outline:"none"}}>
-          <option value="">Select form</option>
-          {replaceOptions.filter(f=>f.formId!==r2Id).map(f=><option key={f.formId} value={f.formId} style={{background:"#161B22"}}>{f.name} ({f.weight}%)</option>)}
-        </select>
-        <input type="number" value={r1Pct} min="0" max="100"
-          onChange={e=>setR1Pct(Math.min(100,Math.max(0,parseInt(e.target.value)||0)))}
-          style={{width:52,background:"#161B22",border:"1px solid #21262D",borderRadius:6,padding:"7px",color:"white",fontSize:12,outline:"none",textAlign:"center"}}/>
-        <span style={{color:"#6b7280",fontSize:12}}>%</span>
-      </div>
-      {/* Replace 2 */}
-      <div style={{display:"flex",alignItems:"center",gap:10}}>
-        <span style={{color:"#22c55e",fontSize:12,fontWeight:600,minWidth:90,flexShrink:0}}>Replace 2:</span>
-        <select value={r2Id} onChange={e=>setR2Id(e.target.value)}
-          style={{flex:1,background:"#161B22",border:"1px solid #21262D",borderRadius:7,padding:"7px 10px",color:r2Id?"white":"#6b7280",fontSize:12,outline:"none"}}>
-          <option value="">Select form</option>
-          {replaceOptions.filter(f=>f.formId!==r1Id).map(f=><option key={f.formId} value={f.formId} style={{background:"#161B22"}}>{f.name} ({f.weight}%)</option>)}
-        </select>
-        <input type="number" value={r2Pct} min="0" max="100"
-          onChange={e=>setR2Pct(Math.min(100,Math.max(0,parseInt(e.target.value)||0)))}
-          style={{width:52,background:"#161B22",border:"1px solid #21262D",borderRadius:6,padding:"7px",color:"white",fontSize:12,outline:"none",textAlign:"center"}}/>
-        <span style={{color:"#6b7280",fontSize:12}}>%</span>
-      </div>
-      {/* Validation + Save */}
+      {/* Dynamic replacements */}
+      {replacements.map((r,i)=>(
+        <div key={i} style={{display:"flex",alignItems:"center",gap:10}}>
+          <span style={{color:"#22c55e",fontSize:12,fontWeight:600,minWidth:90,flexShrink:0}}>Replace {i+1}:</span>
+          <select value={r.formId} onChange={e=>updateR(i,"formId",e.target.value)}
+            style={{flex:1,background:"#161B22",border:"1px solid #21262D",borderRadius:7,padding:"7px 10px",color:r.formId?"white":"#6b7280",fontSize:12,outline:"none"}}>
+            <option value="">Select form</option>
+            {replaceOptions.filter(f=>!usedIds.has(f.formId)||f.formId===r.formId).map(f=><option key={f.formId} value={f.formId} style={{background:"#161B22"}}>{f.name} ({f.weight}%)</option>)}
+          </select>
+          <input type="number" value={r.pct} min="0" max="100"
+            onChange={e=>updateR(i,"pct",Math.min(100,Math.max(0,parseInt(e.target.value)||0)))}
+            style={{width:52,background:"#161B22",border:"1px solid #21262D",borderRadius:6,padding:"7px",color:"white",fontSize:12,outline:"none",textAlign:"center"}}/>
+          <span style={{color:"#6b7280",fontSize:12}}>%</span>
+          {replacements.length>1&&<button onClick={()=>removeR(i)}
+            style={{background:"none",border:"none",cursor:"pointer",color:"#374151",padding:2,display:"flex"}}
+            onMouseOver={e=>e.currentTarget.style.color="#ef4444"} onMouseOut={e=>e.currentTarget.style.color="#374151"}>
+            <X size={12}/>
+          </button>}
+        </div>
+      ))}
+      {/* Add replacement */}
+      {replaceOptions.length>replacements.length&&(
+        <button onClick={addR}
+          style={{padding:"6px 0",borderRadius:7,border:"1px dashed #30363D",background:"transparent",color:"#6b7280",fontSize:11,cursor:"pointer"}}
+          onMouseOver={e=>e.currentTarget.style.color="#F59E0B"} onMouseOut={e=>e.currentTarget.style.color="#6b7280"}>
+          + Add Replacement Form
+        </button>
+      )}
+      {/* Validation */}
       <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:8,flexWrap:"wrap"}}>
-        {flaggedFormId&&r1Id&&r2Id&&(
-          <span style={{fontSize:12,color:valid?"#22c55e":total>flaggedWeight?"#ef4444":"#F59E0B"}}>
-            {valid?`✓ ${total}% = ${flaggedWeight}%`:total>flaggedWeight?`${total}% over`:`${total}% / ${flaggedWeight}% needed`}
+        {flaggedFormId&&(
+          <span style={{fontSize:12,color:valid?"#22c55e":totalPct>flaggedWeight?"#ef4444":"#F59E0B"}}>
+            {valid?`✓ ${totalPct}% = ${flaggedWeight}%`:totalPct>flaggedWeight?`${totalPct}% over`:`${totalPct}% / ${flaggedWeight}% needed`}
           </span>
         )}
         <div style={{display:"flex",gap:8,marginLeft:"auto"}}>
