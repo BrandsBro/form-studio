@@ -1,5 +1,5 @@
 "use client";
-import { getForms, getPeople, getSubmissions, getMarkingConfig, getMarkingGroups } from "@/lib/sheets";
+import { getForms, getPeople, getSubmissions, getMarkingConfig, getMarkingGroups, getReReview, getFlagged } from "@/lib/sheets";
 import { useState, useEffect } from "react";
 
 function gi(n=""){return n.split(" ").map(x=>x[0]).join("").toUpperCase().slice(0,2)||"?";}
@@ -19,29 +19,60 @@ function ScoreBar({score}){
   );
 }
 
-// Get average score for a person on a form
-function getFormAvg(personName, formId, formFields, allSubs){
-  const subs=(allSubs[formId]||[]).filter(s=>s.personName===personName);
+function getFormAvg(personName,formId,formFields,allSubs,excludeEmails=[]){
+  const subs=(allSubs[formId]||[]).filter(s=>s.personName===personName&&!excludeEmails.includes(s.reviewerEmail));
   if(!subs.length) return null;
   const rFields=formFields.filter(f=>f.type==="rating");
   if(!rFields.length) return null;
-  const reviewerAvgs=subs.map(s=>
-    rFields.map(f=>s.values?.[f.id]||0).reduce((a,b)=>a+b,0)/rFields.length
-  );
+  const reviewerAvgs=subs.map(s=>rFields.map(f=>s.values?.[f.id]||0).reduce((a,b)=>a+b,0)/rFields.length);
   return reviewerAvgs.reduce((a,b)=>a+b,0)/reviewerAvgs.length;
 }
 
-// Calculate final weighted score for a person
-function calcPersonScore(personName, groupForms, allForms, allSubs){
-  let weightedSum=0, hasData=false;
-  groupForms.forEach(cf=>{
+function calcPersonScore(personName,groupForms,allForms,allSubs,rrConfig,flaggedEntries){
+  // Build adjusted forms based on RR config
+  let adjustedForms=[...groupForms];
+
+  // Get flagged form IDs for this person (invalidated reviewers)
+  const invalidatedByForm={};
+  flaggedEntries.filter(f=>f.personName===personName&&f.reviewerEmail).forEach(f=>{
+    if(!invalidatedByForm[f.formId]) invalidatedByForm[f.formId]=[];
+    invalidatedByForm[f.formId].push(f.reviewerEmail);
+  });
+
+  // Apply RR config if exists
+  if(rrConfig&&rrConfig.replacements?.length>0){
+    // Remove flagged forms
+    const flaggedFormIds=new Set(flaggedEntries.filter(f=>f.personName===personName&&!f.reviewerEmail).map(f=>f.formId));
+    // Also detect from rrConfig
+    if(rrConfig.flaggedFormId) flaggedFormIds.add(rrConfig.flaggedFormId);
+    adjustedForms=adjustedForms.filter(cf=>!flaggedFormIds.has(cf.formId));
+    // Add replacement weights
+    rrConfig.replacements.forEach(r=>{
+      const idx=adjustedForms.findIndex(cf=>cf.formId===r.formId);
+      if(idx>=0) adjustedForms[idx]={...adjustedForms[idx],weight:adjustedForms[idx].weight+r.pct};
+      else{
+        const form=allForms.find(f=>f.id===r.formId);
+        if(form) adjustedForms.push({formId:r.formId,name:form.name,weight:r.pct});
+      }
+    });
+  } else if(rrConfig&&rrConfig.replace1Id){
+    // Old format
+    const flaggedFormIds=new Set([rrConfig.flaggedFormId].filter(Boolean));
+    adjustedForms=adjustedForms.filter(cf=>!flaggedFormIds.has(cf.formId));
+    adjustedForms=adjustedForms.map(cf=>{
+      if(cf.formId===rrConfig.replace1Id) return{...cf,weight:cf.weight+Number(rrConfig.replace1Pct||0)};
+      if(cf.formId===rrConfig.replace2Id) return{...cf,weight:cf.weight+Number(rrConfig.replace2Pct||0)};
+      return cf;
+    });
+  }
+
+  let weightedSum=0,hasData=false;
+  adjustedForms.forEach(cf=>{
     const form=allForms.find(f=>f.id===cf.formId);
-    if(!form){ return; }
-    const avg=getFormAvg(personName, cf.formId, form.fields||[], allSubs);
-    if(avg!==null){
-      weightedSum+=avg*(cf.weight/100);
-      hasData=true;
-    }
+    if(!form) return;
+    const excludeEmails=invalidatedByForm[cf.formId]||[];
+    const avg=getFormAvg(personName,cf.formId,form.fields||[],allSubs,excludeEmails);
+    if(avg!==null){weightedSum+=avg*(cf.weight/100);hasData=true;}
   });
   return hasData?weightedSum:null;
 }
@@ -54,34 +85,26 @@ export default function Leaderboard(){
   const [allSubs,setAllSubs]=useState({});
   const [markingConfig,setMarkingConfig]=useState({groups:[]});
   const [markingGroups,setMarkingGroups]=useState([]);
+  const [rrData,setRrData]=useState([]);
+  const [flaggedData,setFlaggedData]=useState([]);
   const [loading,setLoading]=useState(true);
 
   useEffect(()=>{
     async function load(){
       try{
-        // Step 1: Load all base data
-        const [fl,p,cfg,mg]=await Promise.all([
-          getForms(),
-          getPeople(),
-          getMarkingConfig(),
-          getMarkingGroups(),
+        const [fl,p,cfg,mg,rr,fl2]=await Promise.all([
+          getForms(),getPeople(),getMarkingConfig(),getMarkingGroups(),getReReview(),getFlagged(),
         ]);
         setForms(fl||[]);
         setPeople(p||[]);
         setMarkingConfig(cfg||{groups:[]});
         setMarkingGroups(mg||[]);
-
-        // Step 2: Load submissions for all forms
+        setRrData(rr||[]);
+        setFlaggedData(fl2||[]);
         const subsMap={};
-        await Promise.all((fl||[]).map(async f=>{
-          try{ subsMap[f.id]=await getSubmissions(f.id); }
-          catch{ subsMap[f.id]=[]; }
-        }));
+        await Promise.all((fl||[]).map(async f=>{try{subsMap[f.id]=await getSubmissions(f.id);}catch{subsMap[f.id]=[];}}));
         setAllSubs(subsMap);
-        // DEBUG
-      }catch(e){
-        console.error("Leaderboard load error:",e);
-      }
+      }catch(e){console.error("LB error:",e);}
       setLoading(false);
     }
     load();
@@ -112,46 +135,35 @@ export default function Leaderboard(){
 
   // Build scored people per group
   const groupScores=groups.map(group=>{
-    // Get people in this group from markingGroups sheet
-    const groupMemberNames=markingGroups
-      .filter(mg=>mg.groupId===group.groupId)
-      .map(mg=>mg.personName);
-
+    const groupMemberNames=markingGroups.filter(mg=>mg.groupId===group.groupId).map(mg=>mg.personName);
     const groupPeople=people.filter(p=>groupMemberNames.includes(p.name));
-
-    // Score each person
-    const scored=groupPeople.map(p=>({
-      ...p,
-      score:calcPersonScore(p.name, group.forms||[], forms, allSubs),
-      groupForms:group.forms||[],
-    })).sort((a,b)=>{
+    const scored=groupPeople.map(p=>{
+      const rrConfig=rrData.find(r=>r.personName===p.name)||null;
+      const isFlagged=flaggedData.some(f=>f.personName===p.name);
+      const score=calcPersonScore(p.name,group.forms||[],forms,allSubs,isFlagged?rrConfig:null,flaggedData);
+      return{...p,score,groupForms:group.forms||[],isFlagged,rrConfig};
+    }).sort((a,b)=>{
       if(a.score===null&&b.score===null) return 0;
       if(a.score===null) return 1;
       if(b.score===null) return -1;
       return b.score-a.score;
     });
-
-    return{group, scored};
+    return{group,scored};
   });
 
-  // Overall ranking — all scored people across all groups
-  const allScored=groupScores
-    .flatMap(({scored})=>scored)
+  // Overall ranking
+  const allScored=[...groupScores.flatMap(({group,scored})=>scored.map(p=>({...p,groupName:group.groupName})))]
     .filter(p=>p.score!==null)
     .sort((a,b)=>b.score-a.score);
-
-  const allPending=groupScores
-    .flatMap(({scored})=>scored)
-    .filter(p=>p.score===null);
+  const allPending=groupScores.flatMap(({scored})=>scored).filter(p=>p.score===null);
 
   return(
     <div style={{display:"flex",flexDirection:"column",gap:20}}>
       <style>{"@keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}"}</style>
 
-      {/* Header */}
       <div>
         <h2 style={{color:"white",fontSize:18,fontWeight:700,margin:0,fontFamily:"var(--font-playfair)"}}>🏆 Leaderboard</h2>
-        <p style={{color:"#6b7280",fontSize:13,margin:"3px 0 0"}}>Weighted score per person based on group forms</p>
+        <p style={{color:"#6b7280",fontSize:13,margin:"3px 0 0"}}>Weighted scores · ReReview applied · overall + per group</p>
       </div>
 
       {/* Stats */}
@@ -172,81 +184,120 @@ export default function Leaderboard(){
       {noConfig&&(
         <div style={{textAlign:"center",padding:"48px 0",background:"#161B22",border:"1px solid #21262D",borderRadius:12,color:"#4b5563"}}>
           <p style={{fontSize:32,margin:"0 0 12px"}}>📊</p>
-          <p style={{fontSize:14,margin:0}}>No marking config yet.</p>
-          <p style={{fontSize:12,margin:"6px 0 0"}}>Go to Marking tab to configure groups and weights first.</p>
+          <p style={{fontSize:14,margin:0}}>No marking config yet. Go to Marking tab first.</p>
         </div>
       )}
 
       {!noConfig&&noGroups&&(
         <div style={{textAlign:"center",padding:"48px 0",background:"#161B22",border:"1px solid #21262D",borderRadius:12,color:"#4b5563"}}>
           <p style={{fontSize:32,margin:"0 0 12px"}}>👥</p>
-          <p style={{fontSize:14,margin:0}}>No people assigned to groups yet.</p>
-          <p style={{fontSize:12,margin:"6px 0 0"}}>Go to Groups tab to assign people first.</p>
+          <p style={{fontSize:14,margin:0}}>No people assigned to groups yet. Go to Groups tab first.</p>
         </div>
       )}
 
-      {/* Per group leaderboards */}
+      {/* ── OVERALL RANKING ── */}
+      {!noConfig&&!noGroups&&allScored.length>0&&(
+        <div style={{background:"#161B22",border:"1px solid #21262D",borderRadius:14,overflow:"hidden"}}>
+          <div style={{padding:"16px 20px",borderBottom:"1px solid #21262D",display:"flex",alignItems:"center",gap:10}}>
+            <span style={{fontSize:20}}>🏆</span>
+            <div>
+              <p style={{color:"white",fontSize:14,fontWeight:700,margin:0}}>Overall Ranking</p>
+              <p style={{color:"#6b7280",fontSize:12,margin:"2px 0 0"}}>All groups combined · {allScored.length} ranked</p>
+            </div>
+          </div>
+          <div style={{padding:16,display:"flex",flexDirection:"column",gap:8}}>
+            {allScored.map((person,i)=>{
+              const color=gc(person.name);
+              const isTop3=i<3;
+              return(
+                <div key={person.id||person.name}
+                  style={{display:"flex",alignItems:"center",gap:14,padding:"14px 16px",background:i===0?"linear-gradient(90deg,rgba(245,158,11,0.08),transparent)":isTop3?"#0D1117":"transparent",border:"1px solid "+(isTop3?"rgba(245,158,11,0.2)":"#21262D"),borderRadius:12,transition:"border-color 0.2s"}}
+                  onMouseOver={e=>e.currentTarget.style.borderColor=color+"55"}
+                  onMouseOut={e=>e.currentTarget.style.borderColor=isTop3?"rgba(245,158,11,0.2)":"#21262D"}>
+                  <div style={{width:36,textAlign:"center",flexShrink:0}}>
+                    {isTop3?<span style={{fontSize:22}}>{MEDALS[i]}</span>:<span style={{fontSize:15,fontWeight:800,color:"#374151"}}>#{i+1}</span>}
+                  </div>
+                  <Av name={person.name} size={44}/>
+                  <div style={{flex:1,minWidth:0}}>
+                    <p style={{color:"white",fontSize:14,fontWeight:700,margin:0}}>
+                      {person.name}
+                      {person.isFlagged&&<span style={{marginLeft:6,fontSize:10,color:"#F59E0B",background:"rgba(245,158,11,0.1)",padding:"1px 6px",borderRadius:999}}>⚠️ RR</span>}
+                    </p>
+                    <div style={{display:"flex",gap:4,marginTop:3,flexWrap:"wrap",alignItems:"center"}}>
+                      <span style={{fontSize:10,color:gc(person.groupName),background:gc(person.groupName)+"18",padding:"2px 8px",borderRadius:999,fontWeight:600}}>{person.groupName}</span>
+                      {(person.designations||[]).map(d=><span key={d} style={{fontSize:10,color:"#6b7280",background:"#21262D",padding:"2px 6px",borderRadius:999}}>{d}</span>)}
+                    </div>
+                  </div>
+                  <div style={{minWidth:200}}><ScoreBar score={person.score}/></div>
+                  <div style={{display:"flex",gap:4,flexShrink:0}}>
+                    {(person.groupForms||[]).map(cf=>{
+                      const form=forms.find(f=>f.id===cf.formId);
+                      const excludeEmails=flaggedData.filter(f=>f.personName===person.name&&f.formId===cf.formId&&f.reviewerEmail).map(f=>f.reviewerEmail);
+                      const avg=form?getFormAvg(person.name,cf.formId,form.fields||[],allSubs,excludeEmails):null;
+                      const c=avg!==null?(avg>=4?"#22c55e":avg>=3?"#F59E0B":"#ef4444"):"#4b5563";
+                      return(
+                        <div key={cf.formId} title={`${cf.name} (${cf.weight}%): ${avg!==null?avg.toFixed(2):"N/A"}`}
+                          style={{width:28,height:28,borderRadius:6,background:avg!==null?(avg>=4?"rgba(34,197,94,0.15)":avg>=3?"rgba(245,158,11,0.15)":"rgba(239,68,68,0.15)"):"#21262D",display:"flex",alignItems:"center",justifyContent:"center",fontSize:10,fontWeight:700,color:c}}>
+                          {avg!==null?avg.toFixed(1):"—"}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* ── PER GROUP LEADERBOARDS ── */}
       {!noConfig&&!noGroups&&groupScores.map(({group,scored})=>{
         const color=gc(group.groupName);
         const ranked=scored.filter(p=>p.score!==null);
         const pending=scored.filter(p=>p.score===null);
         return(
           <div key={group.groupId} style={{background:"#161B22",border:"1px solid "+color+"33",borderRadius:14,overflow:"hidden"}}>
-            {/* Group header */}
             <div style={{padding:"16px 20px",borderBottom:"1px solid #21262D",display:"flex",alignItems:"center",gap:12}}>
               <div style={{width:36,height:36,borderRadius:10,background:color+"18",border:"1px solid "+color+"33",display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,fontWeight:700,color}}>
                 {group.groupName.charAt(0)}
               </div>
               <div>
                 <p style={{color:"white",fontSize:14,fontWeight:700,margin:0}}>{group.groupName}</p>
-                <p style={{color:"#6b7280",fontSize:12,margin:"2px 0 0"}}>
-                  {ranked.length} scored · {pending.length} pending · {group.forms?.length||0} forms
-                </p>
+                <p style={{color:"#6b7280",fontSize:12,margin:"2px 0 0"}}>{ranked.length} scored · {pending.length} pending · {group.forms?.length||0} forms</p>
               </div>
             </div>
 
-            {group.forms?.length===0?(
-              <div style={{padding:"24px",textAlign:"center",color:"#4b5563",fontSize:13}}>
-                No forms configured for this group. Go to Marking tab.
-              </div>
-            ):ranked.length===0&&pending.length===0?(
-              <div style={{padding:"24px",textAlign:"center",color:"#4b5563",fontSize:13}}>
-                No people assigned to this group yet.
-              </div>
+            {ranked.length===0&&pending.length===0?(
+              <div style={{padding:"24px",textAlign:"center",color:"#4b5563",fontSize:13}}>No people assigned to this group.</div>
             ):(
               <div style={{padding:16,display:"flex",flexDirection:"column",gap:8}}>
-                {/* Ranked */}
                 {ranked.map((person,i)=>(
                   <div key={person.id||person.name}
                     style={{display:"flex",alignItems:"center",gap:14,padding:"14px 16px",background:i<3?"#0D1117":"transparent",border:"1px solid "+(i<3?color+"22":"#21262D"),borderRadius:12,transition:"border-color 0.2s"}}
                     onMouseOver={e=>e.currentTarget.style.borderColor=color+"66"}
                     onMouseOut={e=>e.currentTarget.style.borderColor=i<3?color+"22":"#21262D"}>
-                    {/* Rank */}
                     <div style={{width:32,textAlign:"center",flexShrink:0}}>
                       {i<3?<span style={{fontSize:20}}>{MEDALS[i]}</span>:<span style={{fontSize:14,fontWeight:700,color:"#4b5563"}}>#{i+1}</span>}
                     </div>
-                    {/* Avatar */}
                     <Av name={person.name} size={40}/>
-                    {/* Info */}
                     <div style={{flex:1,minWidth:0}}>
-                      <p style={{color:"white",fontSize:13,fontWeight:700,margin:0}}>{person.name}</p>
+                      <p style={{color:"white",fontSize:13,fontWeight:700,margin:0}}>
+                        {person.name}
+                        {person.isFlagged&&<span style={{marginLeft:6,fontSize:9,color:"#F59E0B",background:"rgba(245,158,11,0.1)",padding:"1px 5px",borderRadius:999}}>⚠️ RR</span>}
+                      </p>
                       <div style={{display:"flex",gap:4,marginTop:3,flexWrap:"wrap"}}>
-                        {(person.designations||[]).map(d=>(
-                          <span key={d} style={{fontSize:10,color:"#6b7280",background:"#21262D",padding:"1px 6px",borderRadius:999}}>{d}</span>
-                        ))}
+                        {(person.designations||[]).map(d=><span key={d} style={{fontSize:10,color:"#6b7280",background:"#21262D",padding:"1px 6px",borderRadius:999}}>{d}</span>)}
                       </div>
                     </div>
-                    {/* Score bar */}
                     <div style={{minWidth:160}}><ScoreBar score={person.score}/></div>
-                    {/* Per-form scores */}
                     <div style={{display:"flex",gap:4,flexShrink:0}}>
                       {(person.groupForms||[]).map(cf=>{
                         const form=forms.find(f=>f.id===cf.formId);
-                        const avg=form?getFormAvg(person.name,cf.formId,form.fields||[],allSubs):null;
+                        const excludeEmails=flaggedData.filter(f=>f.personName===person.name&&f.formId===cf.formId&&f.reviewerEmail).map(f=>f.reviewerEmail);
+                        const avg=form?getFormAvg(person.name,cf.formId,form.fields||[],allSubs,excludeEmails):null;
                         const c=avg!==null?(avg>=4?"#22c55e":avg>=3?"#F59E0B":"#ef4444"):"#4b5563";
                         return(
-                          <div key={cf.formId}
-                            title={`${cf.name} (${cf.weight}%): ${avg!==null?avg.toFixed(2):"N/A"}`}
+                          <div key={cf.formId} title={`${cf.name} (${cf.weight}%): ${avg!==null?avg.toFixed(2):"N/A"}`}
                             style={{width:28,height:28,borderRadius:6,background:avg!==null?(avg>=4?"rgba(34,197,94,0.15)":avg>=3?"rgba(245,158,11,0.15)":"rgba(239,68,68,0.15)"):"#21262D",display:"flex",alignItems:"center",justifyContent:"center",fontSize:10,fontWeight:700,color:c}}>
                             {avg!==null?avg.toFixed(1):"—"}
                           </div>
@@ -255,8 +306,6 @@ export default function Leaderboard(){
                     </div>
                   </div>
                 ))}
-
-                {/* Pending */}
                 {pending.length>0&&(
                   <div style={{marginTop:8,paddingTop:12,borderTop:"1px solid #21262D"}}>
                     <p style={{color:"#4b5563",fontSize:11,margin:"0 0 8px",textTransform:"uppercase",letterSpacing:"0.06em"}}>No submissions yet</p>
