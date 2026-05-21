@@ -21,6 +21,7 @@ const TABS = [
   { id:"marking",     label:"Marking",      icon:"📊" },
   { id:"leaderboard", label:"Leaderboard",  icon:"🏆" },
   { id:"rereview",    label:"Re-Review",    icon:"⚠️" },
+    { id:"markinggroups", label:"Groups",       icon:"👥" },
   { id:"performance",  label:"Performance",  icon:"📈" },
   { id:"submissions", label:"Submissions",  icon:"📋" },
 
@@ -177,6 +178,7 @@ export default function AdminDashboard() {
                     {tab==="marking" && <Marking/>}
           {tab==="leaderboard" && <Leaderboard/>}
           {tab==="rereview" && <ReReview/>}
+          {tab==="markinggroups" && <MarkingGroups/>}
           {tab==="performance" && <Performance/>}
 
           {tab==="people" && <People/>}
