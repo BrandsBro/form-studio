@@ -12,6 +12,7 @@ import People from "@/components/admin/People";
 import Marking from "@/components/admin/Marking";
 import Leaderboard from "@/components/admin/Leaderboard";
 import ReReview from "@/components/admin/ReReview";
+import MarkingGroups from "@/components/admin/MarkingGroups";
 import Performance from "@/components/admin/Performance";
 import Connections from "@/components/admin/Connections";
 
