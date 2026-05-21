@@ -112,7 +112,7 @@ export default function ReReview(){
   const [threshold,setThreshold]=useState(60);
   const [editThreshold,setEditThreshold]=useState(false);
   const [invalidated,setInvalidated]=useState({});
-  const [invalidating,setInvalidating]=null);
+  const [invalidating,setInvalidating]=useState(null);
   const [expandedPerson,setExpandedPerson]=useState(null);
   const [expandedMissing,setExpandedMissing]=useState(null);
 
