@@ -233,6 +233,7 @@ export default function People(){
   const [departments,setDepartments]=useState([]);
   const [search,setSearch]=useState("");
   const [filter,setFilter]=useState("All");
+  const [filterType,setFilterType]=useState("designation"); // "designation" or "department"
   const [modal,setModal]=useState(null);
   const [loading,setLoading]=useState(true);
 
@@ -281,7 +282,7 @@ export default function People(){
   const designationNames=designations.map(d=>d.designationName);
   const allFilters=["All",...designationNames];
   const filtered=people
-    .filter(p=>filter==="All"||(p.designations||[]).includes(filter))
+    .filter(p=>filter==="All"||(filterType==="designation"?(p.designations||[]).includes(filter):p.department===filter))
     .filter(p=>p.name.toLowerCase().includes(search.toLowerCase())||p.email.toLowerCase().includes(search.toLowerCase()));
 
   if(loading) return(
@@ -321,11 +322,23 @@ export default function People(){
       <DesignationManager designations={designations} onAdd={handleAddDesignation} onDelete={handleDeleteDesignation}/>
       <DepartmentManager departments={departments} onAdd={handleAddDepartment} onDelete={handleDeleteDepartment}/>
 
+      {/* Filter type toggle */}
+      <div style={{display:"flex",gap:8}}>
+        {["designation","department"].map(t=>(
+          <button key={t} onClick={()=>{ setFilterType(t); setFilter("All"); }}
+            style={{padding:"7px 16px",borderRadius:8,border:"1px solid "+(filterType===t?"rgba(245,158,11,0.4)":"#21262D"),background:filterType===t?"rgba(245,158,11,0.08)":"transparent",color:filterType===t?"#F59E0B":"#6b7280",fontSize:12,fontWeight:filterType===t?600:400,cursor:"pointer",textTransform:"capitalize"}}>
+            {t==="designation"?"By Designation":"By Department"}
+          </button>
+        ))}
+      </div>
+
       {/* Filter tabs */}
       <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(120px,1fr))",gap:8}}>
-        {allFilters.map(d=>{
+        {(filterType==="designation"?["All",...designationNames]:["All",...departments.map(d=>d.departmentName)]).map(d=>{
           const color=d==="All"?"#F59E0B":gc(d);
-          const count=d==="All"?people.length:people.filter(p=>(p.designations||[]).includes(d)).length;
+          const count=d==="All"?people.length:filterType==="designation"
+            ?people.filter(p=>(p.designations||[]).includes(d)).length
+            :people.filter(p=>p.department===d).length;
           return(
             <button key={d} onClick={()=>setFilter(d)}
               style={{background:filter===d?"#161B22":"#0D1117",border:"1px solid "+(filter===d?color+"55":"#21262D"),borderRadius:10,padding:"10px 12px",cursor:"pointer",textAlign:"left"}}>
