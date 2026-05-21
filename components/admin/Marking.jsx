@@ -30,7 +30,9 @@ function calcFinalScore(personName,configForms,allForms,allSubs={}){
 
 let dragIdx=null;
 
-function GroupConfigurator({group,allForms,onChange,onDelete}){
+function GroupConfigurator({group,allForms,onChange,onDelete,onSave}){
+  const [saving,setSaving]=useState(false);
+  const [saved,setSaved]=useState(false);
   const [open,setOpen]=useState(true);
   const totalWeight=group.forms.reduce((a,f)=>a+f.weight,0);
   const avail=allForms.filter(f=>!group.forms.find(cf=>cf.formId===f.id));
@@ -72,6 +74,12 @@ function GroupConfigurator({group,allForms,onChange,onDelete}){
         </div>
         <div style={{display:"flex",alignItems:"center",gap:8}}>
           {totalWeight===100&&<span style={{fontSize:11,color:"#22c55e",background:"rgba(34,197,94,0.1)",padding:"3px 10px",borderRadius:999,fontWeight:600}}>✓ 100%</span>}
+          <button onClick={async e=>{e.stopPropagation();setSaving(true);await onSave();setSaving(false);setSaved(true);setTimeout(()=>setSaved(false),2000);}}
+            style={{padding:"5px 12px",borderRadius:7,border:"none",background:saved?"#16a34a":"linear-gradient(135deg,#D97706,#F59E0B)",color:saved?"white":"#000",fontSize:11,fontWeight:700,cursor:"pointer",display:"flex",alignItems:"center",gap:4}}
+            title="Save this group">
+            {saving?<svg style={{width:11,height:11,animation:"spin 1s linear infinite"}} viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" opacity="0.25"/><path fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"/></svg>:<Save size={11}/>}
+            {saving?"...":saved?"Saved!":"Save"}
+          </button>
           <button onClick={e=>{e.stopPropagation();onDelete(group.groupId);}}
             style={{background:"none",border:"none",cursor:"pointer",color:"#374151",padding:4,display:"flex"}}
             onMouseOver={e=>e.currentTarget.style.color="#ef4444"} onMouseOut={e=>e.currentTarget.style.color="#374151"}>
@@ -340,7 +348,8 @@ export default function Marking(){
             <div key={group.groupId} style={{marginBottom:8}}>
             <GroupConfigurator group={group} allForms={forms}
               onChange={updated=>updateGroup(group.groupId,updated)}
-              onDelete={deleteGroup}/>
+              onDelete={deleteGroup}
+              onSave={saveConfig}/>
             </div>
           ))}
 
