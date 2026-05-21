@@ -8,7 +8,6 @@ function Skeleton({w="100%",h=20,r=8}){return <div style={{width:w,height:h,bord
 
 export default function Home(){
   const [email,setEmail]=useState("");
-  const [autoLoaded,setAutoLoaded]=useState(false);
   const [err,setErr]=useState("");
   const [myForms,setMyForms]=useState(null);
   const [finding,setFinding]=useState(false);
@@ -20,7 +19,6 @@ export default function Home(){
       const fl=await getForms();
       const active=fl.filter(f=>f.active);
       const found=active.filter(form=>(form.connections||[]).some(c=>c.reviewerEmail&&c.reviewerEmail.toLowerCase()===e.toLowerCase().trim()));
-      // Load progress for each form
       const progress={};
       await Promise.all(found.map(async form=>{
         const conn=(form.connections||[]).find(c=>c.reviewerEmail&&c.reviewerEmail.toLowerCase()===e.toLowerCase().trim());
@@ -40,8 +38,10 @@ export default function Home(){
   useEffect(()=>{
     const params=new URLSearchParams(window.location.search);
     const e=params.get("email");
-    if(e&&!autoLoaded){ setEmail(e); setAutoLoaded(true); handleFindWithEmail(e.toLowerCase().trim()); return; }
-    if(e){setEmail(e);handleFindWithEmail(e);}
+    if(e){
+      setEmail(e);
+      handleFindWithEmail(e.toLowerCase().trim());
+    }
   },[]);
 
   async function handleFind(){
@@ -51,11 +51,13 @@ export default function Home(){
   }
 
   const allDone=myForms&&myForms.length>0&&myForms.every(f=>formProgress[f.id]?.done);
+  const pendingForms=myForms?myForms.filter(f=>!formProgress[f.id]?.done):[];
+  const doneForms=myForms?myForms.filter(f=>formProgress[f.id]?.done):[];
   const e=email.toLowerCase().trim();
 
   return(
     <div style={{minHeight:"100vh",background:"#0D1117",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:20,fontFamily:"var(--font-dm-sans)"}}>
-      <style>{"@keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}"}</style>
+      <style>{"@keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}@keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}"}</style>
       <div style={{textAlign:"center",marginBottom:32}}>
         <h1 style={{color:"white",fontSize:32,fontWeight:800,margin:"0 0 8px",fontFamily:"var(--font-playfair)"}}>Performance Reviews</h1>
         <p style={{color:"#6b7280",fontSize:15,margin:0}}>Enter your email to see your assigned reviews</p>
@@ -84,8 +86,7 @@ export default function Home(){
           {[1,2].map(i=>(
             <div key={i} style={{background:"#161B22",border:"1px solid #21262D",borderRadius:14,padding:20}}>
               <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
-                <Skeleton w="60%" h={18}/>
-                <Skeleton w={60} h={24} r={999}/>
+                <Skeleton w="60%" h={18}/><Skeleton w={60} h={24} r={999}/>
               </div>
               <Skeleton w="40%" h={14}/>
             </div>
@@ -93,50 +94,78 @@ export default function Home(){
         </div>
       )}
 
-
-
       {/* Forms list */}
       {!finding&&myForms!==null&&(
         <div style={{width:"min(540px,100%)",marginTop:20,display:"flex",flexDirection:"column",gap:12}}>
+
+          {/* All done banner */}
           {allDone&&(
             <div style={{background:"rgba(34,197,94,0.08)",border:"1px solid rgba(34,197,94,0.3)",borderRadius:14,padding:"18px 20px",textAlign:"center",marginBottom:4}}>
               <div style={{fontSize:32,marginBottom:6}}>🎉</div>
               <p style={{color:"#22c55e",fontSize:15,fontWeight:700,margin:"0 0 4px"}}>All Reviews Completed!</p>
-              <p style={{color:"#6b7280",fontSize:12,margin:0}}>You can still edit any submitted review below.</p>
+              <p style={{color:"#6b7280",fontSize:12,margin:0}}>Great job! All your assigned reviews are submitted.</p>
             </div>
           )}
+
           {myForms.length===0?(
             <p style={{color:"#6b7280",fontSize:14,textAlign:"center"}}>No review assignments found for this email.</p>
           ):(
-            myForms.filter(f=>!formProgress[f.id]?.done).map(form=>{
-              const color=getColor(form);
-              const prog=formProgress[form.id]||{reviewed:0,total:0,done:false};
-              const pct=prog.total>0?Math.round((prog.reviewed/prog.total)*100):0;
-              return(
-                <a key={form.id} href={"/form/"+form.id+"?email="+encodeURIComponent(e)}
-                  style={{display:"block",background:"#161B22",border:"1px solid "+(prog.done?"rgba(34,197,94,0.4)":color+"44"),borderRadius:14,padding:20,textDecoration:"none",transition:"all 0.2s",position:"relative",overflow:"hidden"}}
-                  onMouseOver={ev=>ev.currentTarget.style.borderColor=prog.done?"rgba(34,197,94,0.6)":color}
-                  onMouseOut={ev=>ev.currentTarget.style.borderColor=prog.done?"rgba(34,197,94,0.4)":color+"44"}>
-                  <div style={{height:3,background:prog.done?"#22c55e":color,position:"absolute",top:0,left:0,width:pct+"%",transition:"width 0.5s"}}/>
-                  <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:8}}>
-                    <p style={{color:"white",fontSize:15,fontWeight:700,margin:0}}>{form.name}</p>
-                    {prog.done
-                      ?<span style={{fontSize:11,color:"#22c55e",background:"rgba(34,197,94,0.12)",padding:"3px 10px",borderRadius:999,fontWeight:600,display:"flex",alignItems:"center",gap:4}}><CheckCircle size={11}/> Done</span>
-                      :<span style={{fontSize:11,color:color,background:color+"15",padding:"3px 10px",borderRadius:999,fontWeight:600,display:"flex",alignItems:"center",gap:4}}><Clock size={11}/> {prog.reviewed}/{prog.total}</span>
-                    }
-                  </div>
-                  <div style={{display:"flex",alignItems:"center",justifyContent:"space-between"}}>
-                    <p style={{color:"#6b7280",fontSize:12,margin:0}}>{prog.done?"All reviews submitted":"Click to continue reviewing"}</p>
-                    <ChevronRight size={16} color={prog.done?"#22c55e":color}/>
-                  </div>
-                  {prog.total>0&&(
-                    <div style={{marginTop:10,height:4,background:"#21262D",borderRadius:999,overflow:"hidden"}}>
-                      <div style={{height:"100%",background:prog.done?"#22c55e":color,borderRadius:999,width:pct+"%",transition:"width 0.5s"}}/>
+            <>
+              {/* Pending forms */}
+              {pendingForms.map(form=>{
+                const color=getColor(form);
+                const prog=formProgress[form.id]||{reviewed:0,total:0,done:false};
+                const pct=prog.total>0?Math.round((prog.reviewed/prog.total)*100):0;
+                return(
+                  <a key={form.id} href={"/form/"+form.id+"?email="+encodeURIComponent(e)}
+                    style={{display:"block",background:"#161B22",border:"1px solid "+color+"44",borderRadius:14,padding:20,textDecoration:"none",transition:"all 0.2s",position:"relative",overflow:"hidden"}}
+                    onMouseOver={ev=>ev.currentTarget.style.borderColor=color}
+                    onMouseOut={ev=>ev.currentTarget.style.borderColor=color+"44"}>
+                    <div style={{height:3,background:color,position:"absolute",top:0,left:0,width:pct+"%",transition:"width 0.5s"}}/>
+                    <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:8}}>
+                      <p style={{color:"white",fontSize:15,fontWeight:700,margin:0}}>{form.name}</p>
+                      <span style={{fontSize:11,color:color,background:color+"15",padding:"3px 10px",borderRadius:999,fontWeight:600,display:"flex",alignItems:"center",gap:4}}>
+                        <Clock size={11}/> {prog.reviewed}/{prog.total}
+                      </span>
                     </div>
-                  )}
-                </a>
-              );
-            })
+                    <div style={{display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+                      <p style={{color:"#6b7280",fontSize:12,margin:0}}>Click to continue reviewing</p>
+                      <ChevronRight size={16} color={color}/>
+                    </div>
+                    {prog.total>0&&(
+                      <div style={{marginTop:10,height:4,background:"#21262D",borderRadius:999,overflow:"hidden"}}>
+                        <div style={{height:"100%",background:color,borderRadius:999,width:pct+"%",transition:"width 0.5s"}}/>
+                      </div>
+                    )}
+                  </a>
+                );
+              })}
+
+              {/* Completed forms */}
+              {doneForms.length>0&&(
+                <div style={{marginTop:pendingForms.length>0?8:0}}>
+                  {pendingForms.length>0&&<p style={{color:"#4b5563",fontSize:11,textTransform:"uppercase",letterSpacing:"0.06em",margin:"0 0 8px"}}>Completed</p>}
+                  {doneForms.map(form=>{
+                    const color=getColor(form);
+                    const prog=formProgress[form.id];
+                    return(
+                      <a key={form.id} href={"/form/"+form.id+"?email="+encodeURIComponent(e)}
+                        style={{display:"block",background:"#161B22",border:"1px solid rgba(34,197,94,0.3)",borderRadius:14,padding:20,textDecoration:"none",marginBottom:8,opacity:0.7,transition:"all 0.2s",position:"relative",overflow:"hidden"}}
+                        onMouseOver={ev=>{ev.currentTarget.style.opacity="1";ev.currentTarget.style.borderColor="rgba(34,197,94,0.6)";}}
+                        onMouseOut={ev=>{ev.currentTarget.style.opacity="0.7";ev.currentTarget.style.borderColor="rgba(34,197,94,0.3)";}}>
+                        <div style={{height:3,background:"#22c55e",position:"absolute",top:0,left:0,width:"100%"}}/>
+                        <div style={{display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+                          <p style={{color:"white",fontSize:15,fontWeight:700,margin:0}}>{form.name}</p>
+                          <span style={{fontSize:11,color:"#22c55e",background:"rgba(34,197,94,0.12)",padding:"3px 10px",borderRadius:999,fontWeight:600,display:"flex",alignItems:"center",gap:4}}>
+                            <CheckCircle size={11}/> Done {prog?.reviewed}/{prog?.total}
+                          </span>
+                        </div>
+                      </a>
+                    );
+                  })}
+                </div>
+              )}
+            </>
           )}
         </div>
       )}
