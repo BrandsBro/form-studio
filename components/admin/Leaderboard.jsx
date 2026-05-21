@@ -152,10 +152,11 @@ export default function Leaderboard(){
 
 
   const allScored=people.map(p=>{
+    // Find which group this person belongs to
+    const personGroup=(config.groups||[]).find(g=>g.designation&&(p.designations||[]).includes(g.designation));
+    const configForms=personGroup?.forms||[];
     const isTM=(p.designations||[]).includes("Team Member");
-    const configForms=isTM?config.teamMembers.forms:config.teamLeaders.forms;
     const isFlagged=flaggedData.some(f=>f.personName===p.name);
-    // Only apply RR config if person is flagged
     const rrConfig=isFlagged?(isTM?tmRrConfig:tlRrConfig):null;
     const score=calcScore(p.name,configForms,forms,allSubs,rrConfig,flaggedData);
     return{...p,score,isTM,configForms,isFlagged};
@@ -168,9 +169,8 @@ export default function Leaderboard(){
 
   const ranked=allScored.filter(p=>p.score!==null);
   const pending=allScored.filter(p=>p.score===null);
-  const teamLeaders=allScored.filter(p=>!p.isTM);
-  const teamMembers=allScored.filter(p=>p.isTM);
-  const noConfig=config.teamMembers.forms.length===0&&config.teamLeaders.forms.length===0;
+
+  const noConfig=!config.groups||config.groups.length===0;
 
   if(loading||!configLoaded) return(
     <div style={{display:"flex",flexDirection:"column",gap:16}}>
@@ -280,18 +280,17 @@ export default function Leaderboard(){
         </div>
       )}
 
-      {!noConfig&&(
-        <Board title="Team Leaders" icon="⭐" color="#F59E0B"
-          people={teamLeaders} allForms={forms} allSubs={allSubs}
-          configForms={config.teamLeaders.forms}
-          rrConfig={tlRrConfig} flaggedEntries={flaggedData}/>
-      )}
-      {!noConfig&&(
-        <Board title="Team Members" icon="👥" color="#10B981"
-          people={teamMembers} allForms={forms} allSubs={allSubs}
-          configForms={config.teamMembers.forms}
-          rrConfig={tmRrConfig} flaggedEntries={flaggedData}/>
-      )}
+{!noConfig&&(config.groups||[]).map(group=>{
+        const gc2=gc(group.groupName);
+        const groupPeople=people.filter(p=>(p.designations||[]).includes(group.designation));
+        return(
+          <Board key={group.groupId} title={group.groupName} icon={group.groupName.charAt(0)} color={gc2}
+            people={groupPeople} allForms={forms} allSubs={allSubs}
+            configForms={group.forms||[]}
+            rrConfig={rrData.find(r=>r.personName==="__"+group.groupId+"_CONFIG__")||null}
+            flaggedEntries={flaggedData}/>
+        );
+      })}
     </div>
   );
 }
