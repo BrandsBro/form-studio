@@ -185,7 +185,7 @@ export default function MarkingGroupsTab(){
                       const isInGroup=groupMembers.includes(person.name);
                       const color=gc(person.name);
                       return(
-                        <div key={person.id} style={{display:"flex",alignItems:"center",gap:10,padding:"10px 12px",background:isInGroup?"rgba(34,197,94,0.05)":"#0D1117",borderRadius:10,border:"1px solid "+(isInGroup?"rgba(34,197,94,0.2)":"#21262D")}}>
+                        <div key={person.id} style={{display:"flex",alignItems:"center",gap:10,padding:"10px 12px",background:isInGroup?"rgba(34,197,94,0.05)":getPersonGroup(person.name)?"rgba(245,158,11,0.03)":"#0D1117",borderRadius:10,border:"1px solid "+(isInGroup?"rgba(34,197,94,0.2)":getPersonGroup(person.name)?"rgba(245,158,11,0.15)":"#21262D")}}>
                           <Av name={person.name} size={32}/>
                           <div style={{flex:1,minWidth:0}}>
                             <p style={{color:"white",fontSize:13,fontWeight:600,margin:0}}>{person.name}</p>
@@ -194,16 +194,19 @@ export default function MarkingGroupsTab(){
                               {person.department&&<span style={{fontSize:9,color:"#4b5563",background:"#161B22",padding:"1px 5px",borderRadius:999}}>🏢{person.department}</span>}
                             </div>
                           </div>
-                          {isInGroup?(
-                            <span style={{fontSize:11,color:"#22c55e",background:"rgba(34,197,94,0.1)",padding:"3px 8px",borderRadius:999,fontWeight:600}}>✓ Added</span>
-                          ):(
-                            <button onClick={()=>handleAdd(person)} disabled={adding===person.name}
-                              style={{width:28,height:28,borderRadius:"50%",border:"1px solid "+color+"44",background:color+"18",color,fontSize:16,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",fontWeight:700}}
-                              onMouseOver={e=>{e.currentTarget.style.background=color+"33";e.currentTarget.style.borderColor=color;}}
-                              onMouseOut={e=>{e.currentTarget.style.background=color+"18";e.currentTarget.style.borderColor=color+"44";}}>
-                              {adding===person.name?<Spinner/>:"+"}
-                            </button>
-                          )}
+                          {(()=>{
+                            const personGroup=getPersonGroup(person.name);
+                            if(isInGroup) return <span style={{fontSize:11,color:"#22c55e",background:"rgba(34,197,94,0.1)",padding:"3px 8px",borderRadius:999,fontWeight:600}}>✓ In this group</span>;
+                            if(personGroup) return <span style={{fontSize:10,color:"#F59E0B",background:"rgba(245,158,11,0.1)",padding:"3px 8px",borderRadius:999,fontWeight:600}} title={"In: "+personGroup.groupName}>In {personGroup.groupName}</span>;
+                            return(
+                              <button onClick={()=>handleAdd(person)} disabled={adding===person.name}
+                                style={{width:28,height:28,borderRadius:"50%",border:"1px solid "+color+"44",background:color+"18",color,fontSize:16,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",fontWeight:700}}
+                                onMouseOver={e=>{e.currentTarget.style.background=color+"33";e.currentTarget.style.borderColor=color;}}
+                                onMouseOut={e=>{e.currentTarget.style.background=color+"18";e.currentTarget.style.borderColor=color+"44";}}>
+                                {adding===person.name?<Spinner/>:"+"}
+                              </button>
+                            );
+                          })()}
                         </div>
                       );
                     })}
