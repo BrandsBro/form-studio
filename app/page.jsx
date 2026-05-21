@@ -8,6 +8,7 @@ function Skeleton({w="100%",h=20,r=8}){return <div style={{width:w,height:h,bord
 
 export default function Home(){
   const [email,setEmail]=useState("");
+  const [autoLoaded,setAutoLoaded]=useState(false);
   const [err,setErr]=useState("");
   const [myForms,setMyForms]=useState(null);
   const [finding,setFinding]=useState(false);
@@ -39,6 +40,7 @@ export default function Home(){
   useEffect(()=>{
     const params=new URLSearchParams(window.location.search);
     const e=params.get("email");
+    if(e&&!autoLoaded){ setEmail(e); setAutoLoaded(true); handleFindWithEmail(e.toLowerCase().trim()); return; }
     if(e){setEmail(e);handleFindWithEmail(e);}
   },[]);
 
