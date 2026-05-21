@@ -19,20 +19,32 @@ function getPersonFormAvg(personName,formId,formFields,allSubs={},excludeEmails=
 // Final score with ReReview + Flagged adjustments
 function calcScore(personName,configForms,allForms,allSubs={},rrConfig=null,flaggedEntries=[]){
   let adjustedForms=[...configForms];
+
+  // Get all flagged form IDs for this person
+  const flaggedFormIds=new Set(
+    flaggedEntries.filter(f=>f.personName===personName&&!f.reviewerEmail).map(f=>f.formId)
+  );
+
   if(rrConfig&&rrConfig.flaggedFormId){
+    // Has RR config — remove flagged form and redistribute weights
     adjustedForms=adjustedForms.filter(cf=>cf.formId!==rrConfig.flaggedFormId);
     adjustedForms=adjustedForms.map(cf=>{
       if(cf.formId===rrConfig.replace1Id) return{...cf,weight:cf.weight+Number(rrConfig.replace1Pct)};
       if(cf.formId===rrConfig.replace2Id) return{...cf,weight:cf.weight+Number(rrConfig.replace2Pct)};
       return cf;
     });
+  } else if(flaggedFormIds.size>0){
+    // Flagged but NO RR config — remove flagged forms entirely, no redistribution
+    adjustedForms=adjustedForms.filter(cf=>!flaggedFormIds.has(cf.formId));
   }
+
   let weightedSum=0,hasData=false;
   adjustedForms.forEach(cf=>{
     const form=allForms.find(f=>f.id===cf.formId);
     if(!form) return;
+    // Exclude invalidated reviewers for this form
     const excludeEmails=flaggedEntries
-      .filter(f=>f.personName===personName&&f.formId===cf.formId&&f.type==="TL")
+      .filter(f=>f.personName===personName&&f.formId===cf.formId&&f.reviewerEmail)
       .map(f=>f.reviewerEmail).filter(Boolean);
     const avg=getPersonFormAvg(personName,cf.formId,form.fields||[],allSubs,excludeEmails);
     if(avg!==null){weightedSum+=avg*(cf.weight/100);hasData=true;}
