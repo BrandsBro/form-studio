@@ -118,63 +118,40 @@ export default function Home(){
 
           {myForms.length===0?(
             <p style={{color:"#6b7280",fontSize:14,textAlign:"center"}}>No review assignments found for this email.</p>
+          ):allDone?(
+            <div style={{textAlign:"center",padding:"20px 0"}}>
+              <p style={{color:"#22c55e",fontSize:15,fontWeight:700,margin:0}}>You're all done! 🎉</p>
+              <p style={{color:"#6b7280",fontSize:13,margin:"8px 0 0"}}>All your reviews have been submitted. Thank you!</p>
+            </div>
           ):(
-            <>
-              {/* Pending forms */}
-              {pendingForms.map(form=>{
-                const color=getColor(form);
-                const prog=formProgress[form.id]||{reviewed:0,total:0,done:false};
-                const pct=prog.total>0?Math.round((prog.reviewed/prog.total)*100):0;
-                return(
-                  <a key={form.id} href={"/form/"+form.id+"?email="+encodeURIComponent(e)}
-                    style={{display:"block",background:"#161B22",border:"1px solid "+color+"44",borderRadius:14,padding:20,textDecoration:"none",transition:"all 0.2s",position:"relative",overflow:"hidden"}}
-                    onMouseOver={ev=>ev.currentTarget.style.borderColor=color}
-                    onMouseOut={ev=>ev.currentTarget.style.borderColor=color+"44"}>
-                    <div style={{height:3,background:color,position:"absolute",top:0,left:0,width:pct+"%",transition:"width 0.5s"}}/>
-                    <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:8}}>
-                      <p style={{color:"white",fontSize:15,fontWeight:700,margin:0}}>{form.name}</p>
-                      <span style={{fontSize:11,color:color,background:color+"15",padding:"3px 10px",borderRadius:999,fontWeight:600,display:"flex",alignItems:"center",gap:4}}>
-                        <Clock size={11}/> {prog.reviewed}/{prog.total}
-                      </span>
+            pendingForms.map(form=>{
+              const color=getColor(form);
+              const prog=formProgress[form.id]||{reviewed:0,total:0,done:false};
+              const pct=prog.total>0?Math.round((prog.reviewed/prog.total)*100):0;
+              return(
+                <a key={form.id} href={"/form/"+form.id+"?email="+encodeURIComponent(e)}
+                  style={{display:"block",background:"#161B22",border:"1px solid "+color+"44",borderRadius:14,padding:20,textDecoration:"none",transition:"all 0.2s",position:"relative",overflow:"hidden"}}
+                  onMouseOver={ev=>ev.currentTarget.style.borderColor=color}
+                  onMouseOut={ev=>ev.currentTarget.style.borderColor=color+"44"}>
+                  <div style={{height:3,background:color,position:"absolute",top:0,left:0,width:pct+"%",transition:"width 0.5s"}}/>
+                  <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:8}}>
+                    <p style={{color:"white",fontSize:15,fontWeight:700,margin:0}}>{form.name}</p>
+                    <span style={{fontSize:11,color:color,background:color+"15",padding:"3px 10px",borderRadius:999,fontWeight:600,display:"flex",alignItems:"center",gap:4}}>
+                      <Clock size={11}/> {prog.reviewed}/{prog.total}
+                    </span>
+                  </div>
+                  <div style={{display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+                    <p style={{color:"#6b7280",fontSize:12,margin:0}}>Click to continue reviewing</p>
+                    <ChevronRight size={16} color={color}/>
+                  </div>
+                  {prog.total>0&&(
+                    <div style={{marginTop:10,height:4,background:"#21262D",borderRadius:999,overflow:"hidden"}}>
+                      <div style={{height:"100%",background:color,borderRadius:999,width:pct+"%",transition:"width 0.5s"}}/>
                     </div>
-                    <div style={{display:"flex",alignItems:"center",justifyContent:"space-between"}}>
-                      <p style={{color:"#6b7280",fontSize:12,margin:0}}>Click to continue reviewing</p>
-                      <ChevronRight size={16} color={color}/>
-                    </div>
-                    {prog.total>0&&(
-                      <div style={{marginTop:10,height:4,background:"#21262D",borderRadius:999,overflow:"hidden"}}>
-                        <div style={{height:"100%",background:color,borderRadius:999,width:pct+"%",transition:"width 0.5s"}}/>
-                      </div>
-                    )}
-                  </a>
-                );
-              })}
-
-              {/* Completed forms */}
-              {doneForms.length>0&&(
-                <div style={{marginTop:pendingForms.length>0?8:0}}>
-                  {pendingForms.length>0&&<p style={{color:"#4b5563",fontSize:11,textTransform:"uppercase",letterSpacing:"0.06em",margin:"0 0 8px"}}>Completed</p>}
-                  {doneForms.map(form=>{
-                    const color=getColor(form);
-                    const prog=formProgress[form.id];
-                    return(
-                      <a key={form.id} href={"/form/"+form.id+"?email="+encodeURIComponent(e)}
-                        style={{display:"block",background:"#161B22",border:"1px solid rgba(34,197,94,0.3)",borderRadius:14,padding:20,textDecoration:"none",marginBottom:8,opacity:0.7,transition:"all 0.2s",position:"relative",overflow:"hidden"}}
-                        onMouseOver={ev=>{ev.currentTarget.style.opacity="1";ev.currentTarget.style.borderColor="rgba(34,197,94,0.6)";}}
-                        onMouseOut={ev=>{ev.currentTarget.style.opacity="0.7";ev.currentTarget.style.borderColor="rgba(34,197,94,0.3)";}}>
-                        <div style={{height:3,background:"#22c55e",position:"absolute",top:0,left:0,width:"100%"}}/>
-                        <div style={{display:"flex",alignItems:"center",justifyContent:"space-between"}}>
-                          <p style={{color:"white",fontSize:15,fontWeight:700,margin:0}}>{form.name}</p>
-                          <span style={{fontSize:11,color:"#22c55e",background:"rgba(34,197,94,0.12)",padding:"3px 10px",borderRadius:999,fontWeight:600,display:"flex",alignItems:"center",gap:4}}>
-                            <CheckCircle size={11}/> Done {prog?.reviewed}/{prog?.total}
-                          </span>
-                        </div>
-                      </a>
-                    );
-                  })}
-                </div>
-              )}
-            </>
+                  )}
+                </a>
+              );
+            })
           )}
         </div>
       )}
