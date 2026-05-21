@@ -65,8 +65,14 @@ function ScoreBar({score}){
 }
 
 function Board({title,icon,color,people,allForms,allSubs={},configForms=[],rrConfig=null,flaggedEntries=[]}){
-  const ranked=people.filter(p=>p.score!==null).sort((a,b)=>b.score-a.score);
-  const pending=people.filter(p=>p.score===null);
+  const scored=people.map(p=>({
+    ...p,
+    score:calcScore(p.name,configForms,allForms,allSubs,
+      flaggedEntries.some(f=>f.personName===p.name)?rrConfig:null,
+      flaggedEntries)
+  }));
+  const ranked=scored.filter(p=>p.score!==null).sort((a,b)=>b.score-a.score);
+  const pending=scored.filter(p=>p.score===null);
   return(
     <div style={{background:"#161B22",border:"1px solid #21262D",borderRadius:14,overflow:"hidden"}}>
       <div style={{padding:"16px 20px",borderBottom:"1px solid #21262D",display:"flex",alignItems:"center",gap:12}}>
@@ -85,9 +91,9 @@ function Board({title,icon,color,people,allForms,allSubs={},configForms=[],rrCon
             <Av name={person.name} size={36}/>
             <div style={{flex:1,minWidth:0}}>
               <p style={{color:"white",fontSize:13,fontWeight:700,margin:0}}>{person.name}
-                {person.isFlagged&&<span style={{marginLeft:6,fontSize:9,color:"#F59E0B",background:"rgba(245,158,11,0.1)",padding:"1px 5px",borderRadius:999}}>⚠️ RR</span>}
+                {flaggedEntries.some(f=>f.personName===person.name)&&<span style={{marginLeft:6,fontSize:9,color:"#F59E0B",background:"rgba(245,158,11,0.1)",padding:"1px 5px",borderRadius:999}}>⚠️ RR</span>}
               </p>
-              <p style={{color:"#6b7280",fontSize:11,margin:"4px 0 0"}}>{(person.designations||[]).filter(d=>d!=="Team Member").join(", ")}</p>
+              <p style={{color:"#6b7280",fontSize:11,margin:"4px 0 0"}}>{(person.designations||[]).join(", ")}</p>
             </div>
             <div style={{minWidth:160}}><ScoreBar score={person.score}/></div>
             <div style={{display:"flex",gap:4,flexShrink:0}}>
@@ -146,14 +152,16 @@ export default function Leaderboard(){
       }));
       setAllSubs(subsMap);
       // Load all config data before showing leaderboard
-      const [cfg,rr,fl2]=await Promise.all([
+      const [cfg,rr,fl2,mg]=await Promise.all([
         getMarkingConfig().catch(()=>null),
         getReReview().catch(()=>[]),
-        getFlagged().catch(()=>[])
+        getFlagged().catch(()=>[]),
+        getMarkingGroups().catch(()=>[])
       ]);
       if(cfg) setConfig(cfg);
       setRrData(rr||[]);
       setFlaggedData(fl2||[]);
+      setMarkingGroupsData(mg||[]);
       setConfigLoaded(true);
       setLoading(false);
     }).catch(()=>{ setLoading(false); setConfigLoaded(true); });
