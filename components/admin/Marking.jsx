@@ -120,7 +120,7 @@ function GroupConfigurator({group,allForms,designations,onChange,onDelete}){
             <select onChange={e=>{if(e.target.value)addForm(e.target.value);e.target.value="";}} defaultValue=""
               style={{background:"#0D1117",border:"1px dashed #30363D",borderRadius:10,padding:"10px 14px",color:"#6b7280",fontSize:13,outline:"none",cursor:"pointer",width:"100%"}}>
               <option value="">+ Add a form</option>
-              {avail.map(f=><option key={f.id} value={f.id} style={{background:"#161B22",color:"white"}}>{f.name}</option>)}
+              {avail.map(f=><option key={f.id} value={f.id} style={{background:"#161B22",color:"white"}}>{f.name}{f.description?" — "+f.description:""} ({f.fields?.filter(x=>x.type==="rating").length||0} rating fields)</option>)}
             </select>
           )}
 
@@ -346,11 +346,13 @@ export default function Marking(){
       {view==="config"&&(
         <div style={{display:"flex",flexDirection:"column",gap:16}}>
           {/* Groups */}
-          {groups.map(group=>(
-            <GroupConfigurator key={group.groupId} group={group} allForms={forms}
+          {groups.map((group,i)=>(
+            <div key={group.groupId} style={{marginBottom:8}}>
+            <GroupConfigurator group={group} allForms={forms}
               designations={designations}
               onChange={updated=>updateGroup(group.groupId,updated)}
               onDelete={deleteGroup}/>
+            </div>
           ))}
 
           {/* Add group */}
