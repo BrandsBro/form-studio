@@ -47,7 +47,8 @@ export default function Home(){
     const e=params.get("email");
     if(e){
       setEmail(e);
-      handleFindWithEmail(e.toLowerCase().trim());
+      // Small delay to ensure sheets has latest data
+      setTimeout(()=>handleFindWithEmail(e.toLowerCase().trim()),800);
     }
   },[]);
 
