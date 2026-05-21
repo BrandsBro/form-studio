@@ -36,8 +36,9 @@ function calcPersonScore(personName, groupForms, allForms, allSubs){
   let weightedSum=0, hasData=false;
   groupForms.forEach(cf=>{
     const form=allForms.find(f=>f.id===cf.formId);
-    if(!form) return;
+    if(!form){ console.log("FORM NOT FOUND:",cf.formId); return; }
     const avg=getFormAvg(personName, cf.formId, form.fields||[], allSubs);
+    console.log("calcScore:",personName, cf.formId, "avg:",avg, "subs:",(allSubs[cf.formId]||[]).filter(s=>s.personName===personName).length);
     if(avg!==null){
       weightedSum+=avg*(cf.weight/100);
       hasData=true;
