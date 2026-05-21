@@ -1,5 +1,5 @@
 "use client";
-import { getForms, getPeople, getSubmissions, getMarkingConfig, getReReview, saveReReview, deleteReReview, getFlagged, saveFlagged, deleteFlagged } from "@/lib/sheets";
+import { getForms, getPeople, getSubmissions, getMarkingConfig, getReReview, saveReReview, deleteReReview, getFlagged, saveFlagged, deleteFlagged, getMarkingGroups } from "@/lib/sheets";
 import { useState, useEffect } from "react";
 import { Settings, Save, Trash2, RotateCcw } from "lucide-react";
 
@@ -17,66 +17,85 @@ function getReviewerScore(reviewerEmail,personName,formId,formFields,allSubs){
   return rFields.map(f=>sub.values?.[f.id]||0).reduce((a,b)=>a+b,0)/rFields.length;
 }
 
-function ConfigPanel({title,color,configForms,config,onConfigChange,onSave,saving,saved,children}){
-  const flaggedWeight=configForms.find(cf=>cf.formId===config.flaggedFormId)?.weight||0;
-  const total=(config.r1Pct||0)+(config.r2Pct||0);
-  const valid=config.flaggedFormId&&config.r1Id&&config.r2Id&&total===flaggedWeight;
+// Per-person config panel — shows group forms as replacement options
+function PersonConfigPanel({personName,groupForms,allForms,existingRR,onSave,onDelete}){
+  const [flaggedFormId,setFlaggedFormId]=useState(existingRR?.flaggedFormId||"");
+  const [r1Id,setR1Id]=useState(existingRR?.replace1Id||"");
+  const [r1Pct,setR1Pct]=useState(Number(existingRR?.replace1Pct)||0);
+  const [r2Id,setR2Id]=useState(existingRR?.replace2Id||"");
+  const [r2Pct,setR2Pct]=useState(Number(existingRR?.replace2Pct)||0);
+  const [saving,setSaving]=useState(false);
+
+  const flaggedWeight=groupForms.find(f=>f.formId===flaggedFormId)?.weight||0;
+  const total=r1Pct+r2Pct;
+  const valid=flaggedFormId&&r1Id&&r2Id&&r1Id!==r2Id&&total===flaggedWeight;
+  const replaceOptions=groupForms.filter(f=>f.formId!==flaggedFormId);
+
+  async function doSave(){
+    setSaving(true);
+    const ff=allForms.find(f=>f.id===flaggedFormId);
+    const rf1=allForms.find(f=>f.id===r1Id);
+    const rf2=allForms.find(f=>f.id===r2Id);
+    await onSave({flaggedFormId,flaggedFormName:ff?.name||"",replace1Id:r1Id,replace1Name:rf1?.name||"",replace1Pct:r1Pct,replace2Id:r2Id,replace2Name:rf2?.name||"",replace2Pct:r2Pct});
+    setSaving(false);
+  }
+
   return(
-    <div style={{display:"flex",flexDirection:"column",gap:12}}>
-      <div style={{display:"flex",alignItems:"center",gap:10,paddingBottom:8,borderBottom:"1px solid #21262D"}}>
-        <div style={{width:10,height:10,borderRadius:"50%",background:color}}/>
-        <p style={{color:"white",fontSize:15,fontWeight:700,margin:0}}>{title}</p>
+    <div style={{background:"#0D1117",border:"1px solid #21262D",borderRadius:10,padding:14,display:"flex",flexDirection:"column",gap:10,marginTop:8}}>
+      {/* Flagged form */}
+      <div style={{display:"flex",alignItems:"center",gap:10}}>
+        <span style={{color:"#ef4444",fontSize:12,fontWeight:600,minWidth:90,flexShrink:0}}>Flag Form:</span>
+        <select value={flaggedFormId} onChange={e=>setFlaggedFormId(e.target.value)}
+          style={{flex:1,background:"#161B22",border:"1px solid #21262D",borderRadius:7,padding:"7px 10px",color:flaggedFormId?"white":"#6b7280",fontSize:12,outline:"none"}}>
+          <option value="">Select form to flag</option>
+          {groupForms.map(f=><option key={f.formId} value={f.formId} style={{background:"#161B22"}}>{f.name} ({f.weight}%)</option>)}
+        </select>
       </div>
-      <div style={{background:"#161B22",border:"1px solid #21262D",borderRadius:12,padding:16,display:"flex",flexDirection:"column",gap:12}}>
-        <p style={{color:"#9ca3af",fontSize:12,margin:0,fontWeight:600,textTransform:"uppercase",letterSpacing:"0.06em"}}>Form Configuration</p>
-        <div style={{display:"flex",alignItems:"center",gap:10}}>
-          <span style={{color:"#ef4444",fontSize:12,fontWeight:600,minWidth:100}}>Flagged Form:</span>
-          <select value={config.flaggedFormId||""} onChange={e=>onConfigChange({...config,flaggedFormId:e.target.value})}
-            style={{flex:1,background:"#0D1117",border:"1px solid #21262D",borderRadius:8,padding:"8px 12px",color:config.flaggedFormId?"white":"#6b7280",fontSize:13,outline:"none"}}>
-            <option value="">Select flagged form</option>
-            {configForms.map(cf=><option key={cf.formId} value={cf.formId} style={{background:"#161B22"}}>{cf.name} ({cf.weight}%)</option>)}
-          </select>
-        </div>
-        <div style={{display:"flex",alignItems:"center",gap:10}}>
-          <span style={{color:"#22c55e",fontSize:12,fontWeight:600,minWidth:100}}>Replace Form 1:</span>
-          <select value={config.r1Id||""} onChange={e=>onConfigChange({...config,r1Id:e.target.value})}
-            style={{flex:1,background:"#0D1117",border:"1px solid #21262D",borderRadius:8,padding:"8px 12px",color:config.r1Id?"white":"#6b7280",fontSize:13,outline:"none"}}>
-            <option value="">Select replacement form 1</option>
-            {configForms.filter(cf=>cf.formId!==config.flaggedFormId&&cf.formId!==config.r2Id).map(cf=><option key={cf.formId} value={cf.formId} style={{background:"#161B22"}}>{cf.name} ({cf.weight}%)</option>)}
-          </select>
-          <input type="number" value={config.r1Pct||0} min="0" max="100"
-            onChange={e=>onConfigChange({...config,r1Pct:Math.min(100,Math.max(0,parseInt(e.target.value)||0))})}
-            style={{width:56,background:"#0D1117",border:"1px solid #21262D",borderRadius:7,padding:"8px",color:"white",fontSize:13,outline:"none",textAlign:"center"}}/>
-          <span style={{color:"#6b7280",fontSize:13}}>%</span>
-        </div>
-        <div style={{display:"flex",alignItems:"center",gap:10}}>
-          <span style={{color:"#22c55e",fontSize:12,fontWeight:600,minWidth:100}}>Replace Form 2:</span>
-          <select value={config.r2Id||""} onChange={e=>onConfigChange({...config,r2Id:e.target.value})}
-            style={{flex:1,background:"#0D1117",border:"1px solid #21262D",borderRadius:8,padding:"8px 12px",color:config.r2Id?"white":"#6b7280",fontSize:13,outline:"none"}}>
-            <option value="">Select replacement form 2</option>
-            {configForms.filter(cf=>cf.formId!==config.flaggedFormId&&cf.formId!==config.r1Id).map(cf=><option key={cf.formId} value={cf.formId} style={{background:"#161B22"}}>{cf.name} ({cf.weight}%)</option>)}
-          </select>
-          <input type="number" value={config.r2Pct||0} min="0" max="100"
-            onChange={e=>onConfigChange({...config,r2Pct:Math.min(100,Math.max(0,parseInt(e.target.value)||0))})}
-            style={{width:56,background:"#0D1117",border:"1px solid #21262D",borderRadius:7,padding:"8px",color:"white",fontSize:13,outline:"none",textAlign:"center"}}/>
-          <span style={{color:"#6b7280",fontSize:13}}>%</span>
-        </div>
-        {config.flaggedFormId&&config.r1Id&&config.r2Id&&(
-          <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",flexWrap:"wrap",gap:8}}>
-            <span style={{fontSize:12,color:valid?"#22c55e":total>flaggedWeight?"#ef4444":"#F59E0B"}}>
-              {valid?`✓ ${total}% = ${flaggedWeight}% correct`:total>flaggedWeight?`${total}% over by ${total-flaggedWeight}%`:`${total}% / ${flaggedWeight}% needed`}
-            </span>
-            {onSave&&(
-              <button onClick={onSave} disabled={!valid||saving}
-                style={{padding:"8px 18px",borderRadius:8,border:"none",background:valid&&!saving?saved?"#16a34a":"linear-gradient(135deg,#D97706,#F59E0B)":"#21262D",color:valid&&!saving?"#000":"#4b5563",fontSize:12,fontWeight:700,cursor:valid&&!saving?"pointer":"not-allowed",display:"flex",alignItems:"center",gap:5}}>
-                {saving?<Spinner/>:<Save size={12}/>}
-                {saving?"Saving...":saved?"Saved!":"Save Config"}
-              </button>
-            )}
-          </div>
+      {/* Replace 1 */}
+      <div style={{display:"flex",alignItems:"center",gap:10}}>
+        <span style={{color:"#22c55e",fontSize:12,fontWeight:600,minWidth:90,flexShrink:0}}>Replace 1:</span>
+        <select value={r1Id} onChange={e=>setR1Id(e.target.value)}
+          style={{flex:1,background:"#161B22",border:"1px solid #21262D",borderRadius:7,padding:"7px 10px",color:r1Id?"white":"#6b7280",fontSize:12,outline:"none"}}>
+          <option value="">Select form</option>
+          {replaceOptions.filter(f=>f.formId!==r2Id).map(f=><option key={f.formId} value={f.formId} style={{background:"#161B22"}}>{f.name} ({f.weight}%)</option>)}
+        </select>
+        <input type="number" value={r1Pct} min="0" max="100"
+          onChange={e=>setR1Pct(Math.min(100,Math.max(0,parseInt(e.target.value)||0)))}
+          style={{width:52,background:"#161B22",border:"1px solid #21262D",borderRadius:6,padding:"7px",color:"white",fontSize:12,outline:"none",textAlign:"center"}}/>
+        <span style={{color:"#6b7280",fontSize:12}}>%</span>
+      </div>
+      {/* Replace 2 */}
+      <div style={{display:"flex",alignItems:"center",gap:10}}>
+        <span style={{color:"#22c55e",fontSize:12,fontWeight:600,minWidth:90,flexShrink:0}}>Replace 2:</span>
+        <select value={r2Id} onChange={e=>setR2Id(e.target.value)}
+          style={{flex:1,background:"#161B22",border:"1px solid #21262D",borderRadius:7,padding:"7px 10px",color:r2Id?"white":"#6b7280",fontSize:12,outline:"none"}}>
+          <option value="">Select form</option>
+          {replaceOptions.filter(f=>f.formId!==r1Id).map(f=><option key={f.formId} value={f.formId} style={{background:"#161B22"}}>{f.name} ({f.weight}%)</option>)}
+        </select>
+        <input type="number" value={r2Pct} min="0" max="100"
+          onChange={e=>setR2Pct(Math.min(100,Math.max(0,parseInt(e.target.value)||0)))}
+          style={{width:52,background:"#161B22",border:"1px solid #21262D",borderRadius:6,padding:"7px",color:"white",fontSize:12,outline:"none",textAlign:"center"}}/>
+        <span style={{color:"#6b7280",fontSize:12}}>%</span>
+      </div>
+      {/* Validation + Save */}
+      <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:8,flexWrap:"wrap"}}>
+        {flaggedFormId&&r1Id&&r2Id&&(
+          <span style={{fontSize:12,color:valid?"#22c55e":total>flaggedWeight?"#ef4444":"#F59E0B"}}>
+            {valid?`✓ ${total}% = ${flaggedWeight}%`:total>flaggedWeight?`${total}% over`:`${total}% / ${flaggedWeight}% needed`}
+          </span>
         )}
+        <div style={{display:"flex",gap:8,marginLeft:"auto"}}>
+          {existingRR&&<button onClick={onDelete}
+            style={{padding:"6px 12px",borderRadius:7,border:"1px solid rgba(239,68,68,0.3)",background:"transparent",color:"#ef4444",fontSize:11,cursor:"pointer",display:"flex",alignItems:"center",gap:4}}>
+            <Trash2 size={11}/> Remove
+          </button>}
+          <button onClick={doSave} disabled={!valid||saving}
+            style={{padding:"6px 14px",borderRadius:7,border:"none",background:valid&&!saving?"linear-gradient(135deg,#D97706,#F59E0B)":"#21262D",color:valid&&!saving?"#000":"#4b5563",fontSize:11,fontWeight:700,cursor:valid&&!saving?"pointer":"not-allowed",display:"flex",alignItems:"center",gap:4}}>
+            {saving?<Spinner/>:<Save size={11}/>}
+            {saving?"Saving...":"Save"}
+          </button>
+        </div>
       </div>
-      {children}
     </div>
   );
 }
@@ -85,44 +104,38 @@ export default function ReReview(){
   const [forms,setForms]=useState([]);
   const [allSubs,setAllSubs]=useState({});
   const [people,setPeople]=useState([]);
-  const [config,setConfig]=useState({teamMembers:{forms:[]},teamLeaders:{forms:[]}});
+  const [markingConfig,setMarkingConfig]=useState({groups:[]});
+  const [markingGroups,setMarkingGroups]=useState([]);
   const [rrData,setRrData]=useState([]);
   const [flaggedData,setFlaggedData]=useState([]);
   const [loading,setLoading]=useState(true);
   const [threshold,setThreshold]=useState(60);
   const [editThreshold,setEditThreshold]=useState(false);
   const [invalidated,setInvalidated]=useState({});
-  const [invalidating,setInvalidating]=useState(null);
-  const [tlConfig,setTlConfig]=useState({flaggedFormId:"",r1Id:"",r1Pct:0,r2Id:"",r2Pct:0});
-  const [tlSaving,setTlSaving]=useState(false);
-  const [tlSaved,setTlSaved]=useState(false);
-  const [tmConfig,setTmConfig]=useState({flaggedFormId:"",r1Id:"",r1Pct:0,r2Id:"",r2Pct:0});
-  const [tmSaving,setTmSaving]=useState(false);
-  const [tmSaved,setTmSaved]=useState(false);
-  const [tmSavingFor,setTmSavingFor]=useState(null);
-  const [tmRemoving,setTmRemoving]=useState(null);
+  const [invalidating,setInvalidating]=null);
+  const [expandedPerson,setExpandedPerson]=useState(null);
+  const [expandedMissing,setExpandedMissing]=useState(null);
 
   useEffect(()=>{
     getForms().then(async fl=>{
       setForms(fl);
-      getPeople().then(setPeople);
-      getMarkingConfig().then(cfg=>{ if(cfg) setConfig(cfg); }).catch(()=>{});
-      getFlagged().then(fl2=>{
-        setFlaggedData(fl2||[]);
-        const inv={};
-        (fl2||[]).filter(f=>f.type==="TL").forEach(f=>{ inv[`${f.reviewerEmail}_${f.personName}_${f.formId}`]=true; });
-        setInvalidated(inv);
-      }).catch(()=>{});
-      getReReview().then(rr=>{
-        setRrData(rr||[]);
-        const tls=rr?.find(r=>r.personName==="__TL_CONFIG__");
-        if(tls){
-          if(tls.threshold) setThreshold(Number(tls.threshold));
-          setTlConfig({flaggedFormId:tls.flaggedFormId,r1Id:tls.replace1Id,r1Pct:Number(tls.replace1Pct),r2Id:tls.replace2Id,r2Pct:Number(tls.replace2Pct)});
-        }
-        const tms=rr?.find(r=>r.personName==="__TM_CONFIG__");
-        if(tms) setTmConfig({flaggedFormId:tms.flaggedFormId,r1Id:tms.replace1Id,r1Pct:Number(tms.replace1Pct),r2Id:tms.replace2Id,r2Pct:Number(tms.replace2Pct)});
-      }).catch(()=>{});
+      const [p,cfg,mg,rr,fl2]=await Promise.all([
+        getPeople().catch(()=>[]),
+        getMarkingConfig().catch(()=>({groups:[]})),
+        getMarkingGroups().catch(()=>[]),
+        getReReview().catch(()=>[]),
+        getFlagged().catch(()=>[]),
+      ]);
+      setPeople(p||[]);
+      setMarkingConfig(cfg||{groups:[]});
+      setMarkingGroups(mg||[]);
+      setRrData(rr||[]);
+      setFlaggedData(fl2||[]);
+      // Restore invalidated state
+      const inv={};
+      (fl2||[]).filter(f=>f.reviewerEmail).forEach(f=>{ inv[`${f.reviewerEmail}_${f.personName}_${f.formId}`]=true; });
+      setInvalidated(inv);
+      // Load submissions
       const subsMap={};
       await Promise.all(fl.map(async f=>{ try{ subsMap[f.id]=await getSubmissions(f.id); }catch{ subsMap[f.id]=[]; } }));
       setAllSubs(subsMap);
@@ -130,39 +143,59 @@ export default function ReReview(){
     }).catch(()=>setLoading(false));
   },[]);
 
-  async function saveTLConfig(){
-    setTlSaving(true);
-    const ff=config.teamLeaders.forms.find(cf=>cf.formId===tlConfig.flaggedFormId);
-    await saveReReview({personName:"__TL_CONFIG__",type:"TL",threshold,flaggedFormId:tlConfig.flaggedFormId,flaggedFormName:ff?.name||"",replace1Id:tlConfig.r1Id,replace1Name:config.teamLeaders.forms.find(cf=>cf.formId===tlConfig.r1Id)?.name||"",replace1Pct:tlConfig.r1Pct,replace2Id:tlConfig.r2Id,replace2Name:config.teamLeaders.forms.find(cf=>cf.formId===tlConfig.r2Id)?.name||"",replace2Pct:tlConfig.r2Pct});
-    setRrData(prev=>[...prev.filter(r=>r.personName!=="__TL_CONFIG__"),{personName:"__TL_CONFIG__",type:"TL",flaggedFormId:tlConfig.flaggedFormId,replace1Id:tlConfig.r1Id,replace1Pct:tlConfig.r1Pct,replace2Id:tlConfig.r2Id,replace2Pct:tlConfig.r2Pct}]);
-    setTlSaving(false); setTlSaved(true);
-    setTimeout(()=>setTlSaved(false),2000);
+  // Get group for a person
+  function getPersonGroup(personName){
+    const mg=markingGroups.find(mg=>mg.personName===personName);
+    if(!mg) return null;
+    return (markingConfig.groups||[]).find(g=>g.groupId===mg.groupId)||null;
   }
 
-  async function saveTMConfig(personName){
-    setTmSaving(true); setTmSavingFor(personName);
-    const ff=config.teamMembers.forms.find(cf=>cf.formId===tmConfig.flaggedFormId);
-    await saveFlagged({personName,type:"TM",formId:tmConfig.flaggedFormId,formName:ff?.name||"",reviewerEmail:""});
-    setFlaggedData(prev=>[...prev.filter(f=>!(f.personName===personName&&f.type==="TM")),{personName,type:"TM",formId:tmConfig.flaggedFormId,formName:ff?.name||"",reviewerEmail:""}]);
-    setTmSaving(false); setTmSavingFor(null); setTmSaved(true);
-    setTimeout(()=>setTmSaved(false),2000);
+  function getGroupForms(personName){
+    const group=getPersonGroup(personName);
+    return group?.forms||[];
   }
 
-  async function removeTMFlagged(personName){
-    setTmRemoving(personName);
-    const entry=flaggedData.find(f=>f.personName===personName&&f.type==="TM");
-    if(entry) await deleteFlagged({personName,formId:entry.formId,reviewerEmail:""});
-    setFlaggedData(prev=>prev.filter(f=>!(f.personName===personName&&f.type==="TM")));
-    setTmRemoving(null);
-  }
+  // Threshold flags — check all people across all forms
+  const thresholdFlags=[];
+  people.forEach(person=>{
+    const groupForms=getGroupForms(person.name);
+    groupForms.forEach(cf=>{
+      const form=forms.find(f=>f.id===cf.formId);
+      if(!form) return;
+      const subs=allSubs[cf.formId]||[];
+      const personSubs=subs.filter(s=>s.personName===person.name);
+      personSubs.forEach(sub=>{
+        const score=getReviewerScore(sub.reviewerEmail,person.name,cf.formId,form.fields||[],allSubs);
+        if(score===null) return;
+        const pct=(score/5)*100;
+        if(pct<=threshold){
+          thresholdFlags.push({personName:person.name,formId:cf.formId,formName:form.name,formWeight:cf.weight,reviewerEmail:sub.reviewerEmail,score,pct:pct.toFixed(1)});
+        }
+      });
+    });
+  });
+
+  // Missing persons — only 1 reviewer on any form in their group
+  const missingPersons=[];
+  people.forEach(person=>{
+    const groupForms=getGroupForms(person.name);
+    groupForms.forEach(cf=>{
+      const subs=(allSubs[cf.formId]||[]).filter(s=>s.personName===person.name);
+      if(subs.length===1){
+        const existing=missingPersons.find(m=>m.personName===person.name);
+        if(!existing) missingPersons.push({personName:person.name,forms:[{formId:cf.formId,formName:cf.name,reviewerCount:1}]});
+        else existing.forms.push({formId:cf.formId,formName:cf.name,reviewerCount:1});
+      }
+    });
+  });
 
   async function toggleInvalidate(key,personName,formId,formName,reviewerEmail){
     const isInv=!!invalidated[key];
     setInvalidating(key);
     setInvalidated(prev=>({...prev,[key]:!isInv}));
     if(!isInv){
-      await saveFlagged({personName,type:"TL",formId,formName,reviewerEmail});
-      setFlaggedData(prev=>[...prev,{personName,type:"TL",formId,formName,reviewerEmail}]);
+      await saveFlagged({personName,type:"threshold",formId,formName,reviewerEmail,groupId:getPersonGroup(personName)?.groupId||""});
+      setFlaggedData(prev=>[...prev,{personName,type:"threshold",formId,formName,reviewerEmail}]);
     } else {
       await deleteFlagged({personName,formId,reviewerEmail});
       setFlaggedData(prev=>prev.filter(f=>!(f.personName===personName&&f.formId===formId&&f.reviewerEmail===reviewerEmail)));
@@ -170,21 +203,22 @@ export default function ReReview(){
     setInvalidating(null);
   }
 
-  const tlConfigForms=config.teamLeaders.forms;
-  const tlFlaggedForm=forms.find(f=>f.id===tlConfig.flaggedFormId);
-  const tlSubs=allSubs[tlConfig.flaggedFormId]||[];
-  const tlPersons=[...new Set(tlSubs.map(s=>s.personName))];
+  async function handleSaveRR(personName,data){
+    const group=getPersonGroup(personName);
+    await saveReReview({personName,type:"threshold",groupId:group?.groupId||"",...data});
+    setRrData(prev=>[...prev.filter(r=>!(r.personName===personName&&r.flaggedFormId===data.flaggedFormId)),{personName,type:"threshold",groupId:group?.groupId||"",...data}]);
+  }
 
-  const deptGroups={};
-  people.forEach(p=>{ const d=p.department||"Unknown"; if(!deptGroups[d])deptGroups[d]=[]; deptGroups[d].push(p); });
-  const loneTMs=Object.entries(deptGroups)
-    .filter(([,m])=>m.filter(p=>(p.designations||[]).includes("Team Member")).length===1)
-    .map(([dept,m])=>({dept,person:m.find(p=>(p.designations||[]).includes("Team Member"))}))
-    .filter(x=>x.person);
-  const tmConfigForms=config.teamMembers.forms;
-  const tmFlaggedWeight=tmConfigForms.find(cf=>cf.formId===tmConfig.flaggedFormId)?.weight||0;
-  const tmTotal=(tmConfig.r1Pct||0)+(tmConfig.r2Pct||0);
-  const tmValid=tmConfig.flaggedFormId&&tmConfig.r1Id&&tmConfig.r2Id&&tmTotal===tmFlaggedWeight;
+  async function handleDeleteRR(personName,flaggedFormId){
+    await deleteReReview({personName,flaggedFormId});
+    setRrData(prev=>prev.filter(r=>!(r.personName===personName&&r.flaggedFormId===flaggedFormId)));
+  }
+
+  async function handleSaveMissingRR(personName,data){
+    const group=getPersonGroup(personName);
+    await saveReReview({personName,type:"missing",groupId:group?.groupId||"",...data});
+    setRrData(prev=>[...prev.filter(r=>!(r.personName===personName&&r.flaggedFormId===data.flaggedFormId)),{personName,type:"missing",groupId:group?.groupId||"",...data}]);
+  }
 
   if(loading) return(
     <div style={{display:"flex",flexDirection:"column",gap:16}}>
@@ -203,7 +237,7 @@ export default function ReReview(){
       <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",flexWrap:"wrap",gap:12}}>
         <div>
           <h2 style={{color:"white",fontSize:18,fontWeight:700,margin:0,fontFamily:"var(--font-playfair)"}}>⚠️ Re-Review</h2>
-          <p style={{color:"#6b7280",fontSize:13,margin:"3px 0 0"}}>Flag reviewers → assign replacement forms → recalculate scores</p>
+          <p style={{color:"#6b7280",fontSize:13,margin:"3px 0 0"}}>Flag reviewers below threshold · detect missing reviewers · recalculate scores</p>
         </div>
         {editThreshold?(
           <div style={{display:"flex",alignItems:"center",gap:8,background:"#161B22",border:"1px solid rgba(245,158,11,0.4)",borderRadius:9,padding:"6px 14px"}}>
@@ -225,10 +259,10 @@ export default function ReReview(){
       {/* Stats */}
       <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(130px,1fr))",gap:10}}>
         {[
-          {l:"TL Invalidated",v:flaggedData.filter(f=>f.type==="TL").length,c:"#ef4444"},
-          {l:"Lone TMs Flagged",v:flaggedData.filter(f=>f.type==="TM").length,c:"#8B5CF6"},
-          {l:"TL Config",v:rrData.find(r=>r.personName==="__TL_CONFIG__")?"Set":"Not set",c:rrData.find(r=>r.personName==="__TL_CONFIG__")?"#22c55e":"#6b7280"},
-          {l:"TM Config",v:rrData.find(r=>r.personName==="__TM_CONFIG__")?"Set":"Not set",c:rrData.find(r=>r.personName==="__TM_CONFIG__")?"#22c55e":"#6b7280"},
+          {l:"Below Threshold",v:thresholdFlags.length,c:"#ef4444"},
+          {l:"Invalidated",v:flaggedData.filter(f=>f.reviewerEmail).length,c:"#F59E0B"},
+          {l:"Missing Reviewer",v:missingPersons.length,c:"#8B5CF6"},
+          {l:"Saved RR",v:rrData.length,c:"#22c55e"},
         ].map(s=>(
           <div key={s.l} style={{background:"#161B22",border:"1px solid #21262D",borderRadius:10,padding:"12px 16px"}}>
             <p style={{color:s.c,fontSize:20,fontWeight:800,margin:0}}>{s.v}</p>
@@ -237,128 +271,168 @@ export default function ReReview(){
         ))}
       </div>
 
-      {/* ── TEAM LEADERS ── */}
-      <ConfigPanel title="Team Leader Re-Review" color="#ef4444"
-        configForms={tlConfigForms} config={tlConfig} onConfigChange={setTlConfig}
-        onSave={saveTLConfig} saving={tlSaving} saved={tlSaved}>
-        {tlConfig.flaggedFormId&&tlFlaggedForm&&(
-          <div style={{display:"flex",flexDirection:"column",gap:8}}>
-            <p style={{color:"#9ca3af",fontSize:12,margin:0}}>
-              Reviewers on <span style={{color:"#F59E0B",fontWeight:600}}>{tlFlaggedForm.name}</span> — Invalidate to flag:
-            </p>
-            {tlPersons.length===0?(
-              <div style={{textAlign:"center",padding:"20px",background:"#161B22",borderRadius:10,border:"1px solid #21262D",color:"#4b5563",fontSize:13}}>
-                No submissions on this form yet
-              </div>
-            ):(
-              tlPersons.map(personName=>{
-                const personSubs=tlSubs.filter(s=>s.personName===personName);
-                return(
-                  <div key={personName} style={{background:"#161B22",border:"1px solid #21262D",borderRadius:12,padding:14}}>
-                    <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:10}}>
-                      <Av name={personName} size={32}/>
-                      <p style={{color:"white",fontSize:13,fontWeight:700,margin:0}}>{personName}</p>
-                    </div>
-                    {personSubs.map(sub=>{
-                      const score=getReviewerScore(sub.reviewerEmail,personName,tlConfig.flaggedFormId,tlFlaggedForm.fields||[],allSubs);
-                      const pct=score!==null?(score/5*100):null;
-                      const key=`${sub.reviewerEmail}_${personName}_${tlConfig.flaggedFormId}`;
-                      const isInv=!!invalidated[key];
-                      const belowThreshold=pct!==null&&pct<=threshold;
-                      const isInvalidating=invalidating===key;
-                      return(
-                        <div key={sub.reviewerEmail} style={{display:"flex",alignItems:"center",gap:10,padding:"8px 12px",background:"#0D1117",borderRadius:8,marginBottom:6,border:"1px solid "+(isInv?"rgba(239,68,68,0.3)":belowThreshold?"rgba(245,158,11,0.2)":"#21262D")}}>
-                          <p style={{color:"#9ca3af",fontSize:12,margin:0,flex:1}}>{sub.reviewerEmail}</p>
-                          {pct!==null&&(
-                            <span style={{fontSize:12,fontWeight:700,color:pct<=threshold?"#ef4444":"#22c55e",background:pct<=threshold?"rgba(239,68,68,0.1)":"rgba(34,197,94,0.1)",padding:"2px 8px",borderRadius:999}}>
-                              {pct.toFixed(1)}%
-                            </span>
-                          )}
-                          {belowThreshold&&(
-                            <button onClick={()=>toggleInvalidate(key,personName,tlConfig.flaggedFormId,tlFlaggedForm.name,sub.reviewerEmail)}
-                              disabled={!!invalidating}
-                              style={{padding:"5px 12px",borderRadius:7,border:"1px solid "+(isInv?"rgba(34,197,94,0.4)":"#21262D"),background:isInv?"rgba(34,197,94,0.1)":"transparent",color:isInv?"#22c55e":"#9ca3af",fontSize:11,fontWeight:700,cursor:"pointer",display:"flex",alignItems:"center",gap:4}}>
-                              {isInvalidating&&<Spinner/>}
-                              {isInvalidating?"...":(isInv?"Restore":"Invalidate")}
-                            </button>
-                          )}
-                        </div>
-                      );
-                    })}
-                  </div>
-                );
-              })
-            )}
-          </div>
-        )}
-      </ConfigPanel>
+      {/* ── SECTION 1: THRESHOLD FLAGS ── */}
+      <div style={{display:"flex",flexDirection:"column",gap:12}}>
+        <div style={{display:"flex",alignItems:"center",gap:10,paddingBottom:8,borderBottom:"1px solid #21262D"}}>
+          <div style={{width:10,height:10,borderRadius:"50%",background:"#ef4444"}}/>
+          <p style={{color:"white",fontSize:15,fontWeight:700,margin:0}}>Threshold Flags</p>
+          <span style={{fontSize:11,color:"#6b7280",background:"#21262D",padding:"2px 10px",borderRadius:999}}>reviewers below {threshold}%</span>
+        </div>
 
-      {/* ── LONE TEAM MEMBERS ── */}
-      <ConfigPanel title="Team Member Re-Review (Lone TM)" color="#8B5CF6"
-        configForms={tmConfigForms} config={tmConfig} onConfigChange={setTmConfig}
-        onSave={async()=>{
-          setTmSaving(true);
-          const ff=config.teamMembers.forms.find(cf=>cf.formId===tmConfig.flaggedFormId);
-          await saveReReview({personName:"__TM_CONFIG__",type:"TM",flaggedFormId:tmConfig.flaggedFormId,flaggedFormName:ff?.name||"",replace1Id:tmConfig.r1Id,replace1Name:config.teamMembers.forms.find(cf=>cf.formId===tmConfig.r1Id)?.name||"",replace1Pct:tmConfig.r1Pct,replace2Id:tmConfig.r2Id,replace2Name:config.teamMembers.forms.find(cf=>cf.formId===tmConfig.r2Id)?.name||"",replace2Pct:tmConfig.r2Pct});
-          setRrData(prev=>[...prev.filter(r=>r.personName!=="__TM_CONFIG__"),{personName:"__TM_CONFIG__",type:"TM",flaggedFormId:tmConfig.flaggedFormId,replace1Id:tmConfig.r1Id,replace1Pct:tmConfig.r1Pct,replace2Id:tmConfig.r2Id,replace2Pct:tmConfig.r2Pct}]);
-          setTmSaving(false); setTmSaved(true);
-          setTimeout(()=>setTmSaved(false),2000);
-        }} saving={tmSaving} saved={tmSaved}>
-
-        {loneTMs.length===0?(
-          <div style={{textAlign:"center",padding:"20px",background:"#161B22",borderRadius:10,border:"1px solid rgba(139,92,246,0.2)",color:"#8B5CF6",fontSize:13,fontWeight:600}}>
-            ✓ No lone Team Members found
+        {thresholdFlags.length===0?(
+          <div style={{textAlign:"center",padding:"24px",background:"#161B22",border:"1px solid rgba(34,197,94,0.2)",borderRadius:12,color:"#22c55e",fontSize:13,fontWeight:600}}>
+            ✓ No reviewers below threshold
           </div>
         ):(
-          loneTMs.map(({dept,person})=>{
-            const isSaved=flaggedData.some(f=>f.personName===person.name&&f.type==="TM");
+          // Group by person
+          [...new Set(thresholdFlags.map(f=>f.personName))].map(personName=>{
+            const personFlags=thresholdFlags.filter(f=>f.personName===personName);
+            const group=getPersonGroup(personName);
+            const groupForms=getGroupForms(personName);
+            const isExpanded=expandedPerson===personName;
+            const existingRR=rrData.find(r=>r.personName===personName&&r.type==="threshold");
             return(
-              <div key={person.name} style={{background:"#161B22",border:"1px solid "+(isSaved?"rgba(34,197,94,0.3)":"rgba(139,92,246,0.3)"),borderRadius:12,padding:16,display:"flex",alignItems:"center",justifyContent:"space-between",gap:12,flexWrap:"wrap"}}>
-                <div style={{display:"flex",alignItems:"center",gap:12}}>
-                  <Av name={person.name} size={40}/>
-                  <div>
-                    <p style={{color:"white",fontSize:14,fontWeight:700,margin:0}}>{person.name}</p>
-                    <p style={{color:"#8B5CF6",fontSize:12,margin:"3px 0 0"}}>⚠️ Only TM in {dept}</p>
-                    {isSaved&&<p style={{color:"#22c55e",fontSize:11,margin:"2px 0 0"}}>✓ Flagged</p>}
+              <div key={personName} style={{background:"#161B22",border:"1px solid #21262D",borderRadius:12,padding:16,display:"flex",flexDirection:"column",gap:12}}>
+                {/* Person header */}
+                <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:12,flexWrap:"wrap"}}>
+                  <div style={{display:"flex",alignItems:"center",gap:12}}>
+                    <Av name={personName} size={40}/>
+                    <div>
+                      <p style={{color:"white",fontSize:14,fontWeight:700,margin:0}}>{personName}</p>
+                      {group&&<p style={{color:gc(group.groupName),fontSize:11,margin:"2px 0 0"}}>Group: {group.groupName}</p>}
+                    </div>
+                  </div>
+                  <div style={{display:"flex",gap:8,alignItems:"center"}}>
+                    {existingRR&&<span style={{fontSize:11,color:"#22c55e",background:"rgba(34,197,94,0.1)",padding:"3px 10px",borderRadius:999,fontWeight:600}}>✓ RR Saved</span>}
+                    <button onClick={()=>setExpandedPerson(isExpanded?null:personName)}
+                      style={{padding:"6px 14px",borderRadius:8,border:"1px solid #21262D",background:isExpanded?"#21262D":"transparent",color:"#9ca3af",fontSize:12,cursor:"pointer"}}>
+                      {isExpanded?"Hide":"Set Replacement"}
+                    </button>
                   </div>
                 </div>
-                <div style={{display:"flex",gap:8}}>
-                  {isSaved?(
-                    <button onClick={()=>removeTMFlagged(person.name)} disabled={tmRemoving===person.name}
-                      style={{padding:"8px 14px",borderRadius:8,border:"1px solid rgba(239,68,68,0.3)",background:"transparent",color:tmRemoving===person.name?"#6b7280":"#ef4444",fontSize:12,cursor:"pointer",display:"flex",alignItems:"center",gap:4}}>
-                      {tmRemoving===person.name?<Spinner/>:<Trash2 size={12}/>}
-                      {tmRemoving===person.name?"Removing...":"Remove"}
-                    </button>
-                  ):(
-                    <button onClick={()=>saveTMConfig(person.name)}
-                      disabled={!tmValid||tmSaving}
-                      style={{padding:"8px 16px",borderRadius:8,border:"none",background:tmValid&&!tmSaving?"linear-gradient(135deg,#7C3AED,#8B5CF6)":"#21262D",color:tmValid?"white":"#4b5563",fontSize:12,fontWeight:700,cursor:tmValid&&!tmSaving?"pointer":"not-allowed",display:"flex",alignItems:"center",gap:5}}>
-                      {tmSavingFor===person.name?<Spinner/>:<Save size={12}/>}
-                      {tmSavingFor===person.name?"Saving...":"Save for "+person.name}
-                    </button>
-                  )}
+
+                {/* Reviewers */}
+                <div style={{display:"flex",flexDirection:"column",gap:6}}>
+                  {personFlags.map(flag=>{
+                    const key=`${flag.reviewerEmail}_${flag.personName}_${flag.formId}`;
+                    const isInv=!!invalidated[key];
+                    const isInvalidating2=invalidating===key;
+                    return(
+                      <div key={key} style={{display:"flex",alignItems:"center",gap:10,padding:"8px 12px",background:"#0D1117",borderRadius:8,border:"1px solid "+(isInv?"rgba(239,68,68,0.3)":"rgba(245,158,11,0.2)")}}>
+                        <div style={{flex:1,minWidth:0}}>
+                          <p style={{color:"#9ca3af",fontSize:12,margin:0}}>{flag.reviewerEmail}</p>
+                          <p style={{color:"#6b7280",fontSize:11,margin:"2px 0 0"}}>Form: <span style={{color:"#F59E0B"}}>{flag.formName}</span></p>
+                        </div>
+                        <span style={{fontSize:12,fontWeight:700,color:"#ef4444",background:"rgba(239,68,68,0.1)",padding:"2px 8px",borderRadius:999}}>{flag.pct}%</span>
+                        <button onClick={()=>toggleInvalidate(key,personName,flag.formId,flag.formName,flag.reviewerEmail)}
+                          disabled={!!invalidating}
+                          style={{padding:"5px 12px",borderRadius:7,border:"1px solid "+(isInv?"rgba(34,197,94,0.4)":"#21262D"),background:isInv?"rgba(34,197,94,0.1)":"transparent",color:isInv?"#22c55e":"#9ca3af",fontSize:11,fontWeight:700,cursor:"pointer",display:"flex",alignItems:"center",gap:4}}>
+                          {isInvalidating2&&<Spinner/>}
+                          {isInvalidating2?"...":(isInv?"Restore":"Invalidate")}
+                        </button>
+                      </div>
+                    );
+                  })}
                 </div>
+
+                {/* Replacement config */}
+                {isExpanded&&groupForms.length>0&&(
+                  <PersonConfigPanel
+                    personName={personName}
+                    groupForms={groupForms}
+                    allForms={forms}
+                    existingRR={existingRR}
+                    onSave={data=>handleSaveRR(personName,data)}
+                    onDelete={()=>handleDeleteRR(personName,existingRR?.flaggedFormId)}
+                  />
+                )}
+                {isExpanded&&groupForms.length===0&&(
+                  <p style={{color:"#ef4444",fontSize:12,margin:0}}>⚠️ This person has no group assigned. Go to Groups tab first.</p>
+                )}
               </div>
             );
           })
         )}
-      </ConfigPanel>
+      </div>
 
-      {/* ── FLAGGED REVIEWERS (TL) ── */}
-      {flaggedData.filter(f=>f.type==="TL").length>0&&(
+      {/* ── SECTION 2: MISSING REVIEWERS ── */}
+      <div style={{display:"flex",flexDirection:"column",gap:12}}>
+        <div style={{display:"flex",alignItems:"center",gap:10,paddingBottom:8,borderBottom:"1px solid #21262D"}}>
+          <div style={{width:10,height:10,borderRadius:"50%",background:"#8B5CF6"}}/>
+          <p style={{color:"white",fontSize:15,fontWeight:700,margin:0}}>Missing Reviewers</p>
+          <span style={{fontSize:11,color:"#6b7280",background:"#21262D",padding:"2px 10px",borderRadius:999}}>only 1 reviewer on a form</span>
+        </div>
+
+        {missingPersons.length===0?(
+          <div style={{textAlign:"center",padding:"24px",background:"#161B22",border:"1px solid rgba(139,92,246,0.2)",borderRadius:12,color:"#8B5CF6",fontSize:13,fontWeight:600}}>
+            ✓ No missing reviewers
+          </div>
+        ):(
+          missingPersons.map(({personName,forms:missingForms})=>{
+            const group=getPersonGroup(personName);
+            const groupForms=getGroupForms(personName);
+            const isExpanded=expandedMissing===personName;
+            const existingRR=rrData.find(r=>r.personName===personName&&r.type==="missing");
+            return(
+              <div key={personName} style={{background:"#161B22",border:"1px solid rgba(139,92,246,0.3)",borderRadius:12,padding:16,display:"flex",flexDirection:"column",gap:12}}>
+                <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:12,flexWrap:"wrap"}}>
+                  <div style={{display:"flex",alignItems:"center",gap:12}}>
+                    <Av name={personName} size={40}/>
+                    <div>
+                      <p style={{color:"white",fontSize:14,fontWeight:700,margin:0}}>{personName}</p>
+                      {group&&<p style={{color:gc(group.groupName),fontSize:11,margin:"2px 0 0"}}>Group: {group.groupName}</p>}
+                      <div style={{display:"flex",gap:4,marginTop:4,flexWrap:"wrap"}}>
+                        {missingForms.map(f=>(
+                          <span key={f.formId} style={{fontSize:10,color:"#8B5CF6",background:"rgba(139,92,246,0.1)",padding:"2px 8px",borderRadius:999}}>
+                            ⚠️ {f.formName} — 1 reviewer
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                  <div style={{display:"flex",gap:8,alignItems:"center"}}>
+                    {existingRR&&<span style={{fontSize:11,color:"#22c55e",background:"rgba(34,197,94,0.1)",padding:"3px 10px",borderRadius:999,fontWeight:600}}>✓ RR Saved</span>}
+                    <button onClick={()=>setExpandedMissing(isExpanded?null:personName)}
+                      style={{padding:"6px 14px",borderRadius:8,border:"1px solid #21262D",background:isExpanded?"#21262D":"transparent",color:"#9ca3af",fontSize:12,cursor:"pointer"}}>
+                      {isExpanded?"Hide":"Set Replacement"}
+                    </button>
+                  </div>
+                </div>
+
+                {isExpanded&&groupForms.length>0&&(
+                  <PersonConfigPanel
+                    personName={personName}
+                    groupForms={groupForms}
+                    allForms={forms}
+                    existingRR={existingRR}
+                    onSave={data=>handleSaveMissingRR(personName,data)}
+                    onDelete={()=>handleDeleteRR(personName,existingRR?.flaggedFormId)}
+                  />
+                )}
+                {isExpanded&&groupForms.length===0&&(
+                  <p style={{color:"#ef4444",fontSize:12,margin:0}}>⚠️ This person has no group assigned. Go to Groups tab first.</p>
+                )}
+              </div>
+            );
+          })
+        )}
+      </div>
+
+      {/* ── FLAGGED REVIEWERS LIST ── */}
+      {flaggedData.filter(f=>f.reviewerEmail).length>0&&(
         <div style={{display:"flex",flexDirection:"column",gap:12}}>
           <div style={{display:"flex",alignItems:"center",gap:10,paddingBottom:8,borderBottom:"1px solid #21262D"}}>
             <div style={{width:10,height:10,borderRadius:"50%",background:"#ef4444"}}/>
-            <p style={{color:"white",fontSize:15,fontWeight:700,margin:0}}>Flagged Reviewers ({flaggedData.filter(f=>f.type==="TL").length})</p>
+            <p style={{color:"white",fontSize:15,fontWeight:700,margin:0}}>Invalidated Reviewers ({flaggedData.filter(f=>f.reviewerEmail).length})</p>
           </div>
-          {flaggedData.filter(f=>f.type==="TL").map((f,i)=>(
+          {flaggedData.filter(f=>f.reviewerEmail).map((f,i)=>(
             <div key={i} style={{background:"#161B22",border:"1px solid rgba(239,68,68,0.2)",borderRadius:12,padding:14,display:"flex",alignItems:"center",justifyContent:"space-between",gap:12,flexWrap:"wrap"}}>
               <div style={{display:"flex",alignItems:"center",gap:10}}>
                 <Av name={f.personName} size={36}/>
                 <div>
                   <p style={{color:"white",fontSize:13,fontWeight:700,margin:0}}>{f.personName}</p>
                   <p style={{color:"#6b7280",fontSize:11,margin:"3px 0 0"}}>
-                    Reviewer: <span style={{color:"#ef4444"}}>{f.reviewerEmail}</span> · Form: <span style={{color:"#F59E0B"}}>{f.formName}</span>
+                    Reviewer: <span style={{color:"#ef4444"}}>{f.reviewerEmail}</span> · <span style={{color:"#F59E0B"}}>{f.formName}</span>
                   </p>
                 </div>
               </div>
@@ -372,7 +446,7 @@ export default function ReReview(){
               }} disabled={invalidating===`${f.reviewerEmail}_${f.personName}_${f.formId}`}
               style={{padding:"6px 12px",borderRadius:8,border:"1px solid #21262D",background:"transparent",color:"#9ca3af",fontSize:12,cursor:"pointer",display:"flex",alignItems:"center",gap:4}}>
                 {invalidating===`${f.reviewerEmail}_${f.personName}_${f.formId}`?<Spinner/>:<RotateCcw size={12}/>}
-                {invalidating===`${f.reviewerEmail}_${f.personName}_${f.formId}`?"Removing...":"Restore"}
+                Restore
               </button>
             </div>
           ))}
