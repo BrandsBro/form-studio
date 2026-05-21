@@ -1,66 +1,91 @@
 "use client";
 import { useState, useEffect } from "react";
 import { Plus, Trash2, Search, Check, X } from "lucide-react";
-import { DEPARTMENTS, DEFAULT_DESIGNATIONS, getDesignations, addDesignation, removeDesignation } from "@/lib/roles";
-import { getPeople, savePerson, deletePerson, saveAllPeople } from "@/lib/sheets";
+import { getPeople, savePerson, deletePerson, saveAllPeople, getDesignations, saveDesignation, deleteDesignation } from "@/lib/sheets";
 
-const DESIG_COLORS = {
-  "Project Manager": "#8B5CF6",
-  "Team Leader":     "#3B82F6",
-  "Management":      "#F59E0B",
-  "Team Member":     "#10B981",
-  "HR":              "#F43F5E",
-};
-function getDesigColor(d){ return DESIG_COLORS[d]||"#06B6D4"; }
-
-const DEFAULT_PEOPLE = [
-  { id:"p1", name:"Bob Smith",     email:"bob@company.com",    designations:["Management","Team Leader"], department:"Engineering", photoUrl:"", joinDate:"2022-03-01", employeeId:"EMP001" },
-  { id:"p2", name:"Sarah Chen",    email:"sarah@company.com",  designations:["Management"],               department:"Design",      photoUrl:"", joinDate:"2021-07-15", employeeId:"EMP002" },
-  { id:"p3", name:"Alice Johnson", email:"alice@company.com",  designations:["Team Member"],              department:"Engineering", photoUrl:"", joinDate:"2023-01-10", employeeId:"EMP003" },
-  { id:"p4", name:"Carlos Mendez", email:"carlos@company.com", designations:["Team Member"],              department:"Engineering", photoUrl:"", joinDate:"2023-06-01", employeeId:"EMP004" },
-  { id:"p5", name:"Diana Lee",     email:"diana@company.com",  designations:["HR"],                       department:"HR",          photoUrl:"", joinDate:"2022-11-20", employeeId:"EMP005" },
-  { id:"p6", name:"James Thornton",email:"james@company.com",  designations:["Management","Project Manager"],department:"Executive",photoUrl:"", joinDate:"2020-01-01", employeeId:"EMP006" },
-];
-
-function gi(n=""){return n.split(" ").map(x=>x[0]).join("").toUpperCase().slice(0,2)||"?";}
 function gc(n=""){const c=["#F59E0B","#3B82F6","#10B981","#F43F5E","#8B5CF6","#06B6D4","#F97316"];return c[(n.charCodeAt(0)||0)%c.length];}
+function gi(n=""){return n.split(" ").map(x=>x[0]).join("").toUpperCase().slice(0,2)||"?";}
+function getDesigColor(d,designations=[]){const found=designations.find(x=>x.designationName===d);return found?.color||gc(d);}
+
 function Avatar({person,size=44}){
   const color=gc(person.name);
   if(person.photoUrl)return<img src={person.photoUrl} alt={person.name} style={{width:size,height:size,borderRadius:"50%",objectFit:"cover",border:"2px solid "+color+"44",flexShrink:0}}/>;
   return<div style={{width:size,height:size,borderRadius:"50%",background:color+"18",border:"2px solid "+color+"44",display:"flex",alignItems:"center",justifyContent:"center",fontSize:size*0.33,fontWeight:700,color,flexShrink:0}}>{gi(person.name)}</div>;
 }
+
 function DesignationBadge({label}){
-  const color=getDesigColor(label);
+  const color=gc(label);
   return<span style={{fontSize:10,color,background:color+"18",border:"1px solid "+color+"33",padding:"2px 8px",borderRadius:999,fontWeight:600,whiteSpace:"nowrap"}}>{label}</span>;
 }
 
+function Skel({w="100%",h=20,r=8}){return<div style={{width:w,height:h,borderRadius:r,background:"linear-gradient(90deg,#161B22 25%,#21262D 50%,#161B22 75%)",backgroundSize:"200% 100%",animation:"shimmer 1.5s infinite"}}/>;}
+
 // ── Designation Manager ───────────────────────────────────────────────────────
-function DepartmentManager(){
-  const [departments,setDepartments]=useState([...DEPARTMENTS]);
-  const [newDesig,setNewDesig]=useState("");
+function DesignationManager({designations,onAdd,onDelete}){
   const [open,setOpen]=useState(false);
+  const [newName,setNewName]=useState("");
+  const [adding,setAdding]=useState(false);
+  const [removing,setRemoving]=useState(null);
 
-  useEffect(()=>{
-    try{
-      const custom=JSON.parse(localStorage.getItem("custom_departments")||"[]");
-      setDepartments([...DEPARTMENTS,...custom]);
-    }catch{}
-  },[]);
-
-  function handleAdd(){
-    if(!newDesig.trim())return;
-    const updated=[...new Set([...departments,newDesig.trim()])];
-    setDepartments(updated);
-    localStorage.setItem("custom_departments",JSON.stringify(updated.filter(d=>!DEPARTMENTS.includes(d))));
-    setNewDesig("");
+  async function handleAdd(){
+    if(!newName.trim()) return;
+    setAdding(true);
+    await onAdd(newName.trim());
+    setNewName("");
+    setAdding(false);
   }
 
-  function handleRemove(d){
-    if(DEPARTMENTS.includes(d))return;
-    const updated=departments.filter(x=>x!==d);
-    setDepartments(updated);
-    localStorage.setItem("custom_departments",JSON.stringify(updated.filter(x=>!DEPARTMENTS.includes(x))));
+  async function handleDelete(d){
+    setRemoving(d.designationId);
+    await onDelete(d);
+    setRemoving(null);
   }
+
+  return(
+    <div style={{background:"#161B22",border:"1px solid #21262D",borderRadius:12,overflow:"hidden"}}>
+      <button onClick={()=>setOpen(o=>!o)} style={{width:"100%",display:"flex",alignItems:"center",justifyContent:"space-between",padding:"14px 18px",background:"transparent",border:"none",cursor:"pointer",textAlign:"left"}}>
+        <div>
+          <p style={{color:"white",fontSize:14,fontWeight:600,margin:0}}>🏷️ Manage Designations</p>
+          <p style={{color:"#6b7280",fontSize:12,margin:"3px 0 0"}}>{designations.length} designations · click to {open?"collapse":"expand"}</p>
+        </div>
+        <span style={{color:"#6b7280"}}>{open?"▲":"▼"}</span>
+      </button>
+      {open&&(
+        <div style={{padding:"0 18px 18px",display:"flex",flexDirection:"column",gap:12,borderTop:"1px solid #21262D"}}>
+          <div style={{display:"flex",gap:8,marginTop:14}}>
+            <input value={newName} onChange={e=>setNewName(e.target.value)} onKeyDown={e=>e.key==="Enter"&&handleAdd()}
+              placeholder="New designation name..." style={{flex:1,background:"#0D1117",border:"1px solid #21262D",borderRadius:8,padding:"8px 12px",color:"white",fontSize:13,outline:"none"}}/>
+            <button onClick={handleAdd} disabled={adding||!newName.trim()}
+              style={{padding:"8px 16px",borderRadius:8,border:"none",background:adding?"#21262D":"linear-gradient(135deg,#D97706,#F59E0B)",color:adding?"#4b5563":"#000",fontSize:13,fontWeight:700,cursor:adding?"not-allowed":"pointer"}}>
+              {adding?"Adding...":"Add"}
+            </button>
+          </div>
+          <div style={{display:"flex",flexWrap:"wrap",gap:8}}>
+            {designations.map(d=>{
+              const color=gc(d.designationName);
+              return(
+                <div key={d.designationId} style={{display:"flex",alignItems:"center",gap:6,padding:"5px 10px",borderRadius:999,background:color+"18",border:"1px solid "+color+"33"}}>
+                  <span style={{fontSize:12,color,fontWeight:600}}>{d.designationName}</span>
+                  <button onClick={()=>handleDelete(d)} disabled={removing===d.designationId}
+                    style={{background:"none",border:"none",cursor:"pointer",color:color+"88",padding:0,display:"flex",lineHeight:1}}
+                    onMouseOver={e=>e.currentTarget.style.color="#ef4444"} onMouseOut={e=>e.currentTarget.style.color=color+"88"}>
+                    {removing===d.designationId?<span style={{fontSize:10}}>...</span>:<X size={12}/>}
+                  </button>
+                </div>
+              );
+            })}
+            {designations.length===0&&<p style={{color:"#4b5563",fontSize:12,margin:0}}>No designations yet. Add one above.</p>}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── Department Manager ────────────────────────────────────────────────────────
+function DepartmentManager({departments,onAdd,onDelete}){
+  const [open,setOpen]=useState(false);
+  const [newName,setNewName]=useState("");
 
   return(
     <div style={{background:"#161B22",border:"1px solid #21262D",borderRadius:12,overflow:"hidden"}}>
@@ -71,36 +96,31 @@ function DepartmentManager(){
         </div>
         <span style={{color:"#6b7280"}}>{open?"▲":"▼"}</span>
       </button>
-
       {open&&(
         <div style={{padding:"0 18px 18px",display:"flex",flexDirection:"column",gap:12,borderTop:"1px solid #21262D"}}>
-          {/* Add new */}
           <div style={{display:"flex",gap:8,marginTop:14}}>
-            <input value={newDesig} onChange={e=>setNewDesig(e.target.value)} onKeyDown={e=>e.key==="Enter"&&handleAdd()}
+            <input value={newName} onChange={e=>setNewName(e.target.value)} onKeyDown={e=>{ if(e.key==="Enter"&&newName.trim()){ onAdd(newName.trim()); setNewName(""); } }}
               placeholder="New department name..." style={{flex:1,background:"#0D1117",border:"1px solid #21262D",borderRadius:8,padding:"8px 12px",color:"white",fontSize:13,outline:"none"}}/>
-            <button onClick={handleAdd} style={{padding:"8px 16px",borderRadius:8,border:"none",background:"linear-gradient(135deg,#D97706,#F59E0B)",color:"#000",fontSize:13,fontWeight:700,cursor:"pointer"}}>
+            <button onClick={()=>{ if(newName.trim()){ onAdd(newName.trim()); setNewName(""); } }}
+              style={{padding:"8px 16px",borderRadius:8,border:"none",background:"linear-gradient(135deg,#D97706,#F59E0B)",color:"#000",fontSize:13,fontWeight:700,cursor:"pointer"}}>
               Add
             </button>
           </div>
-
-          {/* List */}
           <div style={{display:"flex",flexWrap:"wrap",gap:8}}>
             {departments.map(d=>{
-              const color=getDesigColor(d);
-              const isDefault=DEPARTMENTS.includes(d);
+              const color=gc(d);
               return(
                 <div key={d} style={{display:"flex",alignItems:"center",gap:6,padding:"5px 10px",borderRadius:999,background:color+"18",border:"1px solid "+color+"33"}}>
                   <span style={{fontSize:12,color,fontWeight:600}}>{d}</span>
-                  {!isDefault&&(
-                    <button onClick={()=>handleRemove(d)} style={{background:"none",border:"none",cursor:"pointer",color:color+"88",padding:0,display:"flex",lineHeight:1}}
-                      onMouseOver={e=>e.currentTarget.style.color="#ef4444"} onMouseOut={e=>e.currentTarget.style.color=color+"88"}>
-                      <X size={12}/>
-                    </button>
-                  )}
-                  {isDefault&&<span style={{fontSize:9,color:color+"66"}}>default</span>}
+                  <button onClick={()=>onDelete(d)}
+                    style={{background:"none",border:"none",cursor:"pointer",color:color+"88",padding:0,display:"flex",lineHeight:1}}
+                    onMouseOver={e=>e.currentTarget.style.color="#ef4444"} onMouseOut={e=>e.currentTarget.style.color=color+"88"}>
+                    <X size={12}/>
+                  </button>
                 </div>
               );
             })}
+            {departments.length===0&&<p style={{color:"#4b5563",fontSize:12,margin:0}}>No departments yet.</p>}
           </div>
         </div>
       )}
@@ -109,9 +129,9 @@ function DepartmentManager(){
 }
 
 // ── Person Modal ──────────────────────────────────────────────────────────────
-function PersonModal({person,onSave,onClose}){
-  const [form,setForm]=useState(person||{id:"p"+Date.now(),name:"",email:"",designations:[],department:"",photoUrl:"",joinDate:"",employeeId:""});
-  const [designations,setDesignations]=useState(getDesignations());
+function PersonModal({person,onSave,onClose,designations,departments}){
+  const [form,setForm]=useState(person||{id:"p_"+Date.now(),name:"",email:"",designations:[],department:"",photoUrl:"",joinDate:"",employeeId:""});
+  const [customDept,setCustomDept]=useState("");
   const u=(k,v)=>setForm(f=>({...f,[k]:v}));
   const toggleDesig=d=>setForm(f=>({...f,designations:f.designations.includes(d)?f.designations.filter(x=>x!==d):[...f.designations,d]}));
 
@@ -151,30 +171,41 @@ function PersonModal({person,onSave,onClose}){
               <label style={lbl}>Department</label>
               <select value={form.department} onChange={e=>u("department",e.target.value)} style={{...inp,cursor:"pointer"}}>
                 <option value="">Select department...</option>
-                {(()=>{try{const c=JSON.parse(localStorage.getItem("custom_departments")||"[]");return[...DEPARTMENTS,...c];}catch{return DEPARTMENTS;}})().map(d=><option key={d} value={d} style={{background:"#161B22"}}>{d}</option>)}
+                {departments.map(d=><option key={d} value={d} style={{background:"#161B22"}}>{d}</option>)}
               </select>
+              <div style={{display:"flex",gap:8,marginTop:8}}>
+                <input value={customDept} onChange={e=>setCustomDept(e.target.value)} placeholder="Or type custom department..."
+                  style={{...inp,marginBottom:0}}
+                  onKeyDown={e=>{ if(e.key==="Enter"&&customDept.trim()){ u("department",customDept.trim()); setCustomDept(""); } }}/>
+                {customDept.trim()&&<button onClick={()=>{ u("department",customDept.trim()); setCustomDept(""); }}
+                  style={{padding:"8px 12px",borderRadius:8,border:"none",background:"#F59E0B",color:"#000",fontSize:12,fontWeight:700,cursor:"pointer",flexShrink:0}}>Use</button>}
+              </div>
             </div>
             <div style={{gridColumn:"1/-1"}}><label style={lbl}>Photo URL</label><input value={form.photoUrl} onChange={e=>u("photoUrl",e.target.value)} placeholder="https://..." style={inp}/></div>
           </div>
 
           <div>
             <label style={lbl}>Designations <span style={{color:"#4b5563",textTransform:"none",letterSpacing:0,fontSize:10}}>(select multiple)</span></label>
-            <div style={{display:"flex",flexDirection:"column",gap:8}}>
-              {designations.map(d=>{
-                const sel=form.designations.includes(d);
-                const color=getDesigColor(d);
-                return(
-                  <button key={d} onClick={()=>toggleDesig(d)}
-                    style={{display:"flex",alignItems:"center",gap:12,padding:"10px 14px",borderRadius:10,border:"1px solid "+(sel?color+"55":"#21262D"),background:sel?color+"10":"#161B22",cursor:"pointer",textAlign:"left",transition:"all 0.15s"}}>
-                    <div style={{width:20,height:20,borderRadius:"50%",border:"2px solid "+(sel?color:"#374151"),background:sel?color:"transparent",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
-                      {sel&&<Check size={11} color="#000"/>}
-                    </div>
-                    <span style={{color:sel?color:"#9ca3af",fontSize:13,fontWeight:sel?600:400}}>{d}</span>
-                    {sel&&<span style={{marginLeft:"auto",fontSize:10,color,background:color+"18",padding:"2px 8px",borderRadius:999}}>Selected</span>}
-                  </button>
-                );
-              })}
-            </div>
+            {designations.length===0?(
+              <p style={{color:"#4b5563",fontSize:12}}>No designations available. Add some in the Designation Manager above.</p>
+            ):(
+              <div style={{display:"flex",flexDirection:"column",gap:8}}>
+                {designations.map(d=>{
+                  const sel=form.designations.includes(d.designationName);
+                  const color=gc(d.designationName);
+                  return(
+                    <button key={d.designationId} onClick={()=>toggleDesig(d.designationName)}
+                      style={{display:"flex",alignItems:"center",gap:12,padding:"10px 14px",borderRadius:10,border:"1px solid "+(sel?color+"55":"#21262D"),background:sel?color+"10":"#161B22",cursor:"pointer",textAlign:"left"}}>
+                      <div style={{width:20,height:20,borderRadius:"50%",border:"2px solid "+(sel?color:"#374151"),background:sel?color:"transparent",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+                        {sel&&<Check size={11} color="#000"/>}
+                      </div>
+                      <span style={{color:sel?color:"#9ca3af",fontSize:13,fontWeight:sel?600:400}}>{d.designationName}</span>
+                      {sel&&<span style={{marginLeft:"auto",fontSize:10,color,background:color+"18",padding:"2px 8px",borderRadius:999}}>Selected</span>}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
           </div>
         </div>
 
@@ -191,36 +222,65 @@ function PersonModal({person,onSave,onClose}){
 }
 
 // ── Main ──────────────────────────────────────────────────────────────────────
-
-function Skeleton({w="100%",h=20,r=8}){
-  return <div style={{width:w,height:h,borderRadius:r,background:"linear-gradient(90deg,#161B22,#21262D,#161B22)",backgroundSize:"200% 100%",animation:"shimmer 1.5s infinite"}} />;
-}
-
 export default function People(){
   const [people,setPeople]=useState([]);
+  const [designations,setDesignations]=useState([]);
+  const [departments,setDepartments]=useState([]);
   const [search,setSearch]=useState("");
   const [filter,setFilter]=useState("All");
   const [modal,setModal]=useState(null);
-  const [loading,setLoading]=useState(false);
-  const [designations,setDesignations]=useState(DEFAULT_DESIGNATIONS);
+  const [loading,setLoading]=useState(true);
 
   useEffect(()=>{
-    setDesignations(getDesignations());
-    setLoading(true);
-    getPeople().then(data=>{ setPeople(data); setLoading(false); });
+    Promise.all([getPeople(),getDesignations()]).then(([p,d])=>{
+      setPeople(p);
+      setDesignations(d);
+      // Extract unique departments from people
+      const depts=[...new Set(p.map(x=>x.department).filter(Boolean))];
+      setDepartments(depts);
+      setLoading(false);
+    }).catch(()=>setLoading(false));
   },[]);
 
-  function save(list){setPeople(list);saveAllPeople(list);}
+  async function handleAddDesignation(name){
+    const result=await saveDesignation({designationName:name});
+    const newDes={designationId:result?.designationId||"des_"+Date.now(),designationName:name};
+    setDesignations(prev=>[...prev,newDes]);
+  }
+
+  async function handleDeleteDesignation(d){
+    await deleteDesignation({designationId:d.designationId});
+    setDesignations(prev=>prev.filter(x=>x.designationId!==d.designationId));
+  }
+
+  function handleAddDepartment(name){
+    if(!departments.includes(name)) setDepartments(prev=>[...prev,name]);
+  }
+
+  function handleDeleteDepartment(name){
+    setDepartments(prev=>prev.filter(d=>d!==name));
+  }
+
   function handleSave(person){
     const ex=people.find(x=>x.id===person.id);
     const updated=ex?people.map(x=>x.id===person.id?person:x):[...people,person];
     setPeople(updated);
     savePerson(person);
+    // Add department if new
+    if(person.department&&!departments.includes(person.department)){
+      setDepartments(prev=>[...prev,person.department]);
+    }
     setModal(null);
   }
-  function handleDelete(id){save(people.filter(p=>p.id!==id));}
 
-  const allDesig=["All",...getDesignations()];
+  function handleDelete(id){
+    const updated=people.filter(p=>p.id!==id);
+    setPeople(updated);
+    deletePerson({id});
+  }
+
+  const designationNames=designations.map(d=>d.designationName);
+  const allFilters=["All",...designationNames];
   const filtered=people
     .filter(p=>filter==="All"||(p.designations||[]).includes(filter))
     .filter(p=>p.name.toLowerCase().includes(search.toLowerCase())||p.email.toLowerCase().includes(search.toLowerCase()));
@@ -229,31 +289,25 @@ export default function People(){
     <div style={{display:"flex",flexDirection:"column",gap:20}}>
       <style>{"@keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}"}</style>
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-        <div style={{display:"flex",flexDirection:"column",gap:8}}>
-          <Skeleton w={120} h={24}/>
-          <Skeleton w={80} h={14}/>
-        </div>
-        <Skeleton w={120} h={38} r={10}/>
+        <div style={{display:"flex",flexDirection:"column",gap:8}}><Skel w={120} h={24}/><Skel w={80} h={14}/></div>
+        <Skel w={120} h={38} r={10}/>
       </div>
       <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(280px,1fr))",gap:14}}>
         {[1,2,3,4,5,6].map(i=>(
           <div key={i} style={{background:"#161B22",border:"1px solid #21262D",borderRadius:14,padding:18,display:"flex",flexDirection:"column",gap:12}}>
             <div style={{display:"flex",gap:12,alignItems:"center"}}>
-              <Skeleton w={48} h={48} r={50}/>
-              <div style={{flex:1,display:"flex",flexDirection:"column",gap:6}}>
-                <Skeleton w="70%" h={16}/>
-                <Skeleton w="90%" h={12}/>
-              </div>
+              <Skel w={48} h={48} r={50}/>
+              <div style={{flex:1,display:"flex",flexDirection:"column",gap:6}}><Skel w="70%" h={16}/><Skel w="90%" h={12}/></div>
             </div>
-            <Skeleton w="50%" h={20}/>
+            <Skel w="50%" h={20}/>
           </div>
         ))}
       </div>
     </div>
   );
+
   return(
     <div style={{display:"flex",flexDirection:"column",gap:20}}>
-      
       <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",flexWrap:"wrap",gap:12}}>
         <div>
           <h2 style={{color:"white",fontSize:18,fontWeight:700,margin:0,fontFamily:"var(--font-playfair)"}}>People</h2>
@@ -264,15 +318,16 @@ export default function People(){
         </button>
       </div>
 
-      <DepartmentManager/>
+      <DesignationManager designations={designations} onAdd={handleAddDesignation} onDelete={handleDeleteDesignation}/>
+      <DepartmentManager departments={departments} onAdd={handleAddDepartment} onDelete={handleDeleteDepartment}/>
 
       <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(120px,1fr))",gap:8}}>
-        {allDesig.map(d=>{
-          const color=d==="All"?"#F59E0B":getDesigColor(d);
+        {allFilters.map(d=>{
+          const color=d==="All"?"#F59E0B":gc(d);
           const count=d==="All"?people.length:people.filter(p=>(p.designations||[]).includes(d)).length;
           return(
             <button key={d} onClick={()=>setFilter(d)}
-              style={{background:filter===d?"#161B22":"#0D1117",border:"1px solid "+(filter===d?color+"55":"#21262D"),borderRadius:10,padding:"10px 12px",cursor:"pointer",textAlign:"left",transition:"all 0.2s"}}>
+              style={{background:filter===d?"#161B22":"#0D1117",border:"1px solid "+(filter===d?color+"55":"#21262D"),borderRadius:10,padding:"10px 12px",cursor:"pointer",textAlign:"left"}}>
               <p style={{color,fontSize:18,fontWeight:800,margin:0}}>{count}</p>
               <p style={{color:filter===d?color:"#6b7280",fontSize:10,margin:"3px 0 0",fontWeight:filter===d?600:400,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{d}</p>
             </button>
@@ -290,7 +345,7 @@ export default function People(){
         {filtered.map(person=>{
           const color=gc(person.name);
           return(
-            <div key={person.id} style={{background:"#161B22",border:"1px solid #21262D",borderRadius:14,overflow:"hidden",transition:"all 0.2s"}}
+            <div key={person.id} style={{background:"#161B22",border:"1px solid #21262D",borderRadius:14,overflow:"hidden"}}
               onMouseOver={e=>e.currentTarget.style.borderColor=color+"44"}
               onMouseOut={e=>e.currentTarget.style.borderColor="#21262D"}>
               <div style={{height:3,background:"linear-gradient(90deg,"+color+","+color+"44)"}}/>
@@ -306,13 +361,13 @@ export default function People(){
                   </div>
                 </div>
                 <div style={{paddingTop:10,borderTop:"1px solid #21262D"}}>
-                  {person.department&&<p style={{color:"#4b5563",fontSize:11,margin:0}}>{person.department}</p>}
+                  {person.department&&<p style={{color:"#4b5563",fontSize:11,margin:0}}>🏢 {person.department}</p>}
                   {person.employeeId&&<p style={{color:"#374151",fontSize:10,margin:"2px 0 0"}}>{person.employeeId}</p>}
                 </div>
               </div>
               <div style={{display:"flex",gap:6,padding:"0 16px 14px"}}>
                 <button onClick={()=>setModal(person)}
-                  style={{flex:1,padding:"7px 0",borderRadius:8,border:"1px solid #21262D",background:"transparent",color:"#9ca3af",fontSize:12,cursor:"pointer",transition:"all 0.2s"}}
+                  style={{flex:1,padding:"7px 0",borderRadius:8,border:"1px solid #21262D",background:"transparent",color:"#9ca3af",fontSize:12,cursor:"pointer"}}
                   onMouseOver={e=>{e.currentTarget.style.borderColor="#F59E0B44";e.currentTarget.style.color="#F59E0B";}}
                   onMouseOut={e=>{e.currentTarget.style.borderColor="#21262D";e.currentTarget.style.color="#9ca3af";}}>
                   ✏️ Edit
@@ -332,11 +387,19 @@ export default function People(){
       {filtered.length===0&&(
         <div style={{textAlign:"center",padding:"60px 0",color:"#4b5563",background:"#161B22",borderRadius:12,border:"1px solid #21262D"}}>
           <p style={{fontSize:32,margin:"0 0 12px"}}>👥</p>
-          <p style={{margin:0,fontSize:14}}>No people found.</p>
+          <p style={{margin:0,fontSize:14}}>{search?"No people found.":"No people added yet."}</p>
         </div>
       )}
 
-      {modal!==null&&<PersonModal person={Object.keys(modal).length?modal:null} onSave={handleSave} onClose={()=>setModal(null)}/>}
+      {modal!==null&&(
+        <PersonModal
+          person={Object.keys(modal).length?modal:null}
+          onSave={handleSave}
+          onClose={()=>setModal(null)}
+          designations={designations}
+          departments={departments}
+        />
+      )}
     </div>
   );
 }
