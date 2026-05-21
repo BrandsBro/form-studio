@@ -17,92 +17,89 @@ function getReviewerScore(reviewerEmail,personName,formId,formFields,allSubs){
   return rFields.map(f=>sub.values?.[f.id]||0).reduce((a,b)=>a+b,0)/rFields.length;
 }
 
-// Per-person config panel — dynamic replacement forms
-function PersonConfigPanel({personName,groupForms,allForms,existingRR,onSave,onDelete}){
-  const [flaggedFormId,setFlaggedFormId]=useState(existingRR?.flaggedFormId||"");
-  const [replacements,setReplacements]=useState(
-    existingRR?.replace1Id?[
-      {formId:existingRR.replace1Id,pct:Number(existingRR.replace1Pct)},
-      {formId:existingRR.replace2Id,pct:Number(existingRR.replace2Pct)},
-    ].filter(r=>r.formId):
-    [{formId:"",pct:0}]
-  );
+// Replacement config — shows flagged forms auto, admin picks replacements
+function ReplacementPanel({personName,flaggedForms,groupForms,existingRR,onSave,onDelete}){
+  const totalFlaggedWeight=flaggedForms.reduce((a,f)=>a+f.weight,0);
+  const availForms=groupForms.filter(f=>!flaggedForms.find(ff=>ff.formId===f.formId));
+  const [replacements,setReplacements]=useState(()=>{
+    if(existingRR?.replacements?.length) return existingRR.replacements;
+    if(existingRR?.replace1Id) return [
+      {formId:existingRR.replace1Id,pct:Number(existingRR.replace1Pct)||0},
+      existingRR.replace2Id?{formId:existingRR.replace2Id,pct:Number(existingRR.replace2Pct)||0}:null
+    ].filter(Boolean);
+    return [{formId:"",pct:0}];
+  });
   const [saving,setSaving]=useState(false);
 
-  const flaggedWeight=groupForms.find(f=>f.formId===flaggedFormId)?.weight||0;
-  const totalPct=replacements.reduce((a,r)=>a+r.pct,0);
+  const totalReplacePct=replacements.reduce((a,r)=>a+r.pct,0);
   const usedIds=new Set(replacements.map(r=>r.formId).filter(Boolean));
-  const valid=flaggedFormId&&replacements.every(r=>r.formId)&&totalPct===flaggedWeight;
+  const valid=replacements.every(r=>r.formId&&r.pct>0)&&totalReplacePct===totalFlaggedWeight;
 
-  function updateR(i,key,val){ setReplacements(prev=>prev.map((r,idx)=>idx===i?{...r,[key]:val}:r)); }
-  function addR(){ setReplacements(prev=>[...prev,{formId:"",pct:0}]); }
-  function removeR(i){ setReplacements(prev=>prev.filter((_,idx)=>idx!==i)); }
+  function updateR(i,key,val){setReplacements(prev=>prev.map((r,idx)=>idx===i?{...r,[key]:val}:r));}
+  function addR(){setReplacements(prev=>[...prev,{formId:"",pct:0}]);}
+  function removeR(i){setReplacements(prev=>prev.filter((_,idx)=>idx!==i));}
 
   async function doSave(){
     setSaving(true);
-    const ff=allForms.find(f=>f.id===flaggedFormId);
-    const data={
-      flaggedFormId,flaggedFormName:ff?.name||"",
-      replace1Id:replacements[0]?.formId||"",
-      replace1Name:allForms.find(f=>f.id===replacements[0]?.formId)?.name||"",
-      replace1Pct:replacements[0]?.pct||0,
-      replace2Id:replacements[1]?.formId||"",
-      replace2Name:allForms.find(f=>f.id===replacements[1]?.formId)?.name||"",
-      replace2Pct:replacements[1]?.pct||0,
-    };
-    await onSave(data);
+    await onSave({replacements,replace1Id:replacements[0]?.formId||"",replace1Pct:replacements[0]?.pct||0,replace2Id:replacements[1]?.formId||"",replace2Pct:replacements[1]?.pct||0});
     setSaving(false);
   }
 
-  const replaceOptions=groupForms.filter(f=>f.formId!==flaggedFormId);
-
   return(
     <div style={{background:"#0D1117",border:"1px solid #21262D",borderRadius:10,padding:14,display:"flex",flexDirection:"column",gap:10,marginTop:8}}>
-      {/* Flagged form */}
-      <div style={{display:"flex",alignItems:"center",gap:10}}>
-        <span style={{color:"#ef4444",fontSize:12,fontWeight:600,minWidth:90,flexShrink:0}}>Flag Form:</span>
-        <select value={flaggedFormId} onChange={e=>setFlaggedFormId(e.target.value)}
-          style={{flex:1,background:"#161B22",border:"1px solid #21262D",borderRadius:7,padding:"7px 10px",color:flaggedFormId?"white":"#6b7280",fontSize:12,outline:"none"}}>
-          <option value="">Select form to flag</option>
-          {groupForms.map(f=><option key={f.formId} value={f.formId} style={{background:"#161B22"}}>{f.name} ({f.weight}%)</option>)}
-        </select>
-      </div>
-      {/* Dynamic replacements */}
-      {replacements.map((r,i)=>(
-        <div key={i} style={{display:"flex",alignItems:"center",gap:10}}>
-          <span style={{color:"#22c55e",fontSize:12,fontWeight:600,minWidth:90,flexShrink:0}}>Replace {i+1}:</span>
-          <select value={r.formId} onChange={e=>updateR(i,"formId",e.target.value)}
-            style={{flex:1,background:"#161B22",border:"1px solid #21262D",borderRadius:7,padding:"7px 10px",color:r.formId?"white":"#6b7280",fontSize:12,outline:"none"}}>
-            <option value="">Select form</option>
-            {replaceOptions.filter(f=>!usedIds.has(f.formId)||f.formId===r.formId).map(f=><option key={f.formId} value={f.formId} style={{background:"#161B22"}}>{f.name} ({f.weight}%)</option>)}
-          </select>
-          <input type="number" value={r.pct} min="0" max="100"
-            onChange={e=>updateR(i,"pct",Math.min(100,Math.max(0,parseInt(e.target.value)||0)))}
-            style={{width:52,background:"#161B22",border:"1px solid #21262D",borderRadius:6,padding:"7px",color:"white",fontSize:12,outline:"none",textAlign:"center"}}/>
-          <span style={{color:"#6b7280",fontSize:12}}>%</span>
-          {replacements.length>1&&<button onClick={()=>removeR(i)}
-            style={{background:"none",border:"none",cursor:"pointer",color:"#374151",padding:2,display:"flex"}}
-            onMouseOver={e=>e.currentTarget.style.color="#ef4444"} onMouseOut={e=>e.currentTarget.style.color="#374151"}>
-            <X size={12}/>
-          </button>}
+      {/* Flagged forms — read only */}
+      <div>
+        <p style={{color:"#6b7280",fontSize:11,textTransform:"uppercase",letterSpacing:"0.06em",margin:"0 0 6px"}}>Flagged Forms (auto-detected)</p>
+        <div style={{display:"flex",flexDirection:"column",gap:6}}>
+          {flaggedForms.map(f=>(
+            <div key={f.formId} style={{display:"flex",alignItems:"center",gap:8,padding:"7px 10px",background:"rgba(239,68,68,0.08)",border:"1px solid rgba(239,68,68,0.2)",borderRadius:7}}>
+              <span style={{fontSize:11,color:"#ef4444",fontWeight:600}}>⚠️ {f.name}</span>
+              <span style={{marginLeft:"auto",fontSize:11,color:"#ef4444",background:"rgba(239,68,68,0.1)",padding:"2px 8px",borderRadius:999}}>{f.weight}%</span>
+            </div>
+          ))}
         </div>
-      ))}
-      {/* Add replacement */}
-      {replaceOptions.length>replacements.length&&(
-        <button onClick={addR}
-          style={{padding:"6px 0",borderRadius:7,border:"1px dashed #30363D",background:"transparent",color:"#6b7280",fontSize:11,cursor:"pointer"}}
-          onMouseOver={e=>e.currentTarget.style.color="#F59E0B"} onMouseOut={e=>e.currentTarget.style.color="#6b7280"}>
-          + Add Replacement Form
-        </button>
-      )}
-      {/* Validation */}
-      <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:8,flexWrap:"wrap"}}>
-        {flaggedFormId&&(
-          <span style={{fontSize:12,color:valid?"#22c55e":totalPct>flaggedWeight?"#ef4444":"#F59E0B"}}>
-            {valid?`✓ ${totalPct}% = ${flaggedWeight}%`:totalPct>flaggedWeight?`${totalPct}% over`:`${totalPct}% / ${flaggedWeight}% needed`}
-          </span>
+        <p style={{color:"#6b7280",fontSize:11,margin:"6px 0 0"}}>Total flagged weight: <span style={{color:"#ef4444",fontWeight:600}}>{totalFlaggedWeight}%</span> → must be redistributed</p>
+      </div>
+
+      {/* Replacement forms */}
+      <div>
+        <p style={{color:"#6b7280",fontSize:11,textTransform:"uppercase",letterSpacing:"0.06em",margin:"0 0 6px"}}>Replacement Forms</p>
+        {replacements.map((r,i)=>(
+          <div key={i} style={{display:"flex",alignItems:"center",gap:8,marginBottom:6}}>
+            <select value={r.formId} onChange={e=>updateR(i,"formId",e.target.value)}
+              style={{flex:1,background:"#161B22",border:"1px solid #21262D",borderRadius:7,padding:"7px 10px",color:r.formId?"white":"#6b7280",fontSize:12,outline:"none"}}>
+              <option value="">Select form</option>
+              {availForms.filter(f=>!usedIds.has(f.formId)||f.formId===r.formId).map(f=>(
+                <option key={f.formId} value={f.formId} style={{background:"#161B22"}}>{f.name} ({f.weight}%)</option>
+              ))}
+            </select>
+            <input type="number" value={r.pct} min="0" max="100"
+              onChange={e=>updateR(i,"pct",Math.min(100,Math.max(0,parseInt(e.target.value)||0)))}
+              style={{width:52,background:"#161B22",border:"1px solid #21262D",borderRadius:6,padding:"7px",color:"white",fontSize:12,outline:"none",textAlign:"center"}}/>
+            <span style={{color:"#6b7280",fontSize:12}}>%</span>
+            {replacements.length>1&&(
+              <button onClick={()=>removeR(i)} style={{background:"none",border:"none",cursor:"pointer",color:"#374151",padding:2,display:"flex"}}
+                onMouseOver={e=>e.currentTarget.style.color="#ef4444"} onMouseOut={e=>e.currentTarget.style.color="#374151"}>
+                <X size={12}/>
+              </button>
+            )}
+          </div>
+        ))}
+        {availForms.length>replacements.length&&(
+          <button onClick={addR}
+            style={{width:"100%",padding:"6px 0",borderRadius:7,border:"1px dashed #30363D",background:"transparent",color:"#6b7280",fontSize:11,cursor:"pointer",marginTop:4}}
+            onMouseOver={e=>e.currentTarget.style.color="#F59E0B"} onMouseOut={e=>e.currentTarget.style.color="#6b7280"}>
+            + Add Replacement Form
+          </button>
         )}
-        <div style={{display:"flex",gap:8,marginLeft:"auto"}}>
+      </div>
+
+      {/* Validation + save */}
+      <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:8,flexWrap:"wrap"}}>
+        <span style={{fontSize:12,color:valid?"#22c55e":totalReplacePct>totalFlaggedWeight?"#ef4444":"#F59E0B"}}>
+          {valid?`✓ ${totalReplacePct}% = ${totalFlaggedWeight}%`:totalReplacePct>totalFlaggedWeight?`${totalReplacePct}% over by ${totalReplacePct-totalFlaggedWeight}%`:`${totalReplacePct}% / ${totalFlaggedWeight}% needed`}
+        </span>
+        <div style={{display:"flex",gap:8}}>
           {existingRR&&<button onClick={onDelete}
             style={{padding:"6px 12px",borderRadius:7,border:"1px solid rgba(239,68,68,0.3)",background:"transparent",color:"#ef4444",fontSize:11,cursor:"pointer",display:"flex",alignItems:"center",gap:4}}>
             <Trash2 size={11}/> Remove
@@ -135,85 +132,84 @@ export default function ReReview(){
   const [expandedMissing,setExpandedMissing]=useState(null);
 
   useEffect(()=>{
-    getForms().then(async fl=>{
-      setForms(fl);
-      const [p,cfg,mg,rr,fl2]=await Promise.all([
+    async function load(){
+      const [fl,p,cfg,mg,rr,fl2]=await Promise.all([
+        getForms().catch(()=>[]),
         getPeople().catch(()=>[]),
         getMarkingConfig().catch(()=>({groups:[]})),
         getMarkingGroups().catch(()=>[]),
         getReReview().catch(()=>[]),
         getFlagged().catch(()=>[]),
       ]);
+      setForms(fl||[]);
       setPeople(p||[]);
       setMarkingConfig(cfg||{groups:[]});
       setMarkingGroups(mg||[]);
       setRrData(rr||[]);
       setFlaggedData(fl2||[]);
-      // Restore invalidated state
+      // Restore invalidated
       const inv={};
-      (fl2||[]).filter(f=>f.reviewerEmail).forEach(f=>{ inv[`${f.reviewerEmail}_${f.personName}_${f.formId}`]=true; });
+      (fl2||[]).filter(f=>f.reviewerEmail).forEach(f=>{inv[`${f.reviewerEmail}_${f.personName}_${f.formId}`]=true;});
       setInvalidated(inv);
       // Load submissions
       const subsMap={};
-      await Promise.all(fl.map(async f=>{ try{ subsMap[f.id]=await getSubmissions(f.id); }catch{ subsMap[f.id]=[]; } }));
+      await Promise.all((fl||[]).map(async f=>{try{subsMap[f.id]=await getSubmissions(f.id);}catch{subsMap[f.id]=[];}}));
       setAllSubs(subsMap);
       setLoading(false);
-    }).catch(()=>setLoading(false));
+    }
+    load();
   },[]);
 
-  // Get group for a person
   function getPersonGroup(personName){
     const mg=markingGroups.find(mg=>mg.personName===personName);
     if(!mg) return null;
     return (markingConfig.groups||[]).find(g=>g.groupId===mg.groupId)||null;
   }
+  function getGroupForms(personName){return getPersonGroup(personName)?.forms||[];}
 
-  function getGroupForms(personName){
-    const group=getPersonGroup(personName);
-    return group?.forms||[];
-  }
-
-  // Threshold flags — check all people across all forms
+  // Section 1: Threshold flags — find reviewers below threshold
   const thresholdFlags=[];
   people.forEach(person=>{
     const groupForms=getGroupForms(person.name);
+    if(!groupForms.length) return;
     groupForms.forEach(cf=>{
       const form=forms.find(f=>f.id===cf.formId);
       if(!form) return;
-      const subs=allSubs[cf.formId]||[];
-      const personSubs=subs.filter(s=>s.personName===person.name);
-      personSubs.forEach(sub=>{
+      const subs=(allSubs[cf.formId]||[]).filter(s=>s.personName===person.name);
+      subs.forEach(sub=>{
         const score=getReviewerScore(sub.reviewerEmail,person.name,cf.formId,form.fields||[],allSubs);
         if(score===null) return;
         const pct=(score/5)*100;
         if(pct<=threshold){
-          thresholdFlags.push({personName:person.name,formId:cf.formId,formName:form.name,formWeight:cf.weight,reviewerEmail:sub.reviewerEmail,score,pct:pct.toFixed(1)});
+          const existing=thresholdFlags.find(t=>t.personName===person.name);
+          const flag={formId:cf.formId,formName:form.name,formWeight:cf.weight,reviewerEmail:sub.reviewerEmail,pct:pct.toFixed(1)};
+          if(existing) existing.flags.push(flag);
+          else thresholdFlags.push({personName:person.name,flags:[flag]});
         }
       });
     });
   });
 
-  // Missing persons — only 1 reviewer on any form in their group
+  // Section 2: Missing — 0 submissions on any group form
   const missingPersons=[];
-  people.forEach(person=>{
+  const peopleInGroups=people.filter(p=>markingGroups.some(mg=>mg.personName===p.name));
+  peopleInGroups.forEach(person=>{
     const groupForms=getGroupForms(person.name);
-    groupForms.forEach(cf=>{
+    const missingForms=groupForms.filter(cf=>{
       const subs=(allSubs[cf.formId]||[]).filter(s=>s.personName===person.name);
-      if(subs.length===1){
-        const existing=missingPersons.find(m=>m.personName===person.name);
-        if(!existing) missingPersons.push({personName:person.name,forms:[{formId:cf.formId,formName:cf.name,reviewerCount:1}]});
-        else existing.forms.push({formId:cf.formId,formName:cf.name,reviewerCount:1});
-      }
+      return subs.length===0;
     });
+    if(missingForms.length>0) missingPersons.push({personName:person.name,missingForms});
   });
 
   async function toggleInvalidate(key,personName,formId,formName,reviewerEmail){
     const isInv=!!invalidated[key];
     setInvalidating(key);
     setInvalidated(prev=>({...prev,[key]:!isInv}));
+    const group=getPersonGroup(personName);
     if(!isInv){
-      await saveFlagged({personName,type:"threshold",formId,formName,reviewerEmail,groupId:getPersonGroup(personName)?.groupId||""});
-      setFlaggedData(prev=>[...prev,{personName,type:"threshold",formId,formName,reviewerEmail}]);
+      await saveFlagged({personName,type:"threshold",formId,formName,reviewerEmail,groupId:group?.groupId||""});
+      setFlaggedData(prev=>[...prev,{personName,type:"threshold",formId,formName,reviewerEmail,groupId:group?.groupId||""}]);
     } else {
       await deleteFlagged({personName,formId,reviewerEmail});
       setFlaggedData(prev=>prev.filter(f=>!(f.personName===personName&&f.formId===formId&&f.reviewerEmail===reviewerEmail)));
@@ -221,21 +217,21 @@ export default function ReReview(){
     setInvalidating(null);
   }
 
-  async function handleSaveRR(personName,data){
+  async function handleSaveRR(personName,type,flaggedForms,data){
     const group=getPersonGroup(personName);
-    await saveReReview({personName,type:"threshold",groupId:group?.groupId||"",...data});
-    setRrData(prev=>[...prev.filter(r=>!(r.personName===personName&&r.flaggedFormId===data.flaggedFormId)),{personName,type:"threshold",groupId:group?.groupId||"",...data}]);
+    const payload={
+      personName,type,groupId:group?.groupId||"",
+      flaggedFormId:flaggedForms[0]?.formId||"",
+      flaggedFormName:flaggedForms[0]?.formName||"",
+      ...data
+    };
+    await saveReReview(payload);
+    setRrData(prev=>[...prev.filter(r=>!(r.personName===personName&&r.type===type)),{...payload}]);
   }
 
-  async function handleDeleteRR(personName,flaggedFormId){
-    await deleteReReview({personName,flaggedFormId});
-    setRrData(prev=>prev.filter(r=>!(r.personName===personName&&r.flaggedFormId===flaggedFormId)));
-  }
-
-  async function handleSaveMissingRR(personName,data){
-    const group=getPersonGroup(personName);
-    await saveReReview({personName,type:"missing",groupId:group?.groupId||"",...data});
-    setRrData(prev=>[...prev.filter(r=>!(r.personName===personName&&r.flaggedFormId===data.flaggedFormId)),{personName,type:"missing",groupId:group?.groupId||"",...data}]);
+  async function handleDeleteRR(personName,type){
+    await deleteReReview({personName,type});
+    setRrData(prev=>prev.filter(r=>!(r.personName===personName&&r.type===type)));
   }
 
   if(loading) return(
@@ -255,7 +251,7 @@ export default function ReReview(){
       <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",flexWrap:"wrap",gap:12}}>
         <div>
           <h2 style={{color:"white",fontSize:18,fontWeight:700,margin:0,fontFamily:"var(--font-playfair)"}}>⚠️ Re-Review</h2>
-          <p style={{color:"#6b7280",fontSize:13,margin:"3px 0 0"}}>Flag reviewers below threshold · detect missing reviewers · recalculate scores</p>
+          <p style={{color:"#6b7280",fontSize:13,margin:"3px 0 0"}}>Flag reviewers · detect missing · set replacements</p>
         </div>
         {editThreshold?(
           <div style={{display:"flex",alignItems:"center",gap:8,background:"#161B22",border:"1px solid rgba(245,158,11,0.4)",borderRadius:9,padding:"6px 14px"}}>
@@ -280,7 +276,7 @@ export default function ReReview(){
           {l:"Below Threshold",v:thresholdFlags.length,c:"#ef4444"},
           {l:"Invalidated",v:flaggedData.filter(f=>f.reviewerEmail).length,c:"#F59E0B"},
           {l:"Missing Reviewer",v:missingPersons.length,c:"#8B5CF6"},
-          {l:"Saved RR",v:rrData.length,c:"#22c55e"},
+          {l:"RR Configs",v:rrData.length,c:"#22c55e"},
         ].map(s=>(
           <div key={s.l} style={{background:"#161B22",border:"1px solid #21262D",borderRadius:10,padding:"12px 16px"}}>
             <p style={{color:s.c,fontSize:20,fontWeight:800,margin:0}}>{s.v}</p>
@@ -302,16 +298,20 @@ export default function ReReview(){
             ✓ No reviewers below threshold
           </div>
         ):(
-          // Group by person
-          [...new Set(thresholdFlags.map(f=>f.personName))].map(personName=>{
-            const personFlags=thresholdFlags.filter(f=>f.personName===personName);
+          thresholdFlags.map(({personName,flags})=>{
             const group=getPersonGroup(personName);
             const groupForms=getGroupForms(personName);
             const isExpanded=expandedPerson===personName;
             const existingRR=rrData.find(r=>r.personName===personName&&r.type==="threshold");
+            // Auto-detect flagged forms from invalidated reviewers
+            const invalidatedFlags=flaggedData.filter(f=>f.personName===personName&&f.reviewerEmail);
+            const flaggedFormIds=[...new Set(invalidatedFlags.map(f=>f.formId))];
+            const flaggedForms=flaggedFormIds.map(fid=>{
+              const gf=groupForms.find(f=>f.formId===fid);
+              return{formId:fid,name:gf?.name||fid,weight:gf?.weight||0};
+            });
             return(
               <div key={personName} style={{background:"#161B22",border:"1px solid #21262D",borderRadius:12,padding:16,display:"flex",flexDirection:"column",gap:12}}>
-                {/* Person header */}
                 <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:12,flexWrap:"wrap"}}>
                   <div style={{display:"flex",alignItems:"center",gap:12}}>
                     <Av name={personName} size={40}/>
@@ -322,19 +322,20 @@ export default function ReReview(){
                   </div>
                   <div style={{display:"flex",gap:8,alignItems:"center"}}>
                     {existingRR&&<span style={{fontSize:11,color:"#22c55e",background:"rgba(34,197,94,0.1)",padding:"3px 10px",borderRadius:999,fontWeight:600}}>✓ RR Saved</span>}
-                    <button onClick={()=>setExpandedPerson(isExpanded?null:personName)}
-                      style={{padding:"6px 14px",borderRadius:8,border:"1px solid #21262D",background:isExpanded?"#21262D":"transparent",color:"#9ca3af",fontSize:12,cursor:"pointer"}}>
-                      {isExpanded?"Hide":"Set Replacement"}
-                    </button>
+                    {flaggedForms.length>0&&(
+                      <button onClick={()=>setExpandedPerson(isExpanded?null:personName)}
+                        style={{padding:"6px 14px",borderRadius:8,border:"1px solid #21262D",background:isExpanded?"#21262D":"transparent",color:"#9ca3af",fontSize:12,cursor:"pointer"}}>
+                        {isExpanded?"Hide":"Set Replacement"}
+                      </button>
+                    )}
                   </div>
                 </div>
 
                 {/* Reviewers */}
                 <div style={{display:"flex",flexDirection:"column",gap:6}}>
-                  {personFlags.map(flag=>{
-                    const key=`${flag.reviewerEmail}_${flag.personName}_${flag.formId}`;
+                  {flags.map(flag=>{
+                    const key=`${flag.reviewerEmail}_${personName}_${flag.formId}`;
                     const isInv=!!invalidated[key];
-                    const isInvalidating2=invalidating===key;
                     return(
                       <div key={key} style={{display:"flex",alignItems:"center",gap:10,padding:"8px 12px",background:"#0D1117",borderRadius:8,border:"1px solid "+(isInv?"rgba(239,68,68,0.3)":"rgba(245,158,11,0.2)")}}>
                         <div style={{flex:1,minWidth:0}}>
@@ -345,27 +346,27 @@ export default function ReReview(){
                         <button onClick={()=>toggleInvalidate(key,personName,flag.formId,flag.formName,flag.reviewerEmail)}
                           disabled={!!invalidating}
                           style={{padding:"5px 12px",borderRadius:7,border:"1px solid "+(isInv?"rgba(34,197,94,0.4)":"#21262D"),background:isInv?"rgba(34,197,94,0.1)":"transparent",color:isInv?"#22c55e":"#9ca3af",fontSize:11,fontWeight:700,cursor:"pointer",display:"flex",alignItems:"center",gap:4}}>
-                          {isInvalidating2&&<Spinner/>}
-                          {isInvalidating2?"...":(isInv?"Restore":"Invalidate")}
+                          {invalidating===key&&<Spinner/>}
+                          {invalidating===key?"...":(isInv?"Restore":"Invalidate")}
                         </button>
                       </div>
                     );
                   })}
                 </div>
 
-                {/* Replacement config */}
-                {isExpanded&&groupForms.length>0&&(
-                  <PersonConfigPanel
+                {/* Replacement panel */}
+                {isExpanded&&flaggedForms.length>0&&groupForms.length>0&&(
+                  <ReplacementPanel
                     personName={personName}
+                    flaggedForms={flaggedForms}
                     groupForms={groupForms}
-                    allForms={forms}
                     existingRR={existingRR}
-                    onSave={data=>handleSaveRR(personName,data)}
-                    onDelete={()=>handleDeleteRR(personName,existingRR?.flaggedFormId)}
+                    onSave={data=>handleSaveRR(personName,"threshold",flaggedForms,data)}
+                    onDelete={()=>handleDeleteRR(personName,"threshold")}
                   />
                 )}
                 {isExpanded&&groupForms.length===0&&(
-                  <p style={{color:"#ef4444",fontSize:12,margin:0}}>⚠️ This person has no group assigned. Go to Groups tab first.</p>
+                  <p style={{color:"#ef4444",fontSize:12,margin:0}}>⚠️ Person has no group assigned. Go to Groups tab first.</p>
                 )}
               </div>
             );
@@ -377,20 +378,25 @@ export default function ReReview(){
       <div style={{display:"flex",flexDirection:"column",gap:12}}>
         <div style={{display:"flex",alignItems:"center",gap:10,paddingBottom:8,borderBottom:"1px solid #21262D"}}>
           <div style={{width:10,height:10,borderRadius:"50%",background:"#8B5CF6"}}/>
-          <p style={{color:"white",fontSize:15,fontWeight:700,margin:0}}>Missing Reviewers</p>
-          <span style={{fontSize:11,color:"#6b7280",background:"#21262D",padding:"2px 10px",borderRadius:999}}>only 1 reviewer on a form</span>
+          <p style={{color:"white",fontSize:15,fontWeight:700,margin:0}}>Missing Submissions</p>
+          <span style={{fontSize:11,color:"#6b7280",background:"#21262D",padding:"2px 10px",borderRadius:999}}>0 submissions on a group form</span>
         </div>
 
         {missingPersons.length===0?(
           <div style={{textAlign:"center",padding:"24px",background:"#161B22",border:"1px solid rgba(139,92,246,0.2)",borderRadius:12,color:"#8B5CF6",fontSize:13,fontWeight:600}}>
-            ✓ No missing reviewers
+            ✓ No missing submissions
           </div>
         ):(
-          missingPersons.map(({personName,forms:missingForms})=>{
+          missingPersons.map(({personName,missingForms})=>{
             const group=getPersonGroup(personName);
             const groupForms=getGroupForms(personName);
             const isExpanded=expandedMissing===personName;
             const existingRR=rrData.find(r=>r.personName===personName&&r.type==="missing");
+            const flaggedForms=missingForms.map(f=>({
+              formId:f.formId,
+              name:groupForms.find(gf=>gf.formId===f.formId)?.name||f.formId,
+              weight:groupForms.find(gf=>gf.formId===f.formId)?.weight||0,
+            }));
             return(
               <div key={personName} style={{background:"#161B22",border:"1px solid rgba(139,92,246,0.3)",borderRadius:12,padding:16,display:"flex",flexDirection:"column",gap:12}}>
                 <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:12,flexWrap:"wrap"}}>
@@ -402,7 +408,7 @@ export default function ReReview(){
                       <div style={{display:"flex",gap:4,marginTop:4,flexWrap:"wrap"}}>
                         {missingForms.map(f=>(
                           <span key={f.formId} style={{fontSize:10,color:"#8B5CF6",background:"rgba(139,92,246,0.1)",padding:"2px 8px",borderRadius:999}}>
-                            ⚠️ {f.formName} — 1 reviewer
+                            ⚠️ {groupForms.find(gf=>gf.formId===f.formId)?.name||f.formId} — no submissions
                           </span>
                         ))}
                       </div>
@@ -418,17 +424,17 @@ export default function ReReview(){
                 </div>
 
                 {isExpanded&&groupForms.length>0&&(
-                  <PersonConfigPanel
+                  <ReplacementPanel
                     personName={personName}
+                    flaggedForms={flaggedForms}
                     groupForms={groupForms}
-                    allForms={forms}
                     existingRR={existingRR}
-                    onSave={data=>handleSaveMissingRR(personName,data)}
-                    onDelete={()=>handleDeleteRR(personName,existingRR?.flaggedFormId)}
+                    onSave={data=>handleSaveRR(personName,"missing",flaggedForms,data)}
+                    onDelete={()=>handleDeleteRR(personName,"missing")}
                   />
                 )}
                 {isExpanded&&groupForms.length===0&&(
-                  <p style={{color:"#ef4444",fontSize:12,margin:0}}>⚠️ This person has no group assigned. Go to Groups tab first.</p>
+                  <p style={{color:"#ef4444",fontSize:12,margin:0}}>⚠️ Person has no group assigned. Go to Groups tab first.</p>
                 )}
               </div>
             );
@@ -436,7 +442,7 @@ export default function ReReview(){
         )}
       </div>
 
-      {/* ── FLAGGED REVIEWERS LIST ── */}
+      {/* ── INVALIDATED REVIEWERS LIST ── */}
       {flaggedData.filter(f=>f.reviewerEmail).length>0&&(
         <div style={{display:"flex",flexDirection:"column",gap:12}}>
           <div style={{display:"flex",alignItems:"center",gap:10,paddingBottom:8,borderBottom:"1px solid #21262D"}}>
