@@ -30,7 +30,7 @@ function calcFinalScore(personName,configForms,allForms,allSubs={}){
 
 let dragIdx=null;
 
-function GroupConfigurator({group,allForms,designations,onChange,onDelete}){
+function GroupConfigurator({group,allForms,onChange,onDelete}){
   const [open,setOpen]=useState(true);
   const totalWeight=group.forms.reduce((a,f)=>a+f.weight,0);
   const avail=allForms.filter(f=>!group.forms.find(cf=>cf.formId===f.id));
@@ -83,16 +83,6 @@ function GroupConfigurator({group,allForms,designations,onChange,onDelete}){
 
       {open&&(
         <div style={{padding:20,display:"flex",flexDirection:"column",gap:12}}>
-          {/* Designation selector */}
-          <div style={{display:"flex",alignItems:"center",gap:10}}>
-            <span style={{color:"#9ca3af",fontSize:12,minWidth:90}}>Designation:</span>
-            <select value={group.designation||""} onChange={e=>onChange({...group,designation:e.target.value})}
-              style={{flex:1,background:"#0D1117",border:"1px solid #21262D",borderRadius:8,padding:"7px 12px",color:group.designation?"white":"#6b7280",fontSize:13,outline:"none"}}>
-              <option value="">-- Select designation --</option>
-              {designations.map(d=><option key={d.designationId} value={d.designationName} style={{background:"#161B22"}}>{d.designationName}</option>)}
-            </select>
-          </div>
-
           {/* Forms */}
           {group.forms.map((cf,i)=>(
             <div key={cf.formId} draggable
@@ -349,7 +339,6 @@ export default function Marking(){
           {groups.map((group,i)=>(
             <div key={group.groupId} style={{marginBottom:8}}>
             <GroupConfigurator group={group} allForms={forms}
-              designations={designations}
               onChange={updated=>updateGroup(group.groupId,updated)}
               onDelete={deleteGroup}/>
             </div>
