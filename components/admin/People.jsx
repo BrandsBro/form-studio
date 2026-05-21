@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
 import { Plus, Trash2, Search, Check, X } from "lucide-react";
-import { getPeople, savePerson, deletePerson, saveAllPeople, getDesignations, saveDesignation, deleteDesignation } from "@/lib/sheets";
+import { getPeople, savePerson, deletePerson, getDesignations, saveDesignation, deleteDesignation, getDepartments, saveDepartment, deleteDepartment } from "@/lib/sheets";
 
 function gc(n=""){const c=["#F59E0B","#3B82F6","#10B981","#F43F5E","#8B5CF6","#06B6D4","#F97316"];return c[(n.charCodeAt(0)||0)%c.length];}
 function gi(n=""){return n.split(" ").map(x=>x[0]).join("").toUpperCase().slice(0,2)||"?";}
@@ -108,10 +108,10 @@ function DepartmentManager({departments,onAdd,onDelete}){
           </div>
           <div style={{display:"flex",flexWrap:"wrap",gap:8}}>
             {departments.map(d=>{
-              const color=gc(d);
+              const color=gc(d.departmentName);
               return(
-                <div key={d} style={{display:"flex",alignItems:"center",gap:6,padding:"5px 10px",borderRadius:999,background:color+"18",border:"1px solid "+color+"33"}}>
-                  <span style={{fontSize:12,color,fontWeight:600}}>{d}</span>
+                <div key={d.departmentId} style={{display:"flex",alignItems:"center",gap:6,padding:"5px 10px",borderRadius:999,background:color+"18",border:"1px solid "+color+"33"}}>
+                  <span style={{fontSize:12,color,fontWeight:600}}>{d.departmentName}</span>
                   <button onClick={()=>onDelete(d)}
                     style={{background:"none",border:"none",cursor:"pointer",color:color+"88",padding:0,display:"flex",lineHeight:1}}
                     onMouseOver={e=>e.currentTarget.style.color="#ef4444"} onMouseOut={e=>e.currentTarget.style.color=color+"88"}>
@@ -131,7 +131,7 @@ function DepartmentManager({departments,onAdd,onDelete}){
 // ── Person Modal ──────────────────────────────────────────────────────────────
 function PersonModal({person,onSave,onClose,designations,departments}){
   const [form,setForm]=useState(person||{id:"p_"+Date.now(),name:"",email:"",designations:[],department:"",photoUrl:"",joinDate:"",employeeId:""});
-  const [customDept,setCustomDept]=useState("");
+  
   const u=(k,v)=>setForm(f=>({...f,[k]:v}));
   const toggleDesig=d=>setForm(f=>({...f,designations:f.designations.includes(d)?f.designations.filter(x=>x!==d):[...f.designations,d]}));
 
@@ -171,15 +171,9 @@ function PersonModal({person,onSave,onClose,designations,departments}){
               <label style={lbl}>Department</label>
               <select value={form.department} onChange={e=>u("department",e.target.value)} style={{...inp,cursor:"pointer"}}>
                 <option value="">Select department...</option>
-                {departments.map(d=><option key={d} value={d} style={{background:"#161B22"}}>{d}</option>)}
+                {departments.map(d=><option key={d.departmentId} value={d.departmentName} style={{background:"#161B22"}}>{d.departmentName}</option>)}
               </select>
-              <div style={{display:"flex",gap:8,marginTop:8}}>
-                <input value={customDept} onChange={e=>setCustomDept(e.target.value)} placeholder="Or type custom department..."
-                  style={{...inp,marginBottom:0}}
-                  onKeyDown={e=>{ if(e.key==="Enter"&&customDept.trim()){ u("department",customDept.trim()); setCustomDept(""); } }}/>
-                {customDept.trim()&&<button onClick={()=>{ u("department",customDept.trim()); setCustomDept(""); }}
-                  style={{padding:"8px 12px",borderRadius:8,border:"none",background:"#F59E0B",color:"#000",fontSize:12,fontWeight:700,cursor:"pointer",flexShrink:0}}>Use</button>}
-              </div>
+
             </div>
             <div style={{gridColumn:"1/-1"}}><label style={lbl}>Photo URL</label><input value={form.photoUrl} onChange={e=>u("photoUrl",e.target.value)} placeholder="https://..." style={inp}/></div>
           </div>
@@ -232,12 +226,10 @@ export default function People(){
   const [loading,setLoading]=useState(true);
 
   useEffect(()=>{
-    Promise.all([getPeople(),getDesignations()]).then(([p,d])=>{
+    Promise.all([getPeople(),getDesignations(),getDepartments()]).then(([p,d,depts])=>{
       setPeople(p);
       setDesignations(d);
-      // Extract unique departments from people
-      const depts=[...new Set(p.map(x=>x.department).filter(Boolean))];
-      setDepartments(depts);
+      setDepartments(depts||[]);
       setLoading(false);
     }).catch(()=>setLoading(false));
   },[]);
@@ -253,12 +245,15 @@ export default function People(){
     setDesignations(prev=>prev.filter(x=>x.designationId!==d.designationId));
   }
 
-  function handleAddDepartment(name){
-    if(!departments.includes(name)) setDepartments(prev=>[...prev,name]);
+  async function handleAddDepartment(name){
+    const result=await saveDepartment({departmentName:name});
+    const newDept={departmentId:result?.departmentId||"dept_"+Date.now(),departmentName:name};
+    setDepartments(prev=>[...prev,newDept]);
   }
 
-  function handleDeleteDepartment(name){
-    setDepartments(prev=>prev.filter(d=>d!==name));
+  async function handleDeleteDepartment(dept){
+    await deleteDepartment({departmentId:dept.departmentId});
+    setDepartments(prev=>prev.filter(d=>d.departmentId!==dept.departmentId));
   }
 
   function handleSave(person){
@@ -266,10 +261,7 @@ export default function People(){
     const updated=ex?people.map(x=>x.id===person.id?person:x):[...people,person];
     setPeople(updated);
     savePerson(person);
-    // Add department if new
-    if(person.department&&!departments.includes(person.department)){
-      setDepartments(prev=>[...prev,person.department]);
-    }
+
     setModal(null);
   }
 
