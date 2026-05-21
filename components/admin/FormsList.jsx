@@ -391,14 +391,7 @@ export default function FormsList({ onEdit }) {
     setForms(prev=>prev.filter(f=>f.id!==id));
     await sheetDeleteForm(id);
     setDeleting(null);
-    try {
-      const cfg = await getMarkingConfig();
-      if(cfg) {
-        cfg.teamMembers.forms = (cfg.teamMembers.forms||[]).filter(f=>f.formId!==id);
-        cfg.teamLeaders.forms = (cfg.teamLeaders.forms||[]).filter(f=>f.formId!==id);
-        await saveMarkingConfig(cfg);
-      }
-    } catch(e) {}
+
     getForms().then(setForms);
   }
   
