@@ -1,5 +1,5 @@
 "use client";
-import { getForms, getPeople, getSubmissions, getMarkingConfig, getReReview, getFlagged } from "@/lib/sheets";
+import { getForms, getPeople, getSubmissions, getMarkingConfig, getReReview, getFlagged, getMarkingGroups } from "@/lib/sheets";
 import { useState, useEffect } from "react";
 
 function gi(n=""){return n.split(" ").map(x=>x[0]).join("").toUpperCase().slice(0,2)||"?";}
@@ -133,6 +133,7 @@ export default function Leaderboard(){
   const [configLoaded,setConfigLoaded]=useState(false);
   const [rrData,setRrData]=useState([]);
   const [flaggedData,setFlaggedData]=useState([]);
+  const [markingGroupsData,setMarkingGroupsData]=useState([]);
 
   useEffect(()=>{
     Promise.all([getForms(),getPeople()]).then(async([fl,p])=>{
@@ -164,8 +165,9 @@ export default function Leaderboard(){
 
 
   const allScored=people.map(p=>{
-    // Find which group this person belongs to
-    const personGroup=(config.groups||[]).find(g=>g.designation&&(p.designations||[]).includes(g.designation));
+    // Find group via markingGroups sheet
+    const mgEntry=markingGroupsData.find(mg=>mg.personName===p.name);
+    const personGroup=mgEntry?(config.groups||[]).find(g=>g.groupId===mgEntry.groupId):null;
     const configForms=personGroup?.forms||[];
     const isTM=(p.designations||[]).includes("Team Member");
     const isFlagged=flaggedData.some(f=>f.personName===p.name);
@@ -294,7 +296,7 @@ export default function Leaderboard(){
 
 {!noConfig&&(config.groups||[]).map(group=>{
         const gc2=gc(group.groupName);
-        const groupPeople=people.filter(p=>(p.designations||[]).includes(group.designation));
+        const groupPeople=people.filter(p=>markingGroupsData.some(mg=>mg.personName===p.name&&mg.groupId===group.groupId));
         return(
           <Board key={group.groupId} title={group.groupName} icon={group.groupName.charAt(0)} color={gc2}
             people={groupPeople} allForms={forms} allSubs={allSubs}
