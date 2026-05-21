@@ -135,9 +135,10 @@ function StepReviewList({form,conn,reviewerEmail,onStart,onBack,allSubs=[]}){
         {allDone&&(
           <div style={{textAlign:"center",padding:"20px 0",display:"flex",flexDirection:"column",gap:12,alignItems:"center"}}>
             <p style={{color:"#22c55e",fontSize:14,fontWeight:600,margin:0}}>✓ All reviews completed!</p>
-            <a href="/" style={{display:"inline-flex",alignItems:"center",gap:8,padding:"10px 24px",borderRadius:10,border:"1px solid #21262D",background:"transparent",color:"#9ca3af",fontSize:13,textDecoration:"none"}}>
+            <button onClick={()=>window.location.href="/?email="+encodeURIComponent(reviewerEmail)}
+              style={{display:"inline-flex",alignItems:"center",gap:8,padding:"10px 24px",borderRadius:10,border:"1px solid #21262D",background:"transparent",color:"#9ca3af",fontSize:13,cursor:"pointer"}}>
               ← Back to Forms
-            </a>
+            </button>
           </div>
         )}
       </div>
