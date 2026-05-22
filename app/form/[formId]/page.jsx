@@ -546,8 +546,7 @@ export default function FormPage(){
           else setStep("list");
         }
       }
-      setLoading(false);
-      getSubmissions(f.id).then(s=>{setAllSubs(s);setSubsLoaded(true);}).catch(()=>setSubsLoaded(true));
+      getSubmissions(f.id).then(s=>{setAllSubs(s);setSubsLoaded(true);setLoading(false);}).catch(()=>{setSubsLoaded(true);setLoading(false);});
     }).catch(()=>{ setNotFound(true); setLoading(false); setSubsLoaded(true); });
   },[formId]);
 
@@ -597,8 +596,8 @@ export default function FormPage(){
       <div style={{position:"fixed",top:0,left:"50%",transform:"translateX(-50%)",width:600,height:280,background:"radial-gradient(ellipse,"+t.glow+" 0%,transparent 70%)",pointerEvents:"none",zIndex:0}}/>
       <div style={{position:"relative",zIndex:1}}>
         {step==="email"&&<StepEmail form={form} onNext={handleEmailNext}/>}
-        {step==="list"&&(!subsLoaded?<Spinner/>:<StepReviewList form={form} conn={conn} reviewerEmail={reviewerEmail} allSubs={allSubs} onStart={handleStartPerson} onBack={()=>{ window.location.href="/forms"; }}/>)}
-        {step==="form"&&(!subsLoaded?<Spinner/>:<StepForm form={form} reviewerEmail={reviewerEmail} personName={currentPerson} isMulti={conn?.type==="multi"} onDone={handleFormDone} onBack={()=>setStep("list")} allSubs={allSubs} onSubsUpdate={s=>setAllSubs(s)}/>)}
+        {step==="list"&&<StepReviewList form={form} conn={conn} reviewerEmail={reviewerEmail} allSubs={allSubs} onStart={handleStartPerson} onBack={()=>{ window.location.href="/forms"; }}/>}
+        {step==="form"&&<StepForm form={form} reviewerEmail={reviewerEmail} personName={currentPerson} isMulti={conn?.type==="multi"} onDone={handleFormDone} onBack={()=>setStep("list")} allSubs={allSubs} onSubsUpdate={s=>setAllSubs(s)}/>}
         {step==="success"&&<StepSuccess form={form} conn={conn} reviewerEmail={reviewerEmail} allSubs={allSubs}/>}
       </div>
     </div>
