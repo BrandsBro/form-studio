@@ -197,16 +197,17 @@ function StepForm({form,reviewerEmail,personName,isMulti,onDone,onBack,allSubs=[
   return(
     <>
       <ProgressBar progress={progress}/>
-      {/* Back button top left */}
-      <div style={{position:"fixed",top:16,left:16,zIndex:50}}>
-        <button onClick={isMulti?onBack:()=>window.location.href="/forms"}
-          style={{display:"flex",alignItems:"center",gap:6,background:"#161B22",border:"1px solid #21262D",borderRadius:9,padding:"8px 14px",color:"#9ca3af",fontSize:13,cursor:"pointer"}}
-          onMouseOver={e=>e.currentTarget.style.color="white"} onMouseOut={e=>e.currentTarget.style.color="#9ca3af"}>
-          <ChevronLeft size={15}/> {isMulti?"Back to List":"My Forms"}
-        </button>
-      </div>
+
       <main style={{minHeight:"100vh",padding:"70px 16px 40px",maxWidth:680,margin:"0 auto"}}>
         <div style={{textAlign:"center",marginBottom:24}}>
+          {/* Back button */}
+          <div style={{display:"flex",justifyContent:"flex-start",marginBottom:16}}>
+            <button onClick={isMulti?onBack:()=>window.location.href="/forms"}
+              style={{display:"flex",alignItems:"center",gap:6,background:"transparent",border:"none",cursor:"pointer",color:"#6b7280",fontSize:13,padding:0}}
+              onMouseOver={e=>e.currentTarget.style.color="#F59E0B"} onMouseOut={e=>e.currentTarget.style.color="#6b7280"}>
+              <ChevronLeft size={15}/> {isMulti?"Back to list":"My Forms"}
+            </button>
+          </div>
           <div style={{display:"inline-flex",alignItems:"center",gap:6,padding:"4px 14px",borderRadius:999,background:t.light,border:"1px solid "+t.border,marginBottom:12}}>
             <Star size={11} color={t.primary}/>
             <span style={{fontSize:10,color:t.primary,fontWeight:600,textTransform:"uppercase",letterSpacing:"0.1em"}}>{form.badgeLabel||"Review"} · {getMY()}</span>
@@ -220,12 +221,7 @@ function StepForm({form,reviewerEmail,personName,isMulti,onDone,onBack,allSubs=[
           </div>
           <div style={{margin:"12px auto 0",width:40,height:1,background:"linear-gradient(90deg,transparent,"+t.primary+",transparent)"}}/>
         </div>
-        {isMulti&&(
-          <button onClick={onBack} style={{display:"flex",alignItems:"center",gap:6,background:"none",border:"1px solid #21262D",borderRadius:8,cursor:"pointer",color:"#6b7280",padding:"6px 14px",fontSize:12,marginBottom:16}}
-            onMouseOver={e=>e.currentTarget.style.color="white"} onMouseOut={e=>e.currentTarget.style.color="#6b7280"}>
-            <ChevronLeft size={14}/> Back to list
-          </button>
-        )}
+
         <div style={{display:"flex",alignItems:"center",gap:8,margin:"16px 0"}}>
           <div style={{flex:1,height:1,background:"#21262D"}}/><span style={{fontSize:10,color:"#4b5563",textTransform:"uppercase",letterSpacing:"0.1em"}}>Questions</span><div style={{flex:1,height:1,background:"#21262D"}}/>
         </div>
