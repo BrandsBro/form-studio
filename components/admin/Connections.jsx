@@ -15,10 +15,38 @@ function AddConnModal({people,existingPool,existingConns,editingConn,onSave,onCl
   const [reviewees,setReviewees]=useState(editingConn?editingConn.revieweeNames.map(n=>people.find(p=>p.name===n)||{name:n,email:""}):[] );
   const [savedConns,setSavedConns]=useState(editingConn?existingConns.filter(c=>c.reviewerName!==editingConn.reviewerName):existingConns);
   const [saving,setSaving]=useState(false);
+  const [search,setSearch]=useState("");
+  const [filterDesig,setFilterDesig]=useState("All");
+  const [filterDept,setFilterDept]=useState("All");
+  const allDesigs=["All",...new Set(people.flatMap(p=>p.designations||[]).filter(Boolean))];
+  const allDepts=["All",...new Set(people.map(p=>p.department).filter(Boolean))];
+  const filteredPeople=people
+    .filter(p=>filterDesig==="All"||(p.designations||[]).includes(filterDesig))
+    .filter(p=>filterDept==="All"||p.department===filterDept)
+    .filter(p=>p.name.toLowerCase().includes(search.toLowerCase())||p.email?.toLowerCase().includes(search.toLowerCase()));
 
   useEffect(()=>{const h=e=>e.key==="Escape"&&onClose();window.addEventListener("keydown",h);return()=>window.removeEventListener("keydown",h);},[]);
 
   const inPool=p=>pool.some(x=>x.name===p.name);
+  const FilterBar=()=>(
+    <div style={{display:"flex",flexDirection:"column",gap:8,marginBottom:14}}>
+      <div style={{display:"flex",gap:6}}>
+        <select value={filterDesig} onChange={e=>setFilterDesig(e.target.value)}
+          style={{flex:1,background:"#0D1117",border:"1px solid #21262D",borderRadius:7,padding:"6px 10px",color:filterDesig!=="All"?"white":"#6b7280",fontSize:11,outline:"none"}}>
+          {allDesigs.map(d=><option key={d} value={d} style={{background:"#161B22"}}>{d==="All"?"All Designations":d}</option>)}
+        </select>
+        <select value={filterDept} onChange={e=>setFilterDept(e.target.value)}
+          style={{flex:1,background:"#0D1117",border:"1px solid #21262D",borderRadius:7,padding:"6px 10px",color:filterDept!=="All"?"white":"#6b7280",fontSize:11,outline:"none"}}>
+          {allDepts.map(d=><option key={d} value={d} style={{background:"#161B22"}}>{d==="All"?"All Departments":d}</option>)}
+        </select>
+      </div>
+      <div style={{position:"relative"}}>
+        <span style={{position:"absolute",left:10,top:"50%",transform:"translateY(-50%)",color:"#6b7280",fontSize:12}}>🔍</span>
+        <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search people..."
+          style={{width:"100%",background:"#0D1117",border:"1px solid #21262D",borderRadius:7,padding:"7px 10px 7px 30px",color:"white",fontSize:12,outline:"none",boxSizing:"border-box"}}/>
+      </div>
+    </div>
+  );
   const inReviewees=p=>reviewees.some(x=>x.name===p.name);
   const hasConn=name=>savedConns.some(c=>c.reviewerName===name);
 
@@ -51,7 +79,7 @@ function AddConnModal({people,existingPool,existingConns,editingConn,onSave,onCl
   return(
     <div style={{position:"fixed",inset:0,zIndex:300,display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
       <div onClick={onClose} style={{position:"absolute",inset:0,background:"rgba(0,0,0,0.85)",backdropFilter:"blur(8px)"}}/>
-      <div style={{position:"relative",width:"min(620px,100%)",background:"linear-gradient(180deg,#12181F,#0D1117)",border:"1px solid #21262D",borderRadius:20,overflow:"hidden",boxShadow:"0 32px 100px rgba(0,0,0,0.7)",maxHeight:"92vh",display:"flex",flexDirection:"column"}}>
+      <div style={{position:"relative",width:"min(860px,100%)",background:"linear-gradient(180deg,#12181F,#0D1117)",border:"1px solid #21262D",borderRadius:20,overflow:"hidden",boxShadow:"0 32px 100px rgba(0,0,0,0.7)",maxHeight:"92vh",display:"flex",flexDirection:"column"}}>
         <div style={{height:3,background:"linear-gradient(90deg,#F59E0B,#F59E0B66,transparent)"}}/>
         <div style={{padding:"20px 24px 16px",borderBottom:"1px solid rgba(255,255,255,0.06)",display:"flex",alignItems:"center",justifyContent:"space-between",flexShrink:0}}>
           <div style={{display:"flex",alignItems:"center",gap:12}}>
@@ -70,14 +98,16 @@ function AddConnModal({people,existingPool,existingConns,editingConn,onSave,onCl
           {phase===1&&(
             <div>
               <p style={{color:"#9ca3af",fontSize:13,margin:"0 0 14px"}}>Who will fill this form? <span style={{color:"#F59E0B",fontWeight:600}}>{pool.length} selected</span></p>
-              <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(110px,1fr))",gap:10}}>
-                {people.map(p=>{const sel=inPool(p);const c=gc(p.name);return(
-                  <button key={p.name} onClick={()=>togglePool(p)} style={{padding:"12px 8px",borderRadius:12,border:"2px solid "+(sel?c+"99":"#1C2333"),background:sel?c+"15":"#161B22",cursor:"pointer",textAlign:"center",position:"relative"}}>
+              <FilterBar/>
+              <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(220px,1fr))",gap:8}}>
+                {filteredPeople.map(p=>{const sel=inPool(p);const c=gc(p.name);return(
+                  <button key={p.name} onClick={()=>togglePool(p)}
+                    style={{display:"flex",alignItems:"center",gap:10,padding:"10px 12px",borderRadius:10,border:"2px solid "+(sel?c+"99":"#1C2333"),background:sel?c+"12":"#161B22",cursor:"pointer",textAlign:"left",position:"relative"}}>
                     {sel&&<div style={{position:"absolute",top:6,right:6,width:16,height:16,borderRadius:"50%",background:c,display:"flex",alignItems:"center",justifyContent:"center"}}><Check size={9} color="#000"/></div>}
-                    <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:6}}>
-                      <Av name={p.name} size={36}/>
-                      <p style={{color:"white",fontSize:11,fontWeight:600,margin:0}}>{p.name.split(" ")[0]}</p>
-                      <span style={{fontSize:9,color:"#6b7280",background:"#21262D",padding:"1px 5px",borderRadius:999}}>{(p.designations||[])[0]||"Staff"}</span>
+                    <Av name={p.name} size={34}/>
+                    <div style={{minWidth:0}}>
+                      <p style={{color:"white",fontSize:12,fontWeight:600,margin:0,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{p.name}</p>
+                      <p style={{color:"#6b7280",fontSize:10,margin:"2px 0 0",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{(p.designations||[])[0]||"Staff"} {p.department?"· "+p.department:""}</p>
                     </div>
                   </button>
                 );})}
@@ -104,14 +134,16 @@ function AddConnModal({people,existingPool,existingConns,editingConn,onSave,onCl
                   ))}
                 </div>
               )}
-              <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(110px,1fr))",gap:10}}>
-                {pool.map(p=>{const sel=reviewer?.name===p.name;const done=hasConn(p.name);const c=gc(p.name);return(
-                  <div key={p.name} onClick={()=>setReviewer(p)} style={{padding:"12px 8px",borderRadius:12,border:"2px solid "+(sel?c+"99":done?"#22c55e33":"#1C2333"),background:sel?c+"15":done?"rgba(34,197,94,0.05)":"#161B22",cursor:"pointer",textAlign:"center",position:"relative"}}>
+              <FilterBar/>
+              <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(220px,1fr))",gap:8}}>
+                {pool.filter(p=>p.name.toLowerCase().includes(search.toLowerCase())).map(p=>{const sel=reviewer?.name===p.name;const done=hasConn(p.name);const c=gc(p.name);return(
+                  <div key={p.name} onClick={()=>setReviewer(p)}
+                    style={{display:"flex",alignItems:"center",gap:10,padding:"10px 12px",borderRadius:10,border:"2px solid "+(sel?c+"99":done?"#22c55e44":"#1C2333"),background:sel?c+"12":done?"rgba(34,197,94,0.05)":"#161B22",cursor:"pointer",position:"relative"}}>
                     {(sel||done)&&<div style={{position:"absolute",top:6,right:6,width:16,height:16,borderRadius:"50%",background:sel?c:"#22c55e",display:"flex",alignItems:"center",justifyContent:"center"}}><Check size={9} color="#000"/></div>}
-                    <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:6}}>
-                      <Av name={p.name} size={36}/>
-                      <p style={{color:"white",fontSize:11,fontWeight:600,margin:0}}>{p.name.split(" ")[0]}</p>
-                      <span style={{fontSize:9,color:done?"#22c55e":"#4b5563"}}>{done?"✓ Set":"Pending"}</span>
+                    <Av name={p.name} size={34}/>
+                    <div style={{minWidth:0}}>
+                      <p style={{color:"white",fontSize:12,fontWeight:600,margin:0,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{p.name}</p>
+                      <p style={{color:done?"#22c55e":"#6b7280",fontSize:10,margin:"2px 0 0"}}>{done?"✓ Set":"Pending"} {p.department?"· "+p.department:""}</p>
                     </div>
                   </div>
                 );})}
@@ -125,14 +157,16 @@ function AddConnModal({people,existingPool,existingConns,editingConn,onSave,onCl
                 <div><p style={{color:"white",fontSize:13,fontWeight:600,margin:0}}>{reviewer.name}</p><p style={{color:"#6b7280",fontSize:11,margin:"2px 0 0"}}>will review the selected people</p></div>
                 <span style={{marginLeft:"auto",fontSize:11,color:"#F59E0B",fontWeight:600}}>{reviewees.length} selected</span>
               </div>
-              <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(110px,1fr))",gap:10}}>
-                {people.filter(p=>p.name!==reviewer.name).map(p=>{const sel=inReviewees(p);const c=gc(p.name);return(
-                  <button key={p.name} onClick={()=>toggleReviewee(p)} style={{padding:"12px 8px",borderRadius:12,border:"2px solid "+(sel?c+"99":"#1C2333"),background:sel?c+"15":"#161B22",cursor:"pointer",textAlign:"center",position:"relative"}}>
+              <FilterBar/>
+              <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(220px,1fr))",gap:8}}>
+                {filteredPeople.filter(p=>p.name!==reviewer.name).map(p=>{const sel=inReviewees(p);const c=gc(p.name);return(
+                  <button key={p.name} onClick={()=>toggleReviewee(p)}
+                    style={{display:"flex",alignItems:"center",gap:10,padding:"10px 12px",borderRadius:10,border:"2px solid "+(sel?c+"99":"#1C2333"),background:sel?c+"12":"#161B22",cursor:"pointer",textAlign:"left",position:"relative"}}>
                     {sel&&<div style={{position:"absolute",top:6,right:6,width:16,height:16,borderRadius:"50%",background:c,display:"flex",alignItems:"center",justifyContent:"center"}}><Check size={9} color="#000"/></div>}
-                    <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:6}}>
-                      <Av name={p.name} size={36}/>
-                      <p style={{color:"white",fontSize:11,fontWeight:600,margin:0}}>{p.name.split(" ")[0]}</p>
-                      <span style={{fontSize:9,color:"#6b7280",background:"#21262D",padding:"1px 5px",borderRadius:999}}>{(p.designations||[])[0]||"Staff"}</span>
+                    <Av name={p.name} size={34}/>
+                    <div style={{minWidth:0}}>
+                      <p style={{color:"white",fontSize:12,fontWeight:600,margin:0,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{p.name}</p>
+                      <p style={{color:"#6b7280",fontSize:10,margin:"2px 0 0",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{(p.designations||[])[0]||"Staff"} {p.department?"· "+p.department:""}</p>
                     </div>
                   </button>
                 );})}
