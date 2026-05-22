@@ -1,13 +1,13 @@
 "use client";
 import { useState, useEffect } from "react";
 import { getPeople, getMarkingConfig, getMarkingGroups, saveMarkingGroup, deleteMarkingGroup, deleteMarkingGroupAll } from "@/lib/sheets";
-import { Trash2, Search } from "lucide-react";
+import { Trash2, Search, X } from "lucide-react";
 
 function gc(n=""){const c=["#F59E0B","#3B82F6","#10B981","#F43F5E","#8B5CF6","#06B6D4","#F97316"];return c[(n.charCodeAt(0)||0)%c.length];}
 function gi(n=""){return n.split(" ").map(x=>x[0]).join("").toUpperCase().slice(0,2)||"?";}
 function Av({name="",size=36}){const color=gc(name);return<div style={{width:size,height:size,borderRadius:"50%",background:color+"18",border:"2px solid "+color+"44",display:"flex",alignItems:"center",justifyContent:"center",fontSize:size*0.33,fontWeight:700,color,flexShrink:0}}>{gi(name)}</div>;}
 function Skel({w="100%",h=20,r=8}){return<div style={{width:w,height:h,borderRadius:r,background:"linear-gradient(90deg,#161B22 25%,#21262D 50%,#161B22 75%)",backgroundSize:"200% 100%",animation:"shimmer 1.5s infinite"}}/>;}
-function Spinner(){return<svg style={{width:12,height:12,animation:"spin 1s linear infinite"}} viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" opacity="0.25"/><path fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"/></svg>;}
+function Spinner({size=12}){return<svg style={{width:size,height:size,animation:"spin 1s linear infinite",flexShrink:0}} viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" opacity="0.25"/><path fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"/></svg>;}
 
 export default function MarkingGroupsTab(){
   const [people,setPeople]=useState([]);
@@ -20,6 +20,8 @@ export default function MarkingGroupsTab(){
   const [filterDept,setFilterDept]=useState("All");
   const [adding,setAdding]=useState(null);
   const [removing,setRemoving]=useState(null);
+  const [addingAll,setAddingAll]=useState(false);
+  const [clearing,setClearing]=useState(false);
 
   useEffect(()=>{
     Promise.all([getPeople(),getMarkingConfig(),getMarkingGroups()]).then(([p,cfg,mg])=>{
@@ -32,20 +34,20 @@ export default function MarkingGroupsTab(){
     }).catch(()=>setLoading(false));
   },[]);
 
-  // Helpers
   const getPersonGroup=(name)=>markingGroups.find(mg=>mg.personName===name);
   const groupMembers=markingGroups.filter(mg=>mg.groupId===selectedGroup?.groupId).map(mg=>mg.personName);
   const assignedToAny=new Set(markingGroups.map(mg=>mg.personName));
-
-  // Filter options
   const allDesignations=["All",...new Set(people.flatMap(p=>p.designations||[]).filter(Boolean))];
   const allDepartments=["All",...new Set(people.map(p=>p.department).filter(Boolean))];
+  const hasFilters=filterDesig!=="All"||filterDept!=="All"||search;
 
-  // Filtered people
   const filtered=people
     .filter(p=>filterDesig==="All"||(p.designations||[]).includes(filterDesig))
     .filter(p=>filterDept==="All"||p.department===filterDept)
     .filter(p=>p.name.toLowerCase().includes(search.toLowerCase())||p.email?.toLowerCase().includes(search.toLowerCase()));
+
+  const filteredUnassigned=filtered.filter(p=>!assignedToAny.has(p.name));
+  const allUnassigned=people.filter(p=>!assignedToAny.has(p.name));
 
   async function handleAdd(person){
     if(!selectedGroup) return;
@@ -64,18 +66,33 @@ export default function MarkingGroupsTab(){
   }
 
   async function handleClearGroup(){
-    if(!selectedGroup) return;
+    if(!selectedGroup||clearing) return;
+    setClearing(true);
     await deleteMarkingGroupAll({groupId:selectedGroup.groupId});
     setMarkingGroups(prev=>prev.filter(mg=>mg.groupId!==selectedGroup.groupId));
+    setClearing(false);
   }
 
-  async function handleAddAll(){
-    if(!selectedGroup) return;
-    const toAdd=filtered.filter(p=>!assignedToAny.has(p.name));
-    for(const person of toAdd){
+  // Add all from current filter (unassigned only)
+  async function handleAddFiltered(){
+    if(!selectedGroup||addingAll) return;
+    setAddingAll(true);
+    for(const person of filteredUnassigned){
       await saveMarkingGroup({groupId:selectedGroup.groupId,groupName:selectedGroup.groupName,personName:person.name});
     }
-    setMarkingGroups(prev=>[...prev,...toAdd.map(p=>({groupId:selectedGroup.groupId,groupName:selectedGroup.groupName,personName:p.name}))]);
+    setMarkingGroups(prev=>[...prev,...filteredUnassigned.map(p=>({groupId:selectedGroup.groupId,groupName:selectedGroup.groupName,personName:p.name}))]);
+    setAddingAll(false);
+  }
+
+  // Add ALL unassigned people regardless of filter
+  async function handleAddAllUnassigned(){
+    if(!selectedGroup||addingAll) return;
+    setAddingAll(true);
+    for(const person of allUnassigned){
+      await saveMarkingGroup({groupId:selectedGroup.groupId,groupName:selectedGroup.groupName,personName:person.name});
+    }
+    setMarkingGroups(prev=>[...prev,...allUnassigned.map(p=>({groupId:selectedGroup.groupId,groupName:selectedGroup.groupName,personName:p.name}))]);
+    setAddingAll(false);
   }
 
   if(loading) return(
@@ -91,7 +108,6 @@ export default function MarkingGroupsTab(){
     <div style={{display:"flex",flexDirection:"column",gap:20}}>
       <style>{"@keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}@keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}"}</style>
 
-      {/* Header */}
       <div>
         <h2 style={{color:"white",fontSize:18,fontWeight:700,margin:0,fontFamily:"var(--font-playfair)"}}>Marking Groups</h2>
         <p style={{color:"#6b7280",fontSize:13,margin:"3px 0 0"}}>Assign people to marking groups for score calculation</p>
@@ -115,8 +131,7 @@ export default function MarkingGroupsTab(){
       {groups.length===0?(
         <div style={{textAlign:"center",padding:"48px 0",background:"#161B22",border:"1px solid #21262D",borderRadius:12,color:"#4b5563"}}>
           <p style={{fontSize:32,margin:"0 0 12px"}}>📊</p>
-          <p style={{fontSize:14,margin:0}}>No groups yet.</p>
-          <p style={{fontSize:12,margin:"6px 0 0"}}>Create groups in the Marking tab first.</p>
+          <p style={{fontSize:14,margin:0}}>No groups yet. Create groups in the Marking tab first.</p>
         </div>
       ):(
         <>
@@ -140,7 +155,7 @@ export default function MarkingGroupsTab(){
           {selectedGroup&&(
             <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:16}}>
 
-              {/* Left — Group Members */}
+              {/* Left — Current Group Members */}
               <div style={{background:"#161B22",border:"1px solid #21262D",borderRadius:14,overflow:"hidden"}}>
                 <div style={{padding:"14px 18px",borderBottom:"1px solid #21262D",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
                   <div>
@@ -148,17 +163,15 @@ export default function MarkingGroupsTab(){
                     <p style={{color:"#6b7280",fontSize:12,margin:"2px 0 0"}}>{groupMembers.length} members</p>
                   </div>
                   {groupMembers.length>0&&(
-                    <button onClick={handleClearGroup}
-                      style={{padding:"5px 10px",borderRadius:7,border:"1px solid rgba(239,68,68,0.3)",background:"transparent",color:"#ef4444",fontSize:11,cursor:"pointer"}}>
-                      Clear All
+                    <button onClick={handleClearGroup} disabled={clearing}
+                      style={{padding:"5px 10px",borderRadius:7,border:"1px solid rgba(239,68,68,0.3)",background:"transparent",color:clearing?"#6b7280":"#ef4444",fontSize:11,cursor:clearing?"not-allowed":"pointer",display:"flex",alignItems:"center",gap:4}}>
+                      {clearing&&<Spinner/>}{clearing?"Clearing...":"Clear All"}
                     </button>
                   )}
                 </div>
                 <div style={{padding:12,display:"flex",flexDirection:"column",gap:8,maxHeight:450,overflowY:"auto"}}>
                   {groupMembers.length===0?(
-                    <div style={{textAlign:"center",padding:"32px 0",color:"#4b5563",fontSize:13}}>
-                      No members yet. Add from the right →
-                    </div>
+                    <div style={{textAlign:"center",padding:"32px 0",color:"#4b5563",fontSize:13}}>No members yet. Add from the right →</div>
                   ):(
                     groupMembers.map(name=>{
                       const person=people.find(p=>p.name===name);
@@ -186,74 +199,89 @@ export default function MarkingGroupsTab(){
                 </div>
               </div>
 
-              {/* Right — All People */}
+              {/* Right — Add People */}
               <div style={{background:"#161B22",border:"1px solid #21262D",borderRadius:14,overflow:"hidden"}}>
-                <div style={{padding:"14px 18px",borderBottom:"1px solid #21262D",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
-                  <div>
-                    <p style={{color:"white",fontSize:14,fontWeight:700,margin:0}}>All People</p>
-                    <p style={{color:"#6b7280",fontSize:11,margin:"2px 0 0"}}>{filtered.length} shown · {filtered.filter(p=>!assignedToAny.has(p.name)).length} unassigned</p>
+                {/* Header with bulk actions */}
+                <div style={{padding:"14px 18px",borderBottom:"1px solid #21262D"}}>
+                  <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:8}}>
+                    <div>
+                      <p style={{color:"white",fontSize:14,fontWeight:700,margin:0}}>Add People</p>
+                      <p style={{color:"#6b7280",fontSize:11,margin:"2px 0 0"}}>{filteredUnassigned.length} available to add</p>
+                    </div>
                   </div>
-                  <div style={{display:"flex",gap:6}}>
-                    <button onClick={()=>{
-                      const unassigned=people.filter(p=>!assignedToAny.has(p.name));
-                      Promise.all(unassigned.map(person=>saveMarkingGroup({groupId:selectedGroup.groupId,groupName:selectedGroup.groupName,personName:person.name}))).then(()=>{
-                        setMarkingGroups(prev=>[...prev,...unassigned.map(p=>({groupId:selectedGroup.groupId,groupName:selectedGroup.groupName,personName:p.name}))]);
-                      });
-                    }} style={{padding:"5px 10px",borderRadius:7,border:"1px solid #21262D",background:"transparent",color:"#9ca3af",fontSize:11,cursor:"pointer"}}
-                      onMouseOver={e=>e.currentTarget.style.color="white"} onMouseOut={e=>e.currentTarget.style.color="#9ca3af"}>
-                      All Unassigned
+                  {/* Bulk action buttons */}
+                  <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
+                    <button onClick={handleAddAllUnassigned} disabled={addingAll||allUnassigned.length===0}
+                      style={{flex:1,padding:"6px 10px",borderRadius:7,border:"1px solid #21262D",background:"transparent",color:allUnassigned.length===0?"#374151":"#9ca3af",fontSize:11,cursor:allUnassigned.length===0?"not-allowed":"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:4}}
+                      onMouseOver={e=>{if(allUnassigned.length>0)e.currentTarget.style.color="white";}} onMouseOut={e=>e.currentTarget.style.color=allUnassigned.length===0?"#374151":"#9ca3af"}>
+                      {addingAll?<Spinner/>:null}
+                      {addingAll?"Adding...":"Add All Unassigned"}
+                      {!addingAll&&allUnassigned.length>0&&<span style={{fontSize:9,color:"#F59E0B",background:"rgba(245,158,11,0.1)",padding:"1px 5px",borderRadius:999}}>{allUnassigned.length}</span>}
                     </button>
-                    <button onClick={handleAddAll}
-                      style={{padding:"5px 12px",borderRadius:7,border:"none",background:"linear-gradient(135deg,#D97706,#F59E0B)",color:"#000",fontSize:11,fontWeight:700,cursor:"pointer"}}>
-                      + Add Filtered
+                    <button onClick={handleAddFiltered} disabled={addingAll||filteredUnassigned.length===0||!hasFilters}
+                      style={{flex:1,padding:"6px 10px",borderRadius:7,border:"none",background:hasFilters&&filteredUnassigned.length>0&&!addingAll?"linear-gradient(135deg,#D97706,#F59E0B)":"#21262D",color:hasFilters&&filteredUnassigned.length>0&&!addingAll?"#000":"#4b5563",fontSize:11,fontWeight:700,cursor:hasFilters&&filteredUnassigned.length>0&&!addingAll?"pointer":"not-allowed",display:"flex",alignItems:"center",justifyContent:"center",gap:4}}>
+                      {addingAll?<Spinner/>:null}
+                      {addingAll?"Adding...":"Add Filtered"}
+                      {!addingAll&&hasFilters&&filteredUnassigned.length>0&&<span style={{fontSize:9,background:"rgba(0,0,0,0.2)",padding:"1px 5px",borderRadius:999}}>{filteredUnassigned.length}</span>}
                     </button>
                   </div>
                 </div>
+
                 <div style={{padding:12,display:"flex",flexDirection:"column",gap:8}}>
                   {/* Filters */}
                   <div style={{display:"flex",gap:6}}>
                     <select value={filterDesig} onChange={e=>setFilterDesig(e.target.value)}
-                      style={{flex:1,background:"#0D1117",border:"1px solid #21262D",borderRadius:7,padding:"6px 10px",color:filterDesig!=="All"?"white":"#6b7280",fontSize:11,outline:"none"}}>
-                      {allDesignations.map(d=><option key={d} value={d} style={{background:"#161B22"}}>{d==="All"?"All Designations":d}</option>)}
+                      style={{flex:1,background:"#0D1117",border:"1px solid "+(filterDesig!=="All"?"#F59E0B44":"#21262D"),borderRadius:7,padding:"6px 8px",color:filterDesig!=="All"?"#F59E0B":"#6b7280",fontSize:11,outline:"none"}}>
+                      {allDesignations.map(d=><option key={d} value={d} style={{background:"#161B22",color:"white"}}>{d==="All"?"All Designations":d}</option>)}
                     </select>
                     <select value={filterDept} onChange={e=>setFilterDept(e.target.value)}
-                      style={{flex:1,background:"#0D1117",border:"1px solid #21262D",borderRadius:7,padding:"6px 10px",color:filterDept!=="All"?"white":"#6b7280",fontSize:11,outline:"none"}}>
-                      {allDepartments.map(d=><option key={d} value={d} style={{background:"#161B22"}}>{d==="All"?"All Departments":d}</option>)}
+                      style={{flex:1,background:"#0D1117",border:"1px solid "+(filterDept!=="All"?"#F59E0B44":"#21262D"),borderRadius:7,padding:"6px 8px",color:filterDept!=="All"?"#F59E0B":"#6b7280",fontSize:11,outline:"none"}}>
+                      {allDepartments.map(d=><option key={d} value={d} style={{background:"#161B22",color:"white"}}>{d==="All"?"All Departments":d}</option>)}
                     </select>
                   </div>
-                  {/* Search */}
-                  <div style={{position:"relative"}}>
-                    <Search size={13} color="#6b7280" style={{position:"absolute",left:10,top:"50%",transform:"translateY(-50%)"}}/>
-                    <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search people..."
-                      style={{width:"100%",background:"#0D1117",border:"1px solid #21262D",borderRadius:8,padding:"8px 10px 8px 30px",color:"white",fontSize:12,outline:"none",boxSizing:"border-box"}}/>
+                  {/* Search + clear */}
+                  <div style={{display:"flex",gap:6}}>
+                    <div style={{position:"relative",flex:1}}>
+                      <Search size={13} color="#6b7280" style={{position:"absolute",left:10,top:"50%",transform:"translateY(-50%)"}}/>
+                      <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search people..."
+                        style={{width:"100%",background:"#0D1117",border:"1px solid "+(search?"#F59E0B44":"#21262D"),borderRadius:8,padding:"8px 10px 8px 30px",color:"white",fontSize:12,outline:"none",boxSizing:"border-box"}}/>
+                    </div>
+                    {hasFilters&&(
+                      <button onClick={()=>{setFilterDesig("All");setFilterDept("All");setSearch("");}}
+                        style={{padding:"8px 10px",borderRadius:8,border:"1px solid #21262D",background:"transparent",color:"#6b7280",fontSize:11,cursor:"pointer",display:"flex",alignItems:"center"}}
+                        onMouseOver={e=>e.currentTarget.style.color="#ef4444"} onMouseOut={e=>e.currentTarget.style.color="#6b7280"}>
+                        <X size={12}/>
+                      </button>
+                    )}
                   </div>
+
                   {/* People list */}
-                  <div style={{display:"flex",flexDirection:"column",gap:6,maxHeight:340,overflowY:"auto"}}>
+                  <div style={{display:"flex",flexDirection:"column",gap:6,maxHeight:300,overflowY:"auto"}}>
                     {filtered.map(person=>{
                       const isInGroup=groupMembers.includes(person.name);
                       const personGroup=getPersonGroup(person.name);
                       const isInOtherGroup=!isInGroup&&personGroup;
                       const color=gc(person.name);
                       return(
-                        <div key={person.id} style={{display:"flex",alignItems:"center",gap:10,padding:"10px 12px",background:isInGroup?"rgba(34,197,94,0.05)":isInOtherGroup?"rgba(245,158,11,0.03)":"#0D1117",borderRadius:10,border:"1px solid "+(isInGroup?"rgba(34,197,94,0.2)":isInOtherGroup?"rgba(245,158,11,0.15)":"#21262D")}}>
-                          <Av name={person.name} size={32}/>
+                        <div key={person.id} style={{display:"flex",alignItems:"center",gap:10,padding:"9px 12px",background:isInGroup?"rgba(34,197,94,0.05)":isInOtherGroup?"rgba(245,158,11,0.03)":"#0D1117",borderRadius:10,border:"1px solid "+(isInGroup?"rgba(34,197,94,0.2)":isInOtherGroup?"rgba(245,158,11,0.15)":"#21262D")}}>
+                          <Av name={person.name} size={30}/>
                           <div style={{flex:1,minWidth:0}}>
-                            <p style={{color:"white",fontSize:13,fontWeight:600,margin:0}}>{person.name}</p>
+                            <p style={{color:"white",fontSize:12,fontWeight:600,margin:0}}>{person.name}</p>
                             <div style={{display:"flex",gap:4,marginTop:2,flexWrap:"wrap"}}>
                               {(person.designations||[]).map(d=><span key={d} style={{fontSize:9,color:"#6b7280",background:"#21262D",padding:"1px 5px",borderRadius:999}}>{d}</span>)}
                               {person.department&&<span style={{fontSize:9,color:"#4b5563",background:"#161B22",padding:"1px 5px",borderRadius:999}}>🏢 {person.department}</span>}
                             </div>
                           </div>
                           {isInGroup?(
-                            <span style={{fontSize:11,color:"#22c55e",background:"rgba(34,197,94,0.1)",padding:"3px 8px",borderRadius:999,fontWeight:600,whiteSpace:"nowrap"}}>✓ Added</span>
+                            <span style={{fontSize:10,color:"#22c55e",background:"rgba(34,197,94,0.1)",padding:"2px 8px",borderRadius:999,fontWeight:600,whiteSpace:"nowrap"}}>✓ In Group</span>
                           ):isInOtherGroup?(
-                            <span style={{fontSize:10,color:"#F59E0B",background:"rgba(245,158,11,0.1)",padding:"3px 8px",borderRadius:999,fontWeight:600,whiteSpace:"nowrap"}}>{personGroup.groupName}</span>
+                            <span style={{fontSize:10,color:"#F59E0B",background:"rgba(245,158,11,0.1)",padding:"2px 8px",borderRadius:999,fontWeight:600,whiteSpace:"nowrap"}}>{personGroup.groupName}</span>
                           ):(
-                            <button onClick={()=>handleAdd(person)} disabled={adding===person.name}
-                              style={{width:28,height:28,borderRadius:"50%",border:"1px solid "+color+"44",background:color+"18",color,fontSize:16,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",fontWeight:700,flexShrink:0}}
+                            <button onClick={()=>handleAdd(person)} disabled={adding===person.name||addingAll}
+                              style={{width:26,height:26,borderRadius:"50%",border:"1px solid "+color+"44",background:color+"18",color,fontSize:14,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",fontWeight:700,flexShrink:0}}
                               onMouseOver={e=>{e.currentTarget.style.background=color+"33";e.currentTarget.style.borderColor=color;}}
                               onMouseOut={e=>{e.currentTarget.style.background=color+"18";e.currentTarget.style.borderColor=color+"44";}}>
-                              {adding===person.name?<Spinner/>:"+"}
+                              {adding===person.name?<Spinner size={10}/>:"+"}
                             </button>
                           )}
                         </div>
