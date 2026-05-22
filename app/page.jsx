@@ -23,7 +23,19 @@ export default function Home(){
   async function handleFindWithEmail(e){
     setFinding(true);setErr("");setMyForms(null);
     try{
-      const fl=await getForms();
+      // Use cached forms if available (max 2 min old)
+      let fl;
+      try{
+        const cached=sessionStorage.getItem("forms_cache");
+        const cachedTime=sessionStorage.getItem("forms_cache_time");
+        if(cached&&cachedTime&&Date.now()-Number(cachedTime)<120000){
+          fl=JSON.parse(cached);
+        }
+      }catch{}
+      if(!fl){
+        fl=await getForms();
+        try{sessionStorage.setItem("forms_cache",JSON.stringify(fl));sessionStorage.setItem("forms_cache_time",Date.now().toString());}catch{}
+      }
       const active=fl.filter(f=>f.active);
       const found=active.filter(form=>(form.connections||[]).some(c=>c.reviewerEmail&&c.reviewerEmail.toLowerCase()===e.toLowerCase().trim()));
       const progress={};
@@ -48,7 +60,7 @@ export default function Home(){
     if(e){
       setEmail(e);
       // Small delay to ensure sheets has latest data
-      setTimeout(()=>handleFindWithEmail(e.toLowerCase().trim()),800);
+      setTimeout(()=>handleFindWithEmail(e.toLowerCase().trim()),300);
     }
   },[]);
 
