@@ -319,10 +319,16 @@ function StepSuccess({form,conn,reviewerEmail,allSubs=[]}){
           ))}
         </div>
         {allFormsCompleted?(
-          <div style={{background:"rgba(34,197,94,0.1)",border:"1px solid rgba(34,197,94,0.3)",borderRadius:14,padding:"20px 24px",textAlign:"center"}}>
-            <div style={{fontSize:36,marginBottom:8}}>🎉</div>
-            <p style={{color:"#22c55e",fontSize:16,fontWeight:700,margin:"0 0 6px"}}>All Reviews Completed!</p>
-            <p style={{color:"#6b7280",fontSize:13,margin:0}}>You have completed all your assigned reviews. Great job!</p>
+          <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:12}}>
+            <div style={{background:"rgba(34,197,94,0.1)",border:"1px solid rgba(34,197,94,0.3)",borderRadius:14,padding:"20px 24px",textAlign:"center",width:"100%"}}>
+              <div style={{fontSize:36,marginBottom:8}}>🎉</div>
+              <p style={{color:"#22c55e",fontSize:16,fontWeight:700,margin:"0 0 6px"}}>All Reviews Completed!</p>
+              <p style={{color:"#6b7280",fontSize:13,margin:0}}>Great job! All reviews submitted.</p>
+            </div>
+            <button onClick={()=>window.location.href="/forms"}
+              style={{padding:"12px 28px",borderRadius:12,border:"none",background:"linear-gradient(135deg,#D97706,#F59E0B)",color:"#000",fontSize:14,fontWeight:700,cursor:"pointer"}}>
+              Back to My Forms
+            </button>
           </div>
         ):(
           <button onClick={()=>window.location.href="/forms"} style={{padding:"13px 32px",borderRadius:12,border:"none",background:"linear-gradient(135deg,#D97706,#F59E0B)",color:"#000",fontSize:14,fontWeight:700,cursor:"pointer",display:"flex",alignItems:"center",gap:8,margin:"0 auto"}}>
