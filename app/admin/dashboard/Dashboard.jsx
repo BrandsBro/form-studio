@@ -88,7 +88,7 @@ function FormSelector({ forms, selectedId, onChange }) {
 
 export default function AdminDashboard() {
   const router = useRouter();
-  const [tab, setTab] = useState("overview");
+  const [tab, setTab] = useState(()=>{ try{ return sessionStorage.getItem("admin_tab")||"overview"; }catch{ return "overview"; } });
   const [forms, setForms] = useState([]);
   const [selectedFormId, setSelectedFormId] = useState(null);
   const [editingForm, setEditingForm] = useState(null);
@@ -147,7 +147,7 @@ export default function AdminDashboard() {
         </div>
         <nav style={{flex:1,display:"flex",flexDirection:"column",gap:3}}>
           {TABS.map(t=>(
-            <button key={t.id} onClick={()=>{ if(t.id==="formbuilder") setEditingForm(null); setTab(t.id); }}
+            <button key={t.id} onClick={()=>{ if(t.id==="formbuilder") setEditingForm(null); setTab(t.id); try{sessionStorage.setItem("admin_tab",t.id);}catch{} }}
               style={{width:"100%",display:"flex",alignItems:"center",gap:10,padding:"10px 12px",borderRadius:9,border:tab===t.id?"1px solid rgba(245,158,11,0.2)":"1px solid transparent",cursor:"pointer",textAlign:"left",background:tab===t.id?"rgba(245,158,11,0.08)":"transparent",color:tab===t.id?"#F59E0B":"#6b7280",fontSize:13,fontWeight:tab===t.id?500:400}}>
               {t.icon} {t.label}
             </button>
