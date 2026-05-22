@@ -189,11 +189,23 @@ export default function MarkingGroupsTab(){
               {/* Right — All People */}
               <div style={{background:"#161B22",border:"1px solid #21262D",borderRadius:14,overflow:"hidden"}}>
                 <div style={{padding:"14px 18px",borderBottom:"1px solid #21262D",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
-                  <p style={{color:"white",fontSize:14,fontWeight:700,margin:0}}>All People</p>
+                  <div>
+                    <p style={{color:"white",fontSize:14,fontWeight:700,margin:0}}>All People</p>
+                    <p style={{color:"#6b7280",fontSize:11,margin:"2px 0 0"}}>{filtered.length} shown · {filtered.filter(p=>!assignedToAny.has(p.name)).length} unassigned</p>
+                  </div>
                   <div style={{display:"flex",gap:6}}>
+                    <button onClick={()=>{
+                      const unassigned=people.filter(p=>!assignedToAny.has(p.name));
+                      Promise.all(unassigned.map(person=>saveMarkingGroup({groupId:selectedGroup.groupId,groupName:selectedGroup.groupName,personName:person.name}))).then(()=>{
+                        setMarkingGroups(prev=>[...prev,...unassigned.map(p=>({groupId:selectedGroup.groupId,groupName:selectedGroup.groupName,personName:p.name}))]);
+                      });
+                    }} style={{padding:"5px 10px",borderRadius:7,border:"1px solid #21262D",background:"transparent",color:"#9ca3af",fontSize:11,cursor:"pointer"}}
+                      onMouseOver={e=>e.currentTarget.style.color="white"} onMouseOut={e=>e.currentTarget.style.color="#9ca3af"}>
+                      All Unassigned
+                    </button>
                     <button onClick={handleAddAll}
                       style={{padding:"5px 12px",borderRadius:7,border:"none",background:"linear-gradient(135deg,#D97706,#F59E0B)",color:"#000",fontSize:11,fontWeight:700,cursor:"pointer"}}>
-                      + Add All Filtered
+                      + Add Filtered
                     </button>
                   </div>
                 </div>
