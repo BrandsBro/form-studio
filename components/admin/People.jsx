@@ -274,9 +274,10 @@ export default function People(){
     savePerson(person);
     setModal(null);
   }
-  function handleDelete(id){
+  async function handleDelete(id){
+    if(!window.confirm("Delete this person?")) return;
     setPeople(prev=>prev.filter(p=>p.id!==id));
-    deletePerson({id});
+    await deletePerson({id});
   }
 
   const designationNames=designations.map(d=>d.designationName);
