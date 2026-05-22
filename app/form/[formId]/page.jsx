@@ -197,6 +197,14 @@ function StepForm({form,reviewerEmail,personName,isMulti,onDone,onBack,allSubs=[
   return(
     <>
       <ProgressBar progress={progress}/>
+      {/* Back button top left */}
+      <div style={{position:"fixed",top:16,left:16,zIndex:50}}>
+        <button onClick={isMulti?onBack:()=>window.location.href="/forms"}
+          style={{display:"flex",alignItems:"center",gap:6,background:"#161B22",border:"1px solid #21262D",borderRadius:9,padding:"8px 14px",color:"#9ca3af",fontSize:13,cursor:"pointer"}}
+          onMouseOver={e=>e.currentTarget.style.color="white"} onMouseOut={e=>e.currentTarget.style.color="#9ca3af"}>
+          <ChevronLeft size={15}/> {isMulti?"Back to List":"My Forms"}
+        </button>
+      </div>
       <main style={{minHeight:"100vh",padding:"70px 16px 40px",maxWidth:680,margin:"0 auto"}}>
         <div style={{textAlign:"center",marginBottom:24}}>
           <div style={{display:"inline-flex",alignItems:"center",gap:6,padding:"4px 14px",borderRadius:999,background:t.light,border:"1px solid "+t.border,marginBottom:12}}>
