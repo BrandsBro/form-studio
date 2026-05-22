@@ -1,171 +1,97 @@
 "use client";
-import { getForms, getSubmissions } from "@/lib/sheets";
+import { getPeople } from "@/lib/sheets";
 import { useState, useEffect } from "react";
-import { ChevronRight, CheckCircle, Clock } from "lucide-react";
+import { ChevronRight, Eye, EyeOff } from "lucide-react";
 
-function getColor(form){const T={amber:"#F59E0B",blue:"#3B82F6",green:"#10B981",rose:"#F43F5E",violet:"#8B5CF6",cyan:"#06B6D4"};return form?.customColor||T[form?.theme]||"#F59E0B";}
-function Skeleton({w="100%",h=20,r=8}){return <div style={{width:w,height:h,borderRadius:r,background:"linear-gradient(90deg,#161B22 25%,#21262D 50%,#161B22 75%)",backgroundSize:"200% 100%",animation:"shimmer 1.5s infinite"}}/>;}
-
-export default function Home(){
+export default function Login(){
   const [email,setEmail]=useState("");
+  const [password,setPassword]=useState("");
+  const [showPass,setShowPass]=useState(false);
   const [err,setErr]=useState("");
-  const [myForms,setMyForms]=useState(null);
-  const [finding,setFinding]=useState(()=>{
-    if(typeof window!=="undefined"){
-      const params=new URLSearchParams(window.location.search);
-      return !!params.get("email");
-    }
-    return false;
-  });
-  const [formProgress,setFormProgress]=useState({});
-
-
-  async function handleFindWithEmail(e){
-    setFinding(true);setErr("");setMyForms(null);
-    try{
-      // Use cached forms if available (max 2 min old)
-      let fl;
-      try{
-        const cached=sessionStorage.getItem("forms_cache");
-        const cachedTime=sessionStorage.getItem("forms_cache_time");
-        if(cached&&cachedTime&&Date.now()-Number(cachedTime)<120000){
-          fl=JSON.parse(cached);
-        }
-      }catch{}
-      if(!fl){
-        fl=await getForms();
-        try{sessionStorage.setItem("forms_cache",JSON.stringify(fl));sessionStorage.setItem("forms_cache_time",Date.now().toString());}catch{}
-      }
-      const active=fl.filter(f=>f.active);
-      const found=active.filter(form=>(form.connections||[]).some(c=>c.reviewerEmail&&c.reviewerEmail.toLowerCase()===e.toLowerCase().trim()));
-      const progress={};
-      await Promise.all(found.map(async form=>{
-        const conn=(form.connections||[]).find(c=>c.reviewerEmail&&c.reviewerEmail.toLowerCase()===e.toLowerCase().trim());
-        if(conn){
-          const subs=await getSubmissions(form.id);
-          const reviewed=subs.filter(s=>s.reviewerEmail===e.toLowerCase().trim()).map(s=>s.personName);
-          const total=(conn.revieweeNames||[]).length;
-          progress[form.id]={reviewed:reviewed.length,total,done:reviewed.length>=total};
-        }
-      }));
-      setFormProgress(progress);
-      setMyForms(found);
-    }catch(e){setErr("Error loading forms. Please try again.");}
-    setFinding(false);
-  }
+  const [loading,setLoading]=useState(false);
 
   useEffect(()=>{
-    const params=new URLSearchParams(window.location.search);
-    const e=params.get("email");
-    if(e){
-      setEmail(e);
-      // Small delay to ensure sheets has latest data
-      setTimeout(()=>handleFindWithEmail(e.toLowerCase().trim()),300);
-    }
+    // Already logged in → go to forms
+    const e=sessionStorage.getItem("reviewer_email");
+    if(e) window.location.href="/forms";
   },[]);
 
-  async function handleFind(){
+  async function handleLogin(){
     if(!email.trim()){setErr("Please enter your email.");return;}
-    if(!email.includes("@")){setErr("Please enter a valid email.");return;}
-    handleFindWithEmail(email.toLowerCase().trim());
+    if(!password.trim()){setErr("Please enter your password.");return;}
+    setLoading(true);setErr("");
+    try{
+      const people=await getPeople();
+      const person=people.find(p=>
+        p.email.toLowerCase().trim()===email.toLowerCase().trim()&&
+        p.password&&p.password===password
+      );
+      if(!person){
+        setErr("Invalid email or password.");
+        setLoading(false);
+        return;
+      }
+      sessionStorage.setItem("reviewer_email",person.email.toLowerCase().trim());
+      sessionStorage.setItem("reviewer_name",person.name);
+      window.location.href="/forms";
+    }catch(e){
+      setErr("Error connecting. Please try again.");
+    }
+    setLoading(false);
   }
-
-  const allDone=myForms&&myForms.length>0&&myForms.every(f=>formProgress[f.id]?.done);
-  const pendingForms=myForms?myForms.filter(f=>!formProgress[f.id]?.done):[];
-  const doneForms=myForms?myForms.filter(f=>formProgress[f.id]?.done):[];
-  const e=email.toLowerCase().trim();
 
   return(
     <div style={{minHeight:"100vh",background:"#0D1117",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:20,fontFamily:"var(--font-dm-sans)"}}>
-      <style>{"@keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}@keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}"}</style>
-      <div style={{textAlign:"center",marginBottom:32}}>
-        <h1 style={{color:"white",fontSize:32,fontWeight:800,margin:"0 0 8px",fontFamily:"var(--font-playfair)"}}>Performance Reviews</h1>
-        <p style={{color:"#6b7280",fontSize:15,margin:0}}>Enter your email to see your assigned reviews</p>
+      <style>{"@keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}"}</style>
+
+      {/* Logo */}
+      <div style={{textAlign:"center",marginBottom:36}}>
+        <div style={{width:56,height:56,borderRadius:16,background:"rgba(245,158,11,0.15)",border:"1px solid rgba(245,158,11,0.3)",display:"flex",alignItems:"center",justifyContent:"center",margin:"0 auto 16px",fontSize:26}}>⭐</div>
+        <h1 style={{color:"white",fontSize:28,fontWeight:800,margin:"0 0 8px",fontFamily:"var(--font-playfair)"}}>Performance Reviews</h1>
+        <p style={{color:"#6b7280",fontSize:14,margin:0}}>Sign in to access your assigned reviews</p>
       </div>
 
-      <div style={{width:"min(540px,100%)",background:"#161B22",border:"1px solid #21262D",borderRadius:16,padding:28}}>
-        <p style={{color:"#9ca3af",fontSize:11,fontWeight:600,letterSpacing:"0.08em",textTransform:"uppercase",margin:"0 0 10px"}}>Your Email Address</p>
-        <div style={{display:"flex",gap:10}}>
-          <input value={email} onChange={e=>setEmail(e.target.value)} onKeyDown={e=>e.key==="Enter"&&handleFind()}
-            placeholder="your@email.com" type="email"
-            style={{flex:1,padding:"11px 14px",borderRadius:10,border:"1px solid #21262D",background:"#0D1117",color:"white",fontSize:14,outline:"none"}}/>
-          <button onClick={handleFind} disabled={finding}
-            style={{padding:"11px 20px",borderRadius:10,border:"none",background:finding?"#374151":"linear-gradient(135deg,#D97706,#F59E0B)",color:finding?"#9ca3af":"#000",fontSize:14,fontWeight:700,cursor:finding?"not-allowed":"pointer",whiteSpace:"nowrap",display:"flex",alignItems:"center",gap:6}}>
-            {finding
-              ?<><svg style={{width:14,height:14,animation:"spin 1s linear infinite"}} viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" opacity="0.25"/><path fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"/></svg>Finding...</>
-              :<>Find <ChevronRight size={16}/></>
+      {/* Login card */}
+      <div style={{width:"min(420px,100%)",background:"#161B22",border:"1px solid #21262D",borderRadius:16,padding:28}}>
+        <div style={{display:"flex",flexDirection:"column",gap:16}}>
+          {/* Email */}
+          <div>
+            <label style={{fontSize:11,color:"#6b7280",display:"block",marginBottom:8,textTransform:"uppercase",letterSpacing:"0.07em"}}>Email Address</label>
+            <input value={email} onChange={e=>{setEmail(e.target.value);setErr("");}}
+              onKeyDown={e=>e.key==="Enter"&&handleLogin()}
+              placeholder="your@email.com" type="email" autoFocus
+              style={{width:"100%",background:"#0D1117",border:"1px solid "+(err?"rgba(239,68,68,0.5)":"#21262D"),borderRadius:10,padding:"12px 16px",color:"white",fontSize:14,outline:"none",boxSizing:"border-box",transition:"border-color 0.2s"}}
+              onFocus={e=>e.target.style.borderColor="#F59E0B"} onBlur={e=>e.target.style.borderColor=err?"rgba(239,68,68,0.5)":"#21262D"}/>
+          </div>
+          {/* Password */}
+          <div>
+            <label style={{fontSize:11,color:"#6b7280",display:"block",marginBottom:8,textTransform:"uppercase",letterSpacing:"0.07em"}}>Password</label>
+            <div style={{position:"relative"}}>
+              <input value={password} onChange={e=>{setPassword(e.target.value);setErr("");}}
+                onKeyDown={e=>e.key==="Enter"&&handleLogin()}
+                placeholder="Enter your password"
+                type={showPass?"text":"password"}
+                style={{width:"100%",background:"#0D1117",border:"1px solid "+(err?"rgba(239,68,68,0.5)":"#21262D"),borderRadius:10,padding:"12px 44px 12px 16px",color:"white",fontSize:14,outline:"none",boxSizing:"border-box",transition:"border-color 0.2s"}}
+                onFocus={e=>e.target.style.borderColor="#F59E0B"} onBlur={e=>e.target.style.borderColor=err?"rgba(239,68,68,0.5)":"#21262D"}/>
+              <button onClick={()=>setShowPass(s=>!s)} type="button"
+                style={{position:"absolute",right:12,top:"50%",transform:"translateY(-50%)",background:"none",border:"none",cursor:"pointer",color:"#6b7280",display:"flex",padding:4}}
+                onMouseOver={e=>e.currentTarget.style.color="white"} onMouseOut={e=>e.currentTarget.style.color="#6b7280"}>
+                {showPass?<EyeOff size={16}/>:<Eye size={16}/>}
+              </button>
+            </div>
+          </div>
+          {/* Error */}
+          {err&&<p style={{color:"#ef4444",fontSize:12,margin:0}}>{err}</p>}
+          {/* Submit */}
+          <button onClick={handleLogin} disabled={loading}
+            style={{width:"100%",padding:"13px 0",borderRadius:10,border:"none",background:loading?"#374151":"linear-gradient(135deg,#D97706,#F59E0B)",color:loading?"#9ca3af":"#000",fontSize:14,fontWeight:700,cursor:loading?"not-allowed":"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:8,marginTop:4}}>
+            {loading
+              ?<><svg style={{width:16,height:16,animation:"spin 1s linear infinite"}} viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" opacity="0.25"/><path fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"/></svg>Signing in...</>
+              :<>Sign In <ChevronRight size={18}/></>
             }
           </button>
         </div>
-        {err&&<p style={{color:"#ef4444",fontSize:12,margin:"8px 0 0"}}>{err}</p>}
       </div>
-
-      {/* Loading skeleton */}
-      {finding&&(
-        <div style={{width:"min(540px,100%)",marginTop:20,display:"flex",flexDirection:"column",gap:12}}>
-          {[1,2].map(i=>(
-            <div key={i} style={{background:"#161B22",border:"1px solid #21262D",borderRadius:14,padding:20}}>
-              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
-                <Skeleton w="60%" h={18}/><Skeleton w={60} h={24} r={999}/>
-              </div>
-              <Skeleton w="40%" h={14}/>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {/* Forms list */}
-      {!finding&&myForms!==null&&(
-        <div style={{width:"min(540px,100%)",marginTop:20,display:"flex",flexDirection:"column",gap:12}}>
-
-          {/* All done banner */}
-          {allDone&&(
-            <div style={{background:"rgba(34,197,94,0.08)",border:"1px solid rgba(34,197,94,0.3)",borderRadius:14,padding:"18px 20px",textAlign:"center",marginBottom:4}}>
-              <div style={{fontSize:32,marginBottom:6}}>🎉</div>
-              <p style={{color:"#22c55e",fontSize:15,fontWeight:700,margin:"0 0 4px"}}>All Reviews Completed!</p>
-              <p style={{color:"#6b7280",fontSize:12,margin:0}}>Great job! All your assigned reviews are submitted.</p>
-            </div>
-          )}
-
-          {myForms.length===0?(
-            <p style={{color:"#6b7280",fontSize:14,textAlign:"center"}}>No review assignments found for this email.</p>
-          ):allDone?(
-            <div style={{textAlign:"center",padding:"20px 0"}}>
-              <p style={{color:"#22c55e",fontSize:15,fontWeight:700,margin:0}}>You're all done! 🎉</p>
-              <p style={{color:"#6b7280",fontSize:13,margin:"8px 0 0"}}>All your reviews have been submitted. Thank you!</p>
-            </div>
-          ):(
-            pendingForms.map(form=>{
-              const color=getColor(form);
-              const prog=formProgress[form.id]||{reviewed:0,total:0,done:false};
-              const pct=prog.total>0?Math.round((prog.reviewed/prog.total)*100):0;
-              return(
-                <a key={form.id} href={"/form/"+form.id+"?email="+encodeURIComponent(e)}
-                  style={{display:"block",background:"#161B22",border:"1px solid "+color+"44",borderRadius:14,padding:20,textDecoration:"none",transition:"all 0.2s",position:"relative",overflow:"hidden"}}
-                  onMouseOver={ev=>ev.currentTarget.style.borderColor=color}
-                  onMouseOut={ev=>ev.currentTarget.style.borderColor=color+"44"}>
-                  <div style={{height:3,background:color,position:"absolute",top:0,left:0,width:pct+"%",transition:"width 0.5s"}}/>
-                  <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:8}}>
-                    <p style={{color:"white",fontSize:15,fontWeight:700,margin:0}}>{form.name}</p>
-                    <span style={{fontSize:11,color:color,background:color+"15",padding:"3px 10px",borderRadius:999,fontWeight:600,display:"flex",alignItems:"center",gap:4}}>
-                      <Clock size={11}/> {prog.reviewed}/{prog.total}
-                    </span>
-                  </div>
-                  <div style={{display:"flex",alignItems:"center",justifyContent:"space-between"}}>
-                    <p style={{color:"#6b7280",fontSize:12,margin:0}}>Click to continue reviewing</p>
-                    <ChevronRight size={16} color={color}/>
-                  </div>
-                  {prog.total>0&&(
-                    <div style={{marginTop:10,height:4,background:"#21262D",borderRadius:999,overflow:"hidden"}}>
-                      <div style={{height:"100%",background:color,borderRadius:999,width:pct+"%",transition:"width 0.5s"}}/>
-                    </div>
-                  )}
-                </a>
-              );
-            })
-          )}
-        </div>
-      )}
     </div>
   );
 }

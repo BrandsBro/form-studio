@@ -135,7 +135,7 @@ function StepReviewList({form,conn,reviewerEmail,onStart,onBack,allSubs=[]}){
         {allDone&&(
           <div style={{textAlign:"center",padding:"20px 0",display:"flex",flexDirection:"column",gap:12,alignItems:"center"}}>
             <p style={{color:"#22c55e",fontSize:14,fontWeight:600,margin:0}}>✓ All reviews completed!</p>
-            <button onClick={()=>window.location.href="/?email="+encodeURIComponent(reviewerEmail)}
+            <button onClick={()=>window.location.href="/forms"}
               style={{display:"inline-flex",alignItems:"center",gap:8,padding:"10px 24px",borderRadius:10,border:"1px solid #21262D",background:"transparent",color:"#9ca3af",fontSize:13,cursor:"pointer"}}>
               ← Back to Forms
             </button>
@@ -296,7 +296,7 @@ function StepSuccess({form,conn,reviewerEmail,allSubs=[]}){
     }).catch(()=>{});
   },[reviewerEmail]);
 
-  function goHome(){ window.location.href="/?email="+encodeURIComponent(reviewerEmail); }
+  function goHome(){ window.location.href="/forms"; }
   const reviewed=freshSubs.filter(s=>s.reviewerEmail===reviewerEmail).map(s=>s.personName);
 
   return(
@@ -325,7 +325,7 @@ function StepSuccess({form,conn,reviewerEmail,allSubs=[]}){
             <p style={{color:"#6b7280",fontSize:13,margin:0}}>You have completed all your assigned reviews. Great job!</p>
           </div>
         ):(
-          <button onClick={()=>window.location.href="/?email="+encodeURIComponent(reviewerEmail)} style={{padding:"13px 32px",borderRadius:12,border:"none",background:"linear-gradient(135deg,#D97706,#F59E0B)",color:"#000",fontSize:14,fontWeight:700,cursor:"pointer",display:"flex",alignItems:"center",gap:8,margin:"0 auto"}}>
+          <button onClick={()=>window.location.href="/forms"} style={{padding:"13px 32px",borderRadius:12,border:"none",background:"linear-gradient(135deg,#D97706,#F59E0B)",color:"#000",fontSize:14,fontWeight:700,cursor:"pointer",display:"flex",alignItems:"center",gap:8,margin:"0 auto"}}>
             ← Back to My Forms
           </button>
         )}
@@ -587,7 +587,7 @@ export default function FormPage(){
       <div style={{position:"fixed",top:0,left:"50%",transform:"translateX(-50%)",width:600,height:280,background:"radial-gradient(ellipse,"+t.glow+" 0%,transparent 70%)",pointerEvents:"none",zIndex:0}}/>
       <div style={{position:"relative",zIndex:1}}>
         {step==="email"&&<StepEmail form={form} onNext={handleEmailNext}/>}
-        {step==="list"&&(!subsLoaded?<Spinner/>:<StepReviewList form={form} conn={conn} reviewerEmail={reviewerEmail} allSubs={allSubs} onStart={handleStartPerson} onBack={()=>{ window.location.href="/?email="+encodeURIComponent(reviewerEmail); }}/>)}
+        {step==="list"&&(!subsLoaded?<Spinner/>:<StepReviewList form={form} conn={conn} reviewerEmail={reviewerEmail} allSubs={allSubs} onStart={handleStartPerson} onBack={()=>{ window.location.href="/forms"; }}/>)}
         {step==="form"&&(!subsLoaded?<Spinner/>:<StepForm form={form} reviewerEmail={reviewerEmail} personName={currentPerson} isMulti={conn?.type==="multi"} onDone={handleFormDone} onBack={()=>setStep("list")} allSubs={allSubs} onSubsUpdate={s=>setAllSubs(s)}/>)}
         {step==="success"&&<StepSuccess form={form} conn={conn} reviewerEmail={reviewerEmail} allSubs={allSubs}/>}
       </div>
