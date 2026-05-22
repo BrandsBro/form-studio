@@ -100,7 +100,7 @@ function AddConnModal({people,existingPool,existingConns,editingConn,onSave,onCl
               <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:14,flexWrap:"wrap",gap:8}}>
                 <p style={{color:"#9ca3af",fontSize:13,margin:0}}>Who will fill this form? <span style={{color:"#F59E0B",fontWeight:600}}>{pool.length} selected</span></p>
                 <div style={{display:"flex",gap:6}}>
-                  <button onClick={()=>setPool(people)} style={{padding:"5px 12px",borderRadius:7,border:"1px solid #21262D",background:"transparent",color:"#9ca3af",fontSize:11,cursor:"pointer"}}
+                  <button onClick={()=>{const toAdd=filteredPeople.filter(p=>!inPool(p));setPool(prev=>[...prev,...toAdd]);}} style={{padding:"5px 12px",borderRadius:7,border:"1px solid #21262D",background:"transparent",color:"#9ca3af",fontSize:11,cursor:"pointer"}}
                     onMouseOver={e=>e.currentTarget.style.color="white"} onMouseOut={e=>e.currentTarget.style.color="#9ca3af"}>Select All</button>
                   <button onClick={()=>setPool([])} style={{padding:"5px 12px",borderRadius:7,border:"1px solid #21262D",background:"transparent",color:"#9ca3af",fontSize:11,cursor:"pointer"}}
                     onMouseOver={e=>e.currentTarget.style.color="#ef4444"} onMouseOut={e=>e.currentTarget.style.color="#9ca3af"}>Clear</button>
@@ -180,7 +180,7 @@ function AddConnModal({people,existingPool,existingConns,editingConn,onSave,onCl
                     style={{padding:"4px 10px",borderRadius:7,border:"1px solid rgba(245,158,11,0.3)",background:"rgba(245,158,11,0.08)",color:"#F59E0B",fontSize:11,cursor:"pointer",fontWeight:600}}>
                     + Add All Filtered
                   </button>
-                  <button onClick={()=>setReviewees(people.filter(p=>p.name!==reviewer.name))}
+                  <button onClick={()=>{const toAdd=filteredPeople.filter(p=>p.name!==reviewer.name&&!inReviewees(p));setReviewees(prev=>[...prev,...toAdd]);}}
                     style={{padding:"4px 10px",borderRadius:7,border:"1px solid #21262D",background:"transparent",color:"#9ca3af",fontSize:11,cursor:"pointer"}}
                     onMouseOver={e=>e.currentTarget.style.color="white"} onMouseOut={e=>e.currentTarget.style.color="#9ca3af"}>Select All</button>
                   <button onClick={()=>setReviewees([])}
