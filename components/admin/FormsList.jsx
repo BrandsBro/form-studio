@@ -339,6 +339,7 @@ export default function FormsList({ onEdit }) {
   // Removed duplicate setSaving state here
   const [selected, setSelected] = useState(null);
   const [renamingForm, setRenamingForm] = useState(null);
+  const [cols, setCols] = useState(3);
   const [employees, setEmployees] = useState([]);
   const [executives, setExecutives] = useState([]);
 
@@ -441,81 +442,102 @@ export default function FormsList({ onEdit }) {
           <h2 style={{ color:"white", fontSize:18, fontWeight:700, margin:0, fontFamily:"var(--font-playfair)" }}>Forms</h2>
           <p style={{ color:"#6b7280", fontSize:13, margin:"3px 0 0" }}>{forms.length} form{forms.length!==1?"s":""} · Edit to build questions, Connections to assign reviewers</p>
         </div>
-        <button onClick={createForm} disabled={creating} style={{ display:"flex", alignItems:"center", gap:8, padding:"10px 20px", borderRadius:10, border:"none", background:"linear-gradient(135deg,#D97706,#F59E0B)", color:"#000", fontSize:13, fontWeight:700, cursor:"pointer" }}>
-          {creating ? <span style={{display:"flex",alignItems:"center",gap:6}}><svg style={{width:14,height:14,animation:"spin 1s linear infinite"}} viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" opacity="0.25"/><path fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"/></svg>Creating...</span> : <><Plus size={16}/> New Form</>}
-        </button>
+<div style={{display:"flex",gap:8,alignItems:"center"}}>
+          {/* Cols toggle */}
+          <div style={{display:"flex",background:"#0D1117",borderRadius:8,padding:3,gap:2}}>
+            {[1,2,3].map(n=>(
+              <button key={n} onClick={()=>setCols(n)}
+                style={{width:28,height:28,borderRadius:6,border:"none",background:cols===n?"#161B22":"transparent",color:cols===n?"#F59E0B":"#4b5563",fontSize:11,fontWeight:700,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>
+                {n}
+              </button>
+            ))}
+          </div>
+          <button onClick={createForm} disabled={creating} style={{ display:"flex", alignItems:"center", gap:8, padding:"10px 20px", borderRadius:10, border:"none", background:"linear-gradient(135deg,#D97706,#F59E0B)", color:"#000", fontSize:13, fontWeight:700, cursor:"pointer" }}>
+            {creating ? <span style={{display:"flex",alignItems:"center",gap:6}}><svg style={{width:14,height:14,animation:"spin 1s linear infinite"}} viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" opacity="0.25"/><path fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"/></svg>Creating...</span> : <><Plus size={16}/> New Form</>}
+          </button>
+        </div>
       </div>
 
-      <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(290px,1fr))", gap:16 }}>
-        {forms.map(form => {
-          const color = THEMES[form.theme]||form.customColor||"#F59E0B";
-          return (
-            <div key={form.id} style={{ background:"#161B22", border:"1px solid #21262D", borderRadius:16, overflow:"hidden", transition:"all 0.2s" }}
-              onMouseOver={e=>{ e.currentTarget.style.borderColor=color+"55"; e.currentTarget.style.transform="translateY(-1px)"; e.currentTarget.style.boxShadow=`0 8px 32px ${color}12`; }}
-              onMouseOut={e=>{ e.currentTarget.style.borderColor="#21262D"; e.currentTarget.style.transform="none"; e.currentTarget.style.boxShadow="none"; }}>
-
-              {/* Color bar */}
-              <div style={{ height:3, background:`linear-gradient(90deg,${color},${color}44)` }}/>
-
-              <div style={{ padding:20 }}>
-                {/* Name row */}
-                <div style={{ display:"flex", alignItems:"flex-start", justifyContent:"space-between", gap:10, marginBottom:14 }}>
-                  <div style={{ flex:1, minWidth:0 }}>
-                    <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:4 }}>
-                      <p style={{ color:"white", fontSize:15, fontWeight:700, margin:0, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{form.name}</p>
-                      <button onClick={()=>setRenamingForm(form)}
-                        style={{ background:"none", border:"none", cursor:"pointer", color:"#374151", padding:"2px 4px", borderRadius:4, flexShrink:0, display:"flex", transition:"color 0.15s" }}
-                        onMouseOver={e=>e.currentTarget.style.color=color} onMouseOut={e=>e.currentTarget.style.color="#374151"}
-                        title="Rename form">
-                        ✏️
-                      </button>
-                    </div>
-                    {form.description && <p style={{ color:"#6b7280", fontSize:12, margin:0, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{form.description}</p>}
+      <div style={{display:"grid",gridTemplateColumns:cols===1?"1fr":cols===2?"repeat(2,1fr)":"repeat(3,1fr)",gap:cols===1?12:16}}>
+        {forms.map(form=>{
+          const color=THEMES[form.theme]||form.customColor||"#F59E0B";
+          // 1-col: wide horizontal layout
+          if(cols===1) return(
+            <div key={form.id} style={{background:"#161B22",border:"1px solid #21262D",borderRadius:14,overflow:"hidden",transition:"all 0.2s"}}
+              onMouseOver={e=>{e.currentTarget.style.borderColor=color+"55";e.currentTarget.style.boxShadow=`0 4px 20px ${color}12`;}}
+              onMouseOut={e=>{e.currentTarget.style.borderColor="#21262D";e.currentTarget.style.boxShadow="none";}}>
+              <div style={{height:3,background:`linear-gradient(90deg,${color},${color}44)`}}/>
+              <div style={{padding:"16px 20px",display:"flex",alignItems:"center",gap:20,flexWrap:"wrap"}}>
+                {/* Left: name + desc */}
+                <div style={{flex:2,minWidth:200}}>
+                  <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:4}}>
+                    <div style={{width:10,height:10,borderRadius:"50%",background:color,flexShrink:0}}/>
+                    <p style={{color:"white",fontSize:15,fontWeight:700,margin:0}}>{form.name}</p>
+                    <button onClick={()=>setRenamingForm(form)} style={{background:"none",border:"none",cursor:"pointer",color:"#374151",padding:"2px 4px",display:"flex"}}
+                      onMouseOver={e=>e.currentTarget.style.color=color} onMouseOut={e=>e.currentTarget.style.color="#374151"}>✏️</button>
+                    <span style={{fontSize:10,color:form.active?"#22c55e":"#6b7280",background:form.active?"rgba(34,197,94,0.1)":"#21262D",padding:"2px 8px",borderRadius:999}}>{form.active?"● Active":"○ Inactive"}</span>
                   </div>
-                  <span style={{ fontSize:10, color:form.active?"#22c55e":"#6b7280", background:form.active?"rgba(34,197,94,0.1)":"#21262D", padding:"3px 10px", borderRadius:999, whiteSpace:"nowrap", flexShrink:0 }}>
-                    {form.active?"● Active":"○ Inactive"}
-                  </span>
+                  {form.description&&<p style={{color:"#6b7280",fontSize:12,margin:0}}>{form.description}</p>}
+                  <p style={{color:"#374151",fontSize:10,margin:"4px 0 0"}}>Created {form.createdAt}</p>
                 </div>
-
-                {/* Stats */}
-                <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:8, marginBottom:14 }}>
-                  {[
-                    { l:"Questions", v:form.fields?.length||0 },
-                    { l:"Connections", v:form.connections?.length||0 },
-                    { l:"Reviewees", v:form.connections?.reduce((a,c)=>a+c.revieweeNames.length,0)||0 },
-                  ].map(s=>(
-                    <div key={s.l} style={{ background:"#0D1117", borderRadius:8, padding:"8px 10px", textAlign:"center" }}>
-                      <p style={{ color, fontSize:18, fontWeight:700, margin:0 }}>{s.v}</p>
-                      <p style={{ color:"#4b5563", fontSize:10, margin:"2px 0 0" }}>{s.l}</p>
+                {/* Middle: stats */}
+                <div style={{display:"flex",gap:16,flexShrink:0}}>
+                  {[{l:"Questions",v:form.fields?.length||0},{l:"Connections",v:form.connections?.length||0},{l:"Reviewees",v:form.connections?.reduce((a,c)=>a+c.revieweeNames.length,0)||0}].map(s=>(
+                    <div key={s.l} style={{textAlign:"center"}}>
+                      <p style={{color,fontSize:20,fontWeight:800,margin:0}}>{s.v}</p>
+                      <p style={{color:"#4b5563",fontSize:10,margin:"2px 0 0"}}>{s.l}</p>
                     </div>
                   ))}
                 </div>
-                <p style={{ color:"#374151", fontSize:10, margin:0 }}>Created {form.createdAt}</p>
+                {/* Right: actions */}
+                <div style={{display:"flex",gap:8,flexShrink:0}}>
+                  <button onClick={()=>onEdit&&onEdit(form)} style={{padding:"8px 16px",borderRadius:9,border:"none",background:`linear-gradient(135deg,${color}cc,${color})`,color:"#000",fontSize:12,fontWeight:700,cursor:"pointer"}}>✏️ Edit</button>
+                  <button onClick={()=>setSelected(form)} style={{padding:"8px 14px",borderRadius:9,border:`1px solid ${color}44`,background:color+"10",color,fontSize:12,fontWeight:600,cursor:"pointer"}}>🔗 Connections</button>
+                  <button onClick={()=>toggleActive(form.id)} style={{padding:"8px 12px",borderRadius:9,border:"1px solid #21262D",background:"transparent",color:"#6b7280",fontSize:12,cursor:"pointer"}}
+                    onMouseOver={e=>{e.currentTarget.style.color="white";}} onMouseOut={e=>{e.currentTarget.style.color="#6b7280";}}>{form.active?"⊘":"✓"}</button>
+                  <button onClick={()=>!deleting&&delForm(form.id)} disabled={deleting===form.id} style={{padding:"8px 12px",borderRadius:9,border:"1px solid #21262D",background:"transparent",color:"#6b7280",fontSize:12,cursor:"pointer"}}
+                    onMouseOver={e=>{if(!deleting){e.currentTarget.style.borderColor="rgba(239,68,68,0.4)";e.currentTarget.style.color="#ef4444";}}}
+                    onMouseOut={e=>{if(!deleting){e.currentTarget.style.borderColor="#21262D";e.currentTarget.style.color="#6b7280";}}}>{deleting===form.id?"⏳":"🗑️"}</button>
+                </div>
               </div>
-
-              {/* Action buttons */}
-              <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr auto auto", gap:6, padding:"0 16px 16px" }}>
-                <button onClick={()=>onEdit&&onEdit(form)}
-                  style={{ padding:"8px 0", borderRadius:9, border:"none", background:`linear-gradient(135deg,${color}cc,${color})`, color:"#000", fontSize:12, fontWeight:700, cursor:"pointer", transition:"opacity 0.2s" }}
-                  onMouseOver={e=>e.currentTarget.style.opacity="0.85"} onMouseOut={e=>e.currentTarget.style.opacity="1"}>
-                  ✏️ Edit
-                </button>
-                <button onClick={() => setSelected(form)}
-                  style={{ padding:"8px 0", borderRadius:9, border:`1px solid ${color}44`, background:color+"10", color, fontSize:12, fontWeight:600, cursor:"pointer" }}>
-                  🔗 Connections
-                </button>
-                <button onClick={()=>toggleActive(form.id)} title={form.active?"Deactivate":"Activate"}
-                  style={{ padding:"8px 10px", borderRadius:9, border:"1px solid #21262D", background:"transparent", color:"#6b7280", fontSize:12, cursor:"pointer" }}
-                  onMouseOver={e=>{ e.currentTarget.style.borderColor="#30363D"; e.currentTarget.style.color="white"; }}
-                  onMouseOut={e=>{ e.currentTarget.style.borderColor="#21262D"; e.currentTarget.style.color="#6b7280"; }}>
-                  {form.active?"⊘":"✓"}
-                </button>
-                <button onClick={()=>!deleting&&delForm(form.id)} title="Delete" disabled={deleting===form.id}
-                  style={{ padding:"8px 10px", borderRadius:9, border:"1px solid #21262D", background:"transparent", color:deleting===form.id?"#F59E0B":"#6b7280", fontSize:12, cursor:deleting===form.id?"not-allowed":"pointer" }}
-                  onMouseOver={e=>{ if(!deleting){e.currentTarget.style.borderColor="rgba(239,68,68,0.4)";e.currentTarget.style.color="#ef4444";} }}
-                  onMouseOut={e=>{ if(!deleting){e.currentTarget.style.borderColor="#21262D";e.currentTarget.style.color="#6b7280";} }}>
-                  {deleting===form.id?"⏳":"🗑️"}
-                </button>
+            </div>
+          );
+          // 2 or 3 col: card layout
+          return(
+            <div key={form.id} style={{background:"#161B22",border:"1px solid #21262D",borderRadius:16,overflow:"hidden",transition:"all 0.2s"}}
+              onMouseOver={e=>{e.currentTarget.style.borderColor=color+"55";e.currentTarget.style.transform="translateY(-1px)";e.currentTarget.style.boxShadow=`0 8px 32px ${color}12`;}}
+              onMouseOut={e=>{e.currentTarget.style.borderColor="#21262D";e.currentTarget.style.transform="none";e.currentTarget.style.boxShadow="none";}}>
+              <div style={{height:3,background:`linear-gradient(90deg,${color},${color}44)`}}/>
+              <div style={{padding:cols===3?16:20}}>
+                <div style={{display:"flex",alignItems:"flex-start",justifyContent:"space-between",gap:10,marginBottom:12}}>
+                  <div style={{flex:1,minWidth:0}}>
+                    <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:4}}>
+                      <p style={{color:"white",fontSize:cols===3?13:15,fontWeight:700,margin:0,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{form.name}</p>
+                      <button onClick={()=>setRenamingForm(form)} style={{background:"none",border:"none",cursor:"pointer",color:"#374151",padding:"2px 3px",display:"flex",flexShrink:0}}
+                        onMouseOver={e=>e.currentTarget.style.color=color} onMouseOut={e=>e.currentTarget.style.color="#374151"}>✏️</button>
+                    </div>
+                    {form.description&&<p style={{color:"#6b7280",fontSize:11,margin:0,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{form.description}</p>}
+                  </div>
+                  <span style={{fontSize:9,color:form.active?"#22c55e":"#6b7280",background:form.active?"rgba(34,197,94,0.1)":"#21262D",padding:"2px 8px",borderRadius:999,whiteSpace:"nowrap",flexShrink:0}}>{form.active?"● Active":"○ Inactive"}</span>
+                </div>
+                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:6,marginBottom:10}}>
+                  {[{l:"Questions",v:form.fields?.length||0},{l:"Connections",v:form.connections?.length||0},{l:"Reviewees",v:form.connections?.reduce((a,c)=>a+c.revieweeNames.length,0)||0}].map(s=>(
+                    <div key={s.l} style={{background:"#0D1117",borderRadius:7,padding:"6px 8px",textAlign:"center"}}>
+                      <p style={{color,fontSize:cols===3?15:18,fontWeight:700,margin:0}}>{s.v}</p>
+                      <p style={{color:"#4b5563",fontSize:9,margin:"2px 0 0"}}>{s.l}</p>
+                    </div>
+                  ))}
+                </div>
+                <p style={{color:"#374151",fontSize:9,margin:0}}>Created {form.createdAt}</p>
+              </div>
+              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr auto auto",gap:5,padding:`0 ${cols===3?12:16}px ${cols===3?12:14}px`}}>
+                <button onClick={()=>onEdit&&onEdit(form)} style={{padding:"7px 0",borderRadius:8,border:"none",background:`linear-gradient(135deg,${color}cc,${color})`,color:"#000",fontSize:11,fontWeight:700,cursor:"pointer"}}>✏️ Edit</button>
+                <button onClick={()=>setSelected(form)} style={{padding:"7px 0",borderRadius:8,border:`1px solid ${color}44`,background:color+"10",color,fontSize:11,fontWeight:600,cursor:"pointer"}}>🔗 Conn</button>
+                <button onClick={()=>toggleActive(form.id)} style={{padding:"7px 10px",borderRadius:8,border:"1px solid #21262D",background:"transparent",color:"#6b7280",fontSize:11,cursor:"pointer"}}
+                  onMouseOver={e=>{e.currentTarget.style.color="white";}} onMouseOut={e=>{e.currentTarget.style.color="#6b7280";}}>{form.active?"⊘":"✓"}</button>
+                <button onClick={()=>!deleting&&delForm(form.id)} disabled={deleting===form.id} style={{padding:"7px 10px",borderRadius:8,border:"1px solid #21262D",background:"transparent",color:"#6b7280",fontSize:11,cursor:"pointer"}}
+                  onMouseOver={e=>{if(!deleting){e.currentTarget.style.borderColor="rgba(239,68,68,0.4)";e.currentTarget.style.color="#ef4444";}}}
+                  onMouseOut={e=>{if(!deleting){e.currentTarget.style.borderColor="#21262D";e.currentTarget.style.color="#6b7280";}}}>{deleting===form.id?"⏳":"🗑️"}</button>
               </div>
             </div>
           );
