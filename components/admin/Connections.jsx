@@ -222,6 +222,96 @@ function AddConnModal({people,existingPool,existingConns,editingConn,onSave,onCl
   );
 }
 
+function InlineConnCard({conn,people,onSave,onDelete,deleting}){
+  const [revieweeNames,setRevieweeNames]=useState([...conn.revieweeNames]);
+  const [saving,setSaving]=useState(false);
+  const [dirty,setDirty]=useState(false);
+
+  function removeReviewee(name){
+    const updated=revieweeNames.filter(n=>n!==name);
+    setRevieweeNames(updated);
+    setDirty(true);
+  }
+
+  function addReviewee(name){
+    if(revieweeNames.includes(name)) return;
+    setRevieweeNames(prev=>[...prev,name]);
+    setDirty(true);
+  }
+
+  async function handleSave(){
+    setSaving(true);
+    await onSave({...conn,revieweeNames,type:revieweeNames.length>1?"multi":"single"});
+    setSaving(false);
+    setDirty(false);
+  }
+
+  const available=people.filter(p=>p.name!==conn.reviewerName&&!revieweeNames.includes(p.name));
+
+  return(
+    <div style={{background:"#0D1117",border:"1px solid #21262D",borderRadius:12,padding:16,display:"flex",flexDirection:"column",gap:12}}>
+      {/* Reviewer */}
+      <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",flexWrap:"wrap",gap:8}}>
+        <div style={{display:"flex",alignItems:"center",gap:10}}>
+          <Av name={conn.reviewerName} size={40}/>
+          <div>
+            <p style={{color:"white",fontSize:13,fontWeight:700,margin:0}}>{conn.reviewerName}</p>
+            {conn.reviewerEmail&&<p style={{color:"#4b5563",fontSize:11,margin:"2px 0 0"}}>{conn.reviewerEmail}</p>}
+            <span style={{fontSize:10,color:conn.type==="multi"?"#8B5CF6":"#3B82F6",background:conn.type==="multi"?"rgba(139,92,246,0.12)":"rgba(59,130,246,0.12)",padding:"2px 6px",borderRadius:999,fontWeight:600}}>{revieweeNames.length>1?"ONE → MANY":"ONE → ONE"}</span>
+          </div>
+        </div>
+        <div style={{display:"flex",gap:8,alignItems:"center"}}>
+          {dirty&&<button onClick={handleSave} disabled={saving}
+            style={{padding:"6px 14px",borderRadius:8,border:"none",background:saving?"#374151":"linear-gradient(135deg,#D97706,#F59E0B)",color:saving?"#9ca3af":"#000",fontSize:12,fontWeight:700,cursor:"pointer",display:"flex",alignItems:"center",gap:5}}>
+            {saving?<svg style={{width:11,height:11,animation:"spin 1s linear infinite"}} viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" opacity="0.25"/><path fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"/></svg>:null}
+            {saving?"Saving...":"Save"}
+          </button>}
+          <button onClick={onDelete} disabled={deleting}
+            style={{padding:"6px 10px",borderRadius:8,border:"1px solid #21262D",background:"transparent",color:"#6b7280",fontSize:12,cursor:"pointer",display:"flex",alignItems:"center",gap:4}}
+            onMouseOver={e=>{e.currentTarget.style.borderColor="rgba(239,68,68,0.4)";e.currentTarget.style.color="#ef4444";}}
+            onMouseOut={e=>{e.currentTarget.style.borderColor="#21262D";e.currentTarget.style.color="#6b7280";}}>
+            <Trash2 size={13}/> Remove
+          </button>
+        </div>
+      </div>
+
+      {/* Arrow */}
+      <div style={{display:"flex",alignItems:"center",gap:6,color:"#F59E0B",fontSize:12}}>
+        <ArrowRight size={13}/> reviews
+      </div>
+
+      {/* Reviewees — click to remove */}
+      <div style={{display:"flex",flexWrap:"wrap",gap:8}}>
+        {revieweeNames.map(name=>{
+          const nc=gc(name);
+          return(
+            <div key={name} style={{display:"flex",alignItems:"center",gap:6,background:"#161B22",border:"1px solid "+nc+"33",borderRadius:10,padding:"7px 10px",transition:"all 0.15s"}}
+              onMouseOver={e=>e.currentTarget.style.borderColor="rgba(239,68,68,0.4)"}
+              onMouseOut={e=>e.currentTarget.style.borderColor=nc+"33"}>
+              <Av name={name} size={24}/>
+              <p style={{color:"white",fontSize:12,fontWeight:600,margin:0}}>{name}</p>
+              <button onClick={()=>removeReviewee(name)}
+                style={{background:"none",border:"none",cursor:"pointer",color:"#374151",padding:0,display:"flex",marginLeft:2}}
+                onMouseOver={e=>e.currentTarget.style.color="#ef4444"} onMouseOut={e=>e.currentTarget.style.color="#374151"}>
+                <X size={11}/>
+              </button>
+            </div>
+          );
+        })}
+        {/* Add person dropdown */}
+        {available.length>0&&(
+          <select onChange={e=>{if(e.target.value){addReviewee(e.target.value);e.target.value="";}}} defaultValue=""
+            style={{background:"#161B22",border:"1px dashed #30363D",borderRadius:10,padding:"7px 12px",color:"#6b7280",fontSize:12,outline:"none",cursor:"pointer"}}
+            onMouseOver={e=>e.currentTarget.style.borderColor="#F59E0B44"} onMouseOut={e=>e.currentTarget.style.borderColor="#30363D"}>
+            <option value="">+ Add person</option>
+            {available.map(p=><option key={p.name} value={p.name} style={{background:"#0D1117",color:"white"}}>{p.name}</option>)}
+          </select>
+        )}
+      </div>
+    </div>
+  );
+}
+
 export default function Connections({defaultFormId}){
   const [forms,setForms]=useState([]);
   const [people,setPeople]=useState([]);
@@ -363,38 +453,18 @@ export default function Connections({defaultFormId}){
           ):(
             <div style={{padding:16,display:"flex",flexDirection:"column",gap:12}}>
               {enrichedConns.map(conn=>(
-                <div key={conn.id} onClick={()=>{loadAll();setEditingConn(conn);setShowModal(true);}}
-                  style={{position:"relative",display:"flex",alignItems:"flex-start",gap:14,padding:16,background:"#0D1117",border:"1px solid #21262D",borderRadius:12,flexWrap:"wrap",transition:"all 0.2s",cursor:"pointer"}}
-                  onMouseOver={e=>e.currentTarget.style.borderColor="#F59E0B44"}
-                  onMouseOut={e=>e.currentTarget.style.borderColor="#21262D"}>
-                  <div style={{position:"absolute",top:10,right:52,fontSize:10,color:"#4b5563"}}>click to edit</div>
-                  <div style={{display:"flex",alignItems:"center",gap:10,minWidth:160}}>
-                    <Av name={conn.reviewerName} size={44}/>
-                    <div>
-                      <p style={{color:"white",fontSize:13,fontWeight:700,margin:0}}>{conn.reviewerName}</p>
-                      {conn.reviewerEmail&&<p style={{color:"#4b5563",fontSize:11,margin:"2px 0 0"}}>{conn.reviewerEmail}</p>}
-                      <span style={{fontSize:10,color:conn.type==="multi"?"#8B5CF6":"#3B82F6",background:conn.type==="multi"?"rgba(139,92,246,0.12)":"rgba(59,130,246,0.12)",padding:"2px 8px",borderRadius:999,fontWeight:600}}>{conn.type==="multi"?"ONE → MANY":"ONE → ONE"}</span>
-                    </div>
-                  </div>
-                  <div style={{display:"flex",alignItems:"center",gap:6,color:"#F59E0B",fontSize:12,paddingTop:10}}><ArrowRight size={14}/> reviews <ArrowRight size={14}/></div>
-                  <div style={{flex:1,display:"flex",flexWrap:"wrap",gap:8}}>
-                    {conn.revieweeNames.map(name=>{
-                      const nc=gc(name);
-                      return(
-                        <div key={name} style={{display:"flex",alignItems:"center",gap:8,background:"#161B22",border:"1px solid "+nc+"33",borderRadius:10,padding:"8px 12px"}}>
-                          <Av name={name} size={28}/>
-                          <p style={{color:"white",fontSize:12,fontWeight:600,margin:0}}>{name}</p>
-                        </div>
-                      );
-                    })}
-                  </div>
-                  <button onClick={e=>{e.stopPropagation();!deleting&&handleDeleteConn(conn.id);}} disabled={deleting===conn.id}
-                    style={{background:"none",border:"1px solid #21262D",borderRadius:8,cursor:deleting===conn.id?"not-allowed":"pointer",color:deleting===conn.id?"#F59E0B":"#6b7280",padding:"7px 10px",display:"flex",alignItems:"center",gap:5,fontSize:12,transition:"all 0.2s"}}
-                    onMouseOver={e=>{if(!deleting){e.currentTarget.style.borderColor="rgba(239,68,68,0.4)";e.currentTarget.style.color="#ef4444";}}}
-                    onMouseOut={e=>{if(!deleting){e.currentTarget.style.borderColor="#21262D";e.currentTarget.style.color="#6b7280";}}}>
-                    {deleting===conn.id?<><svg style={{width:13,height:13,animation:"spin 1s linear infinite"}} viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" opacity="0.25"/><path fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"/></svg>Removing...</>:<><Trash2 size={13}/> Remove</>}
-                  </button>
-                </div>
+                <InlineConnCard key={conn.id} conn={conn} people={people}
+                  onSave={async(updated)=>{
+                    const fresh=await getForms();
+                    const base=fresh.length>0?fresh:forms;
+                    const updatedForms=base.map(f=>f.id===selectedFormId?{...f,connections:f.connections.map(c=>c.id===updated.id?updated:c)}:f);
+                    setForms(updatedForms);
+                    await sheetSaveForms(updatedForms);
+                    setTimeout(()=>loadAll(),800);
+                  }}
+                  onDelete={()=>handleDeleteConn(conn.id)}
+                  deleting={deleting===conn.id}
+                />
               ))}
             </div>
           )}
