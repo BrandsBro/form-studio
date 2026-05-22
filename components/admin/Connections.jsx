@@ -97,8 +97,23 @@ function AddConnModal({people,existingPool,existingConns,editingConn,onSave,onCl
         <div style={{padding:"20px 24px",overflowY:"auto",flex:1}}>
           {phase===1&&(
             <div>
-              <p style={{color:"#9ca3af",fontSize:13,margin:"0 0 14px"}}>Who will fill this form? <span style={{color:"#F59E0B",fontWeight:600}}>{pool.length} selected</span></p>
+              <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:14,flexWrap:"wrap",gap:8}}>
+                <p style={{color:"#9ca3af",fontSize:13,margin:0}}>Who will fill this form? <span style={{color:"#F59E0B",fontWeight:600}}>{pool.length} selected</span></p>
+                <div style={{display:"flex",gap:6}}>
+                  <button onClick={()=>setPool(people)} style={{padding:"5px 12px",borderRadius:7,border:"1px solid #21262D",background:"transparent",color:"#9ca3af",fontSize:11,cursor:"pointer"}}
+                    onMouseOver={e=>e.currentTarget.style.color="white"} onMouseOut={e=>e.currentTarget.style.color="#9ca3af"}>Select All</button>
+                  <button onClick={()=>setPool([])} style={{padding:"5px 12px",borderRadius:7,border:"1px solid #21262D",background:"transparent",color:"#9ca3af",fontSize:11,cursor:"pointer"}}
+                    onMouseOver={e=>e.currentTarget.style.color="#ef4444"} onMouseOut={e=>e.currentTarget.style.color="#9ca3af"}>Clear</button>
+                </div>
+              </div>
               <FilterBar/>
+              <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",margin:"0 0 8px",flexWrap:"wrap",gap:8}}>
+                <p style={{color:"#6b7280",fontSize:11,margin:0}}>{filteredPeople.length} shown</p>
+                <button onClick={()=>{const toAdd=filteredPeople.filter(p=>!inPool(p));setPool(prev=>[...prev,...toAdd]);}}
+                  style={{padding:"4px 10px",borderRadius:7,border:"1px solid rgba(245,158,11,0.3)",background:"rgba(245,158,11,0.08)",color:"#F59E0B",fontSize:11,cursor:"pointer",fontWeight:600}}>
+                  + Add All Filtered
+                </button>
+              </div>
               <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(220px,1fr))",gap:8}}>
                 {filteredPeople.map(p=>{const sel=inPool(p);const c=gc(p.name);return(
                   <button key={p.name} onClick={()=>togglePool(p)}
@@ -158,6 +173,21 @@ function AddConnModal({people,existingPool,existingConns,editingConn,onSave,onCl
                 <span style={{marginLeft:"auto",fontSize:11,color:"#F59E0B",fontWeight:600}}>{reviewees.length} selected</span>
               </div>
               <FilterBar/>
+              <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",margin:"0 0 8px",flexWrap:"wrap",gap:8}}>
+                <p style={{color:"#6b7280",fontSize:11,margin:0}}>{filteredPeople.filter(p=>p.name!==reviewer.name).length} shown</p>
+                <div style={{display:"flex",gap:6}}>
+                  <button onClick={()=>{const toAdd=filteredPeople.filter(p=>p.name!==reviewer.name&&!inReviewees(p));setReviewees(prev=>[...prev,...toAdd]);}}
+                    style={{padding:"4px 10px",borderRadius:7,border:"1px solid rgba(245,158,11,0.3)",background:"rgba(245,158,11,0.08)",color:"#F59E0B",fontSize:11,cursor:"pointer",fontWeight:600}}>
+                    + Add All Filtered
+                  </button>
+                  <button onClick={()=>setReviewees(people.filter(p=>p.name!==reviewer.name))}
+                    style={{padding:"4px 10px",borderRadius:7,border:"1px solid #21262D",background:"transparent",color:"#9ca3af",fontSize:11,cursor:"pointer"}}
+                    onMouseOver={e=>e.currentTarget.style.color="white"} onMouseOut={e=>e.currentTarget.style.color="#9ca3af"}>Select All</button>
+                  <button onClick={()=>setReviewees([])}
+                    style={{padding:"4px 10px",borderRadius:7,border:"1px solid #21262D",background:"transparent",color:"#9ca3af",fontSize:11,cursor:"pointer"}}
+                    onMouseOver={e=>e.currentTarget.style.color="#ef4444"} onMouseOut={e=>e.currentTarget.style.color="#9ca3af"}>Clear</button>
+                </div>
+              </div>
               <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(220px,1fr))",gap:8}}>
                 {filteredPeople.filter(p=>p.name!==reviewer.name).map(p=>{const sel=inReviewees(p);const c=gc(p.name);return(
                   <button key={p.name} onClick={()=>toggleReviewee(p)}
