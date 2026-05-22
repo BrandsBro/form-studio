@@ -190,10 +190,12 @@ export default function MarkingGroupsTab(){
               <div style={{background:"#161B22",border:"1px solid #21262D",borderRadius:14,overflow:"hidden"}}>
                 <div style={{padding:"14px 18px",borderBottom:"1px solid #21262D",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
                   <p style={{color:"white",fontSize:14,fontWeight:700,margin:0}}>All People</p>
-                  <button onClick={handleAddAll}
-                    style={{padding:"5px 12px",borderRadius:7,border:"none",background:"linear-gradient(135deg,#D97706,#F59E0B)",color:"#000",fontSize:11,fontWeight:700,cursor:"pointer"}}>
-                    + Add All Filtered
-                  </button>
+                  <div style={{display:"flex",gap:6}}>
+                    <button onClick={handleAddAll}
+                      style={{padding:"5px 12px",borderRadius:7,border:"none",background:"linear-gradient(135deg,#D97706,#F59E0B)",color:"#000",fontSize:11,fontWeight:700,cursor:"pointer"}}>
+                      + Add All Filtered
+                    </button>
+                  </div>
                 </div>
                 <div style={{padding:12,display:"flex",flexDirection:"column",gap:8}}>
                   {/* Filters */}
