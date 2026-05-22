@@ -334,6 +334,154 @@ function StepSuccess({form,conn,reviewerEmail,allSubs=[]}){
   );
 }
 
+function FormLoadingScreen(){
+  const [frame,setFrame]=useState(0);
+  const [progress,setProgress]=useState(0);
+  const [tip,setTip]=useState(0);
+
+  const tips=[
+    "💡 Honest feedback helps everyone grow",
+    "🎯 Focus on behaviors, not personalities",
+    "⭐ Rate based on what you've observed",
+    "🤝 Your review shapes a better team",
+    "📊 Every score counts towards the final result",
+    "🌱 Constructive feedback creates change",
+  ];
+
+  const emojis=["📋","⭐","🎯","📊","✨","🏆","💫","🚀"];
+
+  useEffect(()=>{
+    const fi=setInterval(()=>setFrame(f=>(f+1)%emojis.length),300);
+    const pi=setInterval(()=>setProgress(p=>Math.min(p+Math.random()*8+2,95)),200);
+    const ti=setInterval(()=>setTip(t=>(t+1)%tips.length),2000);
+    return()=>{clearInterval(fi);clearInterval(pi);clearInterval(ti);};
+  },[]);
+
+  return(
+    <div style={{minHeight:"100vh",background:"#0D1117",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:24,fontFamily:"var(--font-dm-sans)"}}>
+      <style>{`
+        @keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-12px)}}
+        @keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:0.7;transform:scale(0.95)}}
+        @keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
+        @keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
+        @keyframes fadeSlide{0%{opacity:0;transform:translateY(8px)}100%{opacity:1;transform:translateY(0)}}
+        @keyframes orbit{from{transform:rotate(0deg) translateX(40px) rotate(0deg)}to{transform:rotate(360deg) translateX(40px) rotate(-360deg)}}
+      `}</style>
+
+      {/* Floating orbs background */}
+      <div style={{position:"fixed",inset:0,overflow:"hidden",pointerEvents:"none"}}>
+        {[...Array(6)].map((_,i)=>(
+          <div key={i} style={{
+            position:"absolute",
+            width:200+i*80,height:200+i*80,
+            borderRadius:"50%",
+            background:`radial-gradient(circle,rgba(245,158,11,${0.03+i*0.01}),transparent)`,
+            left:`${10+i*15}%`,top:`${5+i*12}%`,
+            animation:`float ${4+i}s ease-in-out infinite`,
+            animationDelay:`${i*0.5}s`
+          }}/>
+        ))}
+      </div>
+
+      <div style={{position:"relative",display:"flex",flexDirection:"column",alignItems:"center",gap:32,maxWidth:400,width:"100%"}}>
+        
+        {/* Animated emoji orbit */}
+        <div style={{position:"relative",width:120,height:120,display:"flex",alignItems:"center",justifyContent:"center"}}>
+          {/* Center */}
+          <div style={{width:70,height:70,borderRadius:"50%",background:"rgba(245,158,11,0.15)",border:"2px solid rgba(245,158,11,0.3)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:32,animation:"pulse 1.5s ease-in-out infinite"}}>
+            {emojis[frame]}
+          </div>
+          {/* Orbiting dots */}
+          {[0,1,2].map(i=>(
+            <div key={i} style={{
+              position:"absolute",width:"100%",height:"100%",
+              animation:`spin ${2+i*0.5}s linear infinite`,
+              animationDelay:`${i*0.3}s`
+            }}>
+              <div style={{
+                width:8,height:8,borderRadius:"50%",
+                background:["#F59E0B","#3B82F6","#10B981"][i],
+                position:"absolute",top:0,left:"50%",
+                transform:"translateX(-50%)",
+                boxShadow:`0 0 8px ${["#F59E0B","#3B82F6","#10B981"][i]}`
+              }}/>
+            </div>
+          ))}
+        </div>
+
+        {/* Title */}
+        <div style={{textAlign:"center"}}>
+          <h2 style={{color:"white",fontSize:22,fontWeight:800,margin:"0 0 8px",fontFamily:"var(--font-playfair)"}}>
+            Preparing Your Review
+          </h2>
+          <p style={{color:"#6b7280",fontSize:13,margin:0}}>Getting everything ready for you...</p>
+        </div>
+
+        {/* Progress bar */}
+        <div style={{width:"100%",display:"flex",flexDirection:"column",gap:8}}>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+            <span style={{color:"#6b7280",fontSize:11}}>Loading</span>
+            <span style={{color:"#F59E0B",fontSize:11,fontWeight:700}}>{Math.round(progress)}%</span>
+          </div>
+          <div style={{height:6,background:"#21262D",borderRadius:999,overflow:"hidden"}}>
+            <div style={{height:"100%",background:"linear-gradient(90deg,#D97706,#F59E0B,#FCD34D)",borderRadius:999,width:progress+"%",transition:"width 0.2s ease",boxShadow:"0 0 10px rgba(245,158,11,0.5)"}}/>
+          </div>
+          {/* Shimmer segments */}
+          <div style={{display:"flex",gap:4}}>
+            {["Forms","People","Questions","Connections"].map((s,i)=>(
+              <div key={s} style={{
+                flex:1,height:3,borderRadius:999,
+                background:progress>i*25?"linear-gradient(90deg,#161B22 25%,#21262D 50%,#161B22 75%)":"#161B22",
+                backgroundSize:"200% 100%",
+                animation:progress>i*25&&progress<(i+1)*25?"shimmer 1s infinite":"none",
+                transition:"background 0.3s"
+              }}/>
+            ))}
+          </div>
+        </div>
+
+        {/* Tip */}
+        <div key={tip} style={{background:"rgba(245,158,11,0.06)",border:"1px solid rgba(245,158,11,0.15)",borderRadius:12,padding:"12px 18px",textAlign:"center",animation:"fadeSlide 0.4s ease",width:"100%"}}>
+          <p style={{color:"#9ca3af",fontSize:12,margin:0,lineHeight:1.6}}>{tips[tip]}</p>
+        </div>
+
+        {/* Mini game — click the star */}
+        <MiniGame/>
+      </div>
+    </div>
+  );
+}
+
+function MiniGame(){
+  const [score,setScore]=useState(0);
+  const [pos,setPos]=useState({x:50,y:50});
+  const [flash,setFlash]=useState(false);
+
+  function move(){
+    setPos({x:10+Math.random()*80,y:10+Math.random()*80});
+  }
+
+  function handleClick(){
+    setScore(s=>s+1);
+    setFlash(true);
+    setTimeout(()=>setFlash(false),200);
+    move();
+  }
+
+  return(
+    <div style={{width:"100%",display:"flex",flexDirection:"column",gap:8,alignItems:"center"}}>
+      <p style={{color:"#4b5563",fontSize:11,margin:0}}>🎮 Catch the star while you wait! <span style={{color:"#F59E0B",fontWeight:700}}>{score} caught</span></p>
+      <div style={{width:"100%",height:80,background:"#161B22",borderRadius:12,border:"1px solid #21262D",position:"relative",overflow:"hidden",cursor:"crosshair"}}>
+        <button onClick={handleClick}
+          style={{position:"absolute",left:pos.x+"%",top:pos.y+"%",transform:"translate(-50%,-50%)",background:"none",border:"none",cursor:"pointer",fontSize:20,transition:"left 0.15s,top 0.15s",filter:flash?"brightness(2)":"none",padding:0,lineHeight:1}}>
+          ⭐
+        </button>
+        {score>0&&<div style={{position:"absolute",bottom:4,right:8,fontSize:10,color:"#F59E0B",fontWeight:700}}>×{score}</div>}
+      </div>
+    </div>
+  );
+}
+
 export default function FormPage(){
   const {formId}=useParams();
   const searchParams=useSearchParams();
@@ -393,18 +541,7 @@ export default function FormPage(){
     </div>
   );
 
-  if(loading)return(
-    <div style={{minHeight:"100vh",background:"#0D1117",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:24,padding:20}}>
-      <style>{"@keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}@keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}"}</style>
-      <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:16}}>
-        <svg style={{width:40,height:40,animation:"spin 1s linear infinite"}} viewBox="0 0 24 24" fill="none">
-          <circle cx="12" cy="12" r="10" stroke="#21262D" strokeWidth="3"/>
-          <path d="M4 12a8 8 0 018-8" stroke="#F59E0B" strokeWidth="3" strokeLinecap="round"/>
-        </svg>
-        <p style={{color:"#6b7280",fontSize:14,margin:0}}>Loading your review form...</p>
-      </div>
-    </div>
-  );
+  if(loading)return <FormLoadingScreen/>;
 
   if(notFound)return(
     <div style={{minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",background:"#0D1117",padding:24}}>
