@@ -335,118 +335,130 @@ function StepSuccess({form,conn,reviewerEmail,allSubs=[]}){
 }
 
 function FormLoadingScreen(){
-  const [frame,setFrame]=useState(0);
   const [progress,setProgress]=useState(0);
-  const [tip,setTip]=useState(0);
+  const [phase,setPhase]=useState(0);
+  const [particles,setParticles]=useState([]);
 
-  const tips=[
-    "💡 Honest feedback helps everyone grow",
-    "🎯 Focus on behaviors, not personalities",
-    "⭐ Rate based on what you've observed",
-    "🤝 Your review shapes a better team",
-    "📊 Every score counts towards the final result",
-    "🌱 Constructive feedback creates change",
+  const phases=[
+    {icon:"🔍",text:"Finding your forms...",color:"#3B82F6"},
+    {icon:"👥",text:"Loading people...",color:"#10B981"},
+    {icon:"📋",text:"Fetching questions...",color:"#8B5CF6"},
+    {icon:"🔗",text:"Building connections...",color:"#F59E0B"},
+    {icon:"✨",text:"Almost there!",color:"#F59E0B"},
   ];
 
-  const emojis=["📋","⭐","🎯","📊","✨","🏆","💫","🚀"];
-
   useEffect(()=>{
-    const fi=setInterval(()=>setFrame(f=>(f+1)%emojis.length),300);
-    const pi=setInterval(()=>setProgress(p=>Math.min(p+Math.random()*8+2,95)),200);
-    const ti=setInterval(()=>setTip(t=>(t+1)%tips.length),2000);
-    return()=>{clearInterval(fi);clearInterval(pi);clearInterval(ti);};
+    // Smooth progress
+    const pi=setInterval(()=>{
+      setProgress(p=>{
+        if(p>=95) return 95;
+        const speed=p<50?3:p<80?1.5:0.5;
+        return Math.min(p+speed,95);
+      });
+    },80);
+    // Phase changes
+    const ph=setInterval(()=>setPhase(p=>(p+1)%phases.length),1200);
+    // Spawn particles
+    const pa=setInterval(()=>{
+      setParticles(prev=>[
+        ...prev.slice(-12),
+        {id:Date.now(),x:Math.random()*100,y:Math.random()*100,size:4+Math.random()*8,color:["#F59E0B","#3B82F6","#10B981","#8B5CF6","#F43F5E"][Math.floor(Math.random()*5)],speed:3+Math.random()*4}
+      ]);
+    },300);
+    return()=>{clearInterval(pi);clearInterval(ph);clearInterval(pa);};
   },[]);
 
+  const cur=phases[phase];
+
   return(
-    <div style={{minHeight:"100vh",background:"#0D1117",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:24,fontFamily:"var(--font-dm-sans)"}}>
+    <div style={{minHeight:"100vh",background:"#0D1117",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:24,overflow:"hidden",position:"relative"}}>
       <style>{`
-        @keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-12px)}}
-        @keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:0.7;transform:scale(0.95)}}
         @keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
-        @keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
-        @keyframes fadeSlide{0%{opacity:0;transform:translateY(8px)}100%{opacity:1;transform:translateY(0)}}
-        @keyframes orbit{from{transform:rotate(0deg) translateX(40px) rotate(0deg)}to{transform:rotate(360deg) translateX(40px) rotate(-360deg)}}
+        @keyframes spinR{from{transform:rotate(360deg)}to{transform:rotate(0deg)}}
+        @keyframes fadeUp{0%{opacity:0;transform:translateY(16px) scale(0.9)}100%{opacity:1;transform:translateY(0) scale(1)}}
+        @keyframes fadeOut{0%{opacity:1}100%{opacity:0;transform:translateY(-16px) scale(0.9)}}
+        @keyframes float{0%,100%{transform:translateY(0) rotate(0deg)}50%{transform:translateY(-20px) rotate(180deg)}}
+        @keyframes glow{0%,100%{box-shadow:0 0 20px rgba(245,158,11,0.3)}50%{box-shadow:0 0 40px rgba(245,158,11,0.6)}}
+        @keyframes scanline{0%{transform:translateY(-100%)}100%{transform:translateY(100vh)}}
+        @keyframes blink{0%,100%{opacity:1}50%{opacity:0}}
+        @keyframes particleFall{0%{opacity:1;transform:translateY(0) rotate(0deg)}100%{opacity:0;transform:translateY(60px) rotate(360deg)}}
+        @keyframes ringPulse{0%{transform:scale(0.8);opacity:0.8}100%{transform:scale(1.4);opacity:0}}
       `}</style>
 
-      {/* Floating orbs background */}
-      <div style={{position:"fixed",inset:0,overflow:"hidden",pointerEvents:"none"}}>
-        {[...Array(6)].map((_,i)=>(
-          <div key={i} style={{
-            position:"absolute",
-            width:200+i*80,height:200+i*80,
-            borderRadius:"50%",
-            background:`radial-gradient(circle,rgba(245,158,11,${0.03+i*0.01}),transparent)`,
-            left:`${10+i*15}%`,top:`${5+i*12}%`,
-            animation:`float ${4+i}s ease-in-out infinite`,
-            animationDelay:`${i*0.5}s`
-          }}/>
-        ))}
+      {/* Scanline effect */}
+      <div style={{position:"fixed",inset:0,pointerEvents:"none",overflow:"hidden",zIndex:0}}>
+        <div style={{position:"absolute",width:"100%",height:2,background:"linear-gradient(90deg,transparent,rgba(245,158,11,0.1),transparent)",animation:"scanline 4s linear infinite"}}/>
       </div>
 
-      <div style={{position:"relative",display:"flex",flexDirection:"column",alignItems:"center",gap:32,maxWidth:400,width:"100%"}}>
-        
-        {/* Animated emoji orbit */}
-        <div style={{position:"relative",width:120,height:120,display:"flex",alignItems:"center",justifyContent:"center"}}>
-          {/* Center */}
-          <div style={{width:70,height:70,borderRadius:"50%",background:"rgba(245,158,11,0.15)",border:"2px solid rgba(245,158,11,0.3)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:32,animation:"pulse 1.5s ease-in-out infinite"}}>
-            {emojis[frame]}
-          </div>
-          {/* Orbiting dots */}
+      {/* Floating particles */}
+      {particles.map(p=>(
+        <div key={p.id} style={{position:"fixed",left:p.x+"%",top:p.y+"%",width:p.size,height:p.size,borderRadius:"50%",background:p.color,opacity:0.6,pointerEvents:"none",animation:`particleFall ${p.speed}s ease-out forwards`,boxShadow:`0 0 6px ${p.color}`}}/>
+      ))}
+
+      {/* Grid background */}
+      <div style={{position:"fixed",inset:0,backgroundImage:"linear-gradient(rgba(245,158,11,0.03) 1px,transparent 1px),linear-gradient(90deg,rgba(245,158,11,0.03) 1px,transparent 1px)",backgroundSize:"40px 40px",pointerEvents:"none"}}/>
+
+      <div style={{position:"relative",zIndex:1,display:"flex",flexDirection:"column",alignItems:"center",gap:28,maxWidth:380,width:"100%"}}>
+
+        {/* Main icon display */}
+        <div style={{position:"relative",width:140,height:140,display:"flex",alignItems:"center",justifyContent:"center"}}>
+          {/* Pulsing rings */}
           {[0,1,2].map(i=>(
-            <div key={i} style={{
-              position:"absolute",width:"100%",height:"100%",
-              animation:`spin ${2+i*0.5}s linear infinite`,
-              animationDelay:`${i*0.3}s`
-            }}>
-              <div style={{
-                width:8,height:8,borderRadius:"50%",
-                background:["#F59E0B","#3B82F6","#10B981"][i],
-                position:"absolute",top:0,left:"50%",
-                transform:"translateX(-50%)",
-                boxShadow:`0 0 8px ${["#F59E0B","#3B82F6","#10B981"][i]}`
-              }}/>
-            </div>
+            <div key={i} style={{position:"absolute",width:80+i*24,height:80+i*24,borderRadius:"50%",border:`1px solid ${cur.color}`,opacity:0.2-i*0.05,animation:`ringPulse ${1.5+i*0.5}s ease-out infinite`,animationDelay:`${i*0.3}s`}}/>
           ))}
+          {/* Spinning rings */}
+          <div style={{position:"absolute",width:110,height:110,borderRadius:"50%",border:"2px solid transparent",borderTopColor:cur.color,borderRightColor:cur.color+"44",animation:"spin 1.5s linear infinite"}}/>
+          <div style={{position:"absolute",width:90,height:90,borderRadius:"50%",border:"2px solid transparent",borderBottomColor:cur.color,borderLeftColor:cur.color+"44",animation:"spinR 1s linear infinite"}}/>
+          {/* Center icon */}
+          <div style={{width:64,height:64,borderRadius:"50%",background:`radial-gradient(circle,${cur.color}22,${cur.color}08)`,border:`2px solid ${cur.color}44`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:28,animation:"glow 2s ease-in-out infinite",transition:"all 0.4s"}}>
+            {cur.icon}
+          </div>
         </div>
 
         {/* Title */}
         <div style={{textAlign:"center"}}>
-          <h2 style={{color:"white",fontSize:22,fontWeight:800,margin:"0 0 8px",fontFamily:"var(--font-playfair)"}}>
-            Preparing Your Review
+          <h2 style={{color:"white",fontSize:20,fontWeight:800,margin:"0 0 6px",fontFamily:"var(--font-playfair)",letterSpacing:"-0.02em"}}>
+            Performance Review
           </h2>
-          <p style={{color:"#6b7280",fontSize:13,margin:0}}>Getting everything ready for you...</p>
+          {/* Animated phase text */}
+          <div style={{height:22,overflow:"hidden",position:"relative"}}>
+            <p key={phase} style={{color:cur.color,fontSize:13,margin:0,fontWeight:500,animation:"fadeUp 0.4s ease"}}>
+              {cur.text}
+            </p>
+          </div>
         </div>
 
-        {/* Progress bar */}
-        <div style={{width:"100%",display:"flex",flexDirection:"column",gap:8}}>
-          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-            <span style={{color:"#6b7280",fontSize:11}}>Loading</span>
-            <span style={{color:"#F59E0B",fontSize:11,fontWeight:700}}>{Math.round(progress)}%</span>
+        {/* Progress */}
+        <div style={{width:"100%",display:"flex",flexDirection:"column",gap:6}}>
+          {/* Main bar */}
+          <div style={{position:"relative",height:8,background:"#161B22",borderRadius:999,overflow:"hidden",border:"1px solid #21262D"}}>
+            <div style={{height:"100%",background:`linear-gradient(90deg,${cur.color}88,${cur.color},#fff8)`,borderRadius:999,width:progress+"%",transition:"width 0.1s ease",position:"relative"}}>
+              {/* Shimmer on bar */}
+              <div style={{position:"absolute",inset:0,background:"linear-gradient(90deg,transparent 0%,rgba(255,255,255,0.3) 50%,transparent 100%)",backgroundSize:"200% 100%",animation:"scanline 1s linear infinite"}}/>
+            </div>
           </div>
-          <div style={{height:6,background:"#21262D",borderRadius:999,overflow:"hidden"}}>
-            <div style={{height:"100%",background:"linear-gradient(90deg,#D97706,#F59E0B,#FCD34D)",borderRadius:999,width:progress+"%",transition:"width 0.2s ease",boxShadow:"0 0 10px rgba(245,158,11,0.5)"}}/>
-          </div>
-          {/* Shimmer segments */}
-          <div style={{display:"flex",gap:4}}>
-            {["Forms","People","Questions","Connections"].map((s,i)=>(
-              <div key={s} style={{
-                flex:1,height:3,borderRadius:999,
-                background:progress>i*25?"linear-gradient(90deg,#161B22 25%,#21262D 50%,#161B22 75%)":"#161B22",
-                backgroundSize:"200% 100%",
-                animation:progress>i*25&&progress<(i+1)*25?"shimmer 1s infinite":"none",
-                transition:"background 0.3s"
-              }}/>
+          {/* Step dots */}
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",paddingTop:4}}>
+            {phases.map((ph,i)=>(
+              <div key={i} style={{display:"flex",flexDirection:"column",alignItems:"center",gap:3}}>
+                <div style={{width:i<=phase?8:6,height:i<=phase?8:6,borderRadius:"50%",background:i<phase?"#22c55e":i===phase?cur.color:"#21262D",transition:"all 0.3s",boxShadow:i===phase?`0 0 8px ${cur.color}`:"none"}}/>
+                <span style={{fontSize:8,color:i<=phase?"#6b7280":"#374151"}}>{ph.icon}</span>
+              </div>
             ))}
           </div>
+          <div style={{display:"flex",justifyContent:"space-between"}}>
+            <span style={{color:"#374151",fontSize:10}}>Loading assets</span>
+            <span style={{color:cur.color,fontSize:10,fontWeight:700,fontFamily:"monospace"}}>{Math.round(progress)}%</span>
+          </div>
         </div>
 
-        {/* Tip */}
-        <div key={tip} style={{background:"rgba(245,158,11,0.06)",border:"1px solid rgba(245,158,11,0.15)",borderRadius:12,padding:"12px 18px",textAlign:"center",animation:"fadeSlide 0.4s ease",width:"100%"}}>
-          <p style={{color:"#9ca3af",fontSize:12,margin:0,lineHeight:1.6}}>{tips[tip]}</p>
-        </div>
-
-        {/* Mini game — click the star */}
+        {/* Mini game */}
         <MiniGame/>
+
+        {/* Fun footer */}
+        <p style={{color:"#21262D",fontSize:10,textAlign:"center",margin:0,fontFamily:"monospace"}}>
+          FormStudio v2 · <span style={{animation:"blink 1s infinite",display:"inline-block"}}>▮</span>
+        </p>
       </div>
     </div>
   );
@@ -454,29 +466,43 @@ function FormLoadingScreen(){
 
 function MiniGame(){
   const [score,setScore]=useState(0);
-  const [pos,setPos]=useState({x:50,y:50});
-  const [flash,setFlash]=useState(false);
+  const [targets,setTargets]=useState([{id:1,x:30,y:50,type:0},{id:2,x:70,y:50,type:1}]);
+  const [pops,setPops]=useState([]);
+  const types=["⭐","💫","✨","🎯","🏆"];
+  const colors=["#F59E0B","#8B5CF6","#10B981","#3B82F6","#F43F5E"];
 
-  function move(){
-    setPos({x:10+Math.random()*80,y:10+Math.random()*80});
+  function spawnTarget(){
+    return{id:Date.now()+Math.random(),x:8+Math.random()*84,y:10+Math.random()*80,type:Math.floor(Math.random()*types.length)};
   }
 
-  function handleClick(){
+  function handleHit(id,e){
+    e.stopPropagation();
+    const rect=e.currentTarget.getBoundingClientRect();
+    setPops(prev=>[...prev,{id:Date.now(),x:rect.left,y:rect.top}]);
+    setTimeout(()=>setPops(prev=>prev.filter(p=>p.id!==Date.now())),500);
     setScore(s=>s+1);
-    setFlash(true);
-    setTimeout(()=>setFlash(false),200);
-    move();
+    setTargets(prev=>[...prev.filter(t=>t.id!==id),spawnTarget()]);
   }
 
   return(
-    <div style={{width:"100%",display:"flex",flexDirection:"column",gap:8,alignItems:"center"}}>
-      <p style={{color:"#4b5563",fontSize:11,margin:0}}>🎮 Catch the star while you wait! <span style={{color:"#F59E0B",fontWeight:700}}>{score} caught</span></p>
-      <div style={{width:"100%",height:80,background:"#161B22",borderRadius:12,border:"1px solid #21262D",position:"relative",overflow:"hidden",cursor:"crosshair"}}>
-        <button onClick={handleClick}
-          style={{position:"absolute",left:pos.x+"%",top:pos.y+"%",transform:"translate(-50%,-50%)",background:"none",border:"none",cursor:"pointer",fontSize:20,transition:"left 0.15s,top 0.15s",filter:flash?"brightness(2)":"none",padding:0,lineHeight:1}}>
-          ⭐
-        </button>
-        {score>0&&<div style={{position:"absolute",bottom:4,right:8,fontSize:10,color:"#F59E0B",fontWeight:700}}>×{score}</div>}
+    <div style={{width:"100%"}}>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6}}>
+        <p style={{color:"#4b5563",fontSize:11,margin:0}}>🎮 Tap to catch while loading</p>
+        <span style={{fontSize:11,color:"#F59E0B",fontWeight:700,fontFamily:"monospace"}}>{score} pts</span>
+      </div>
+      <div style={{width:"100%",height:90,background:"#0D1117",borderRadius:12,border:"1px solid #161B22",position:"relative",overflow:"hidden",cursor:"crosshair"}}
+        style={{width:"100%",height:90,background:"linear-gradient(135deg,#0D1117,#0a0f16)",borderRadius:12,border:"1px solid #161B22",position:"relative",overflow:"hidden",cursor:"crosshair"}}>
+        {/* Stars bg */}
+        {[...Array(8)].map((_,i)=>(
+          <div key={i} style={{position:"absolute",width:1,height:1,background:"white",opacity:0.2,left:`${10+i*12}%`,top:`${20+i*8}%`,borderRadius:"50%"}}/>
+        ))}
+        {targets.map(t=>(
+          <button key={t.id} onClick={(e)=>handleHit(t.id,e)}
+            style={{position:"absolute",left:t.x+"%",top:t.y+"%",transform:"translate(-50%,-50%)",background:"none",border:"none",cursor:"pointer",fontSize:18,padding:4,lineHeight:1,filter:`drop-shadow(0 0 4px ${colors[t.type]})`,transition:"left 0.2s,top 0.2s"}}>
+            {types[t.type]}
+          </button>
+        ))}
+        {score>0&&<div style={{position:"absolute",bottom:4,right:8,fontSize:9,color:"#F59E0B",fontFamily:"monospace"}}>SCORE: {score}</div>}
       </div>
     </div>
   );
