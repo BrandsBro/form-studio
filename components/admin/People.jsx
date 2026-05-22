@@ -138,7 +138,8 @@ function DepartmentManager({departments,onAdd,onDelete}){
 // ── Person Modal ──────────────────────────────────────────────────────────────
 function PersonModal({person,onSave,onClose,designations,departments}){
   const isEdit=!!(person?.id);
-  const [form,setForm]=useState(person||{id:"p_"+Date.now(),name:"",email:"",designations:[],department:"",photoUrl:"",joinDate:"",employeeId:""});
+  const [form,setForm]=useState(person||{id:"p_"+Date.now(),name:"",email:"",designations:[],department:"",photoUrl:"",joinDate:"",employeeId:"",password:""});
+  const [showPass,setShowPass]=useState(false);
   const u=(k,v)=>setForm(f=>({...f,[k]:v}));
   const toggleDesig=d=>setForm(f=>({...f,designations:f.designations.includes(d)?f.designations.filter(x=>x!==d):[...f.designations,d]}));
 
@@ -183,6 +184,18 @@ function PersonModal({person,onSave,onClose,designations,departments}){
                 <option value="">Select department...</option>
                 {departments.map(d=><option key={d.departmentId} value={d.departmentName} style={{background:"#161B22"}}>{d.departmentName}</option>)}
               </select>
+            </div>
+            <div style={{gridColumn:"1/-1"}}>
+              <label style={lbl}>Password <span style={{color:"#4b5563",textTransform:"none",fontSize:10}}>for form access</span></label>
+              <div style={{position:"relative"}}>
+                <input value={form.password||""} onChange={e=>u("password",e.target.value)}
+                  type={showPass?"text":"password"} placeholder="Set a password..."
+                  style={{...inp,paddingRight:40}}/>
+                <button onClick={()=>setShowPass(s=>!s)} type="button"
+                  style={{position:"absolute",right:10,top:"50%",transform:"translateY(-50%)",background:"none",border:"none",cursor:"pointer",color:"#6b7280",fontSize:12}}>
+                  {showPass?"🙈":"👁️"}
+                </button>
+              </div>
             </div>
             <div style={{gridColumn:"1/-1"}}><label style={lbl}>Photo URL</label><input value={form.photoUrl} onChange={e=>u("photoUrl",e.target.value)} placeholder="https://..." style={inp}/></div>
           </div>
@@ -379,7 +392,13 @@ export default function People(){
                 </div>
                 <div style={{paddingTop:10,borderTop:"1px solid #21262D"}}>
                   {person.department&&<p style={{color:"#4b5563",fontSize:11,margin:0}}>🏢 {person.department}</p>}
-                  {person.employeeId&&<p style={{color:"#374151",fontSize:10,margin:"2px 0 0"}}>{person.employeeId}</p>}
+                  <div style={{display:"flex",gap:8,marginTop:4,alignItems:"center"}}>
+                    {person.employeeId&&<p style={{color:"#374151",fontSize:10,margin:0}}>{person.employeeId}</p>}
+                    {person.password
+                      ?<span style={{fontSize:9,color:"#22c55e",background:"rgba(34,197,94,0.1)",padding:"1px 6px",borderRadius:999}}>🔑 Password set</span>
+                      :<span style={{fontSize:9,color:"#ef4444",background:"rgba(239,68,68,0.1)",padding:"1px 6px",borderRadius:999}}>No password</span>
+                    }
+                  </div>
                 </div>
               </div>
               <div style={{display:"flex",gap:6,padding:"0 16px 14px"}}>
