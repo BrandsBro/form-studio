@@ -126,10 +126,14 @@ export default function ReReview(){
   const [loading,setLoading]=useState(true);
   const [threshold,setThreshold]=useState(60);
   const [editThreshold,setEditThreshold]=useState(false);
+  const [savingThreshold,setSavingThreshold]=useState(false);
   const [invalidated,setInvalidated]=useState({});
   const [invalidating,setInvalidating]=useState(null);
   const [expandedPerson,setExpandedPerson]=useState(null);
   const [expandedMissing,setExpandedMissing]=useState(null);
+  const [filterDesig,setFilterDesig]=useState("All");
+  const [filterDept,setFilterDept]=useState("All");
+  const [filterSearch,setFilterSearch]=useState("");
 
   useEffect(()=>{
     async function load(){
@@ -146,6 +150,9 @@ export default function ReReview(){
       setMarkingConfig(cfg||{groups:[]});
       setMarkingGroups(mg||[]);
       setRrData(rr||[]);
+      // Load saved threshold
+      const savedThreshold=(rr||[]).find(r=>r.personName==="__THRESHOLD__");
+      if(savedThreshold?.threshold) setThreshold(Number(savedThreshold.threshold));
       setFlaggedData(fl2||[]);
       // Restore invalidated
       const inv={};
@@ -159,6 +166,18 @@ export default function ReReview(){
     }
     load();
   },[]);
+
+  const allDesigs=["All",...new Set(people.flatMap(p=>p.designations||[]).filter(Boolean))];
+  const allDepts=["All",...new Set(people.map(p=>p.department).filter(Boolean))];
+
+  function filterPerson(personName){
+    const person=people.find(p=>p.name===personName);
+    if(!person) return true;
+    const matchDesig=filterDesig==="All"||(person.designations||[]).includes(filterDesig);
+    const matchDept=filterDept==="All"||person.department===filterDept;
+    const matchSearch=filterSearch===""||person.name.toLowerCase().includes(filterSearch.toLowerCase());
+    return matchDesig&&matchDept&&matchSearch;
+  }
 
   function getPersonGroup(personName){
     const mg=markingGroups.find(mg=>mg.personName===personName);
@@ -201,6 +220,12 @@ export default function ReReview(){
     });
     if(missingForms.length>0) missingPersons.push({personName:person.name,missingForms});
   });
+
+  async function saveThreshold(val){
+    setSavingThreshold(true);
+    await saveReReview({personName:"__THRESHOLD__",type:"config",threshold:val,flaggedFormId:"",groupId:""});
+    setSavingThreshold(false);
+  }
 
   async function toggleInvalidate(key,personName,formId,formName,reviewerEmail){
     const isInv=!!invalidated[key];
@@ -257,15 +282,21 @@ export default function ReReview(){
           <div style={{display:"flex",alignItems:"center",gap:8,background:"#161B22",border:"1px solid rgba(245,158,11,0.4)",borderRadius:9,padding:"6px 14px"}}>
             <span style={{color:"#6b7280",fontSize:12}}>Threshold:</span>
             <input type="number" defaultValue={threshold} min={1} max={100} autoFocus
-              onBlur={e=>{setThreshold(Math.min(100,Math.max(1,parseInt(e.target.value)||60)));setEditThreshold(false);}}
-              onKeyDown={e=>e.key==="Enter"&&(setThreshold(Math.min(100,Math.max(1,parseInt(e.target.value)||60))),setEditThreshold(false))}
+              onChange={e=>setThreshold(Math.min(100,Math.max(1,parseInt(e.target.value)||60)))}
+              onKeyDown={e=>e.key==="Enter"&&(saveThreshold(threshold),setEditThreshold(false))}
               style={{width:46,background:"transparent",border:"none",color:"#F59E0B",fontSize:15,fontWeight:700,outline:"none",textAlign:"center"}}/>
             <span style={{color:"#6b7280",fontSize:12}}>%</span>
+            <button onClick={async()=>{await saveThreshold(threshold);setEditThreshold(false);}} disabled={savingThreshold}
+              style={{padding:"4px 10px",borderRadius:6,border:"none",background:"linear-gradient(135deg,#D97706,#F59E0B)",color:"#000",fontSize:11,fontWeight:700,cursor:"pointer",display:"flex",alignItems:"center",gap:4}}>
+              {savingThreshold?<Spinner/>:null}{savingThreshold?"Saving...":"Save"}
+            </button>
+            <button onClick={()=>setEditThreshold(false)}
+              style={{background:"none",border:"none",cursor:"pointer",color:"#6b7280",fontSize:12,padding:2}}>✕</button>
           </div>
         ):(
           <button onClick={()=>setEditThreshold(true)}
             style={{display:"flex",alignItems:"center",gap:8,padding:"8px 16px",borderRadius:9,border:"1px solid #21262D",background:"#161B22",color:"#9ca3af",fontSize:13,cursor:"pointer"}}>
-            <Settings size={14}/> Threshold: <strong style={{color:"#F59E0B"}}>{threshold}%</strong>
+            <Settings size={14}/> Threshold: <strong style={{color:"#F59E0B"}}>{threshold}%</strong> <span style={{fontSize:10,color:"#374151"}}>click to edit</span>
           </button>
         )}
       </div>
@@ -285,6 +316,33 @@ export default function ReReview(){
         ))}
       </div>
 
+      {/* Filters */}
+      <div style={{background:"#161B22",border:"1px solid #21262D",borderRadius:12,padding:14,display:"flex",flexDirection:"column",gap:10}}>
+        <p style={{color:"#9ca3af",fontSize:12,fontWeight:600,margin:0,textTransform:"uppercase",letterSpacing:"0.06em"}}>Filter People</p>
+        <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
+          <select value={filterDesig} onChange={e=>setFilterDesig(e.target.value)}
+            style={{flex:1,minWidth:140,background:"#0D1117",border:"1px solid #21262D",borderRadius:8,padding:"7px 10px",color:filterDesig!=="All"?"white":"#6b7280",fontSize:12,outline:"none"}}>
+            {allDesigs.map(d=><option key={d} value={d} style={{background:"#161B22"}}>{d==="All"?"All Designations":d}</option>)}
+          </select>
+          <select value={filterDept} onChange={e=>setFilterDept(e.target.value)}
+            style={{flex:1,minWidth:140,background:"#0D1117",border:"1px solid #21262D",borderRadius:8,padding:"7px 10px",color:filterDept!=="All"?"white":"#6b7280",fontSize:12,outline:"none"}}>
+            {allDepts.map(d=><option key={d} value={d} style={{background:"#161B22"}}>{d==="All"?"All Departments":d}</option>)}
+          </select>
+          <div style={{position:"relative",flex:2,minWidth:160}}>
+            <span style={{position:"absolute",left:10,top:"50%",transform:"translateY(-50%)",color:"#6b7280",fontSize:12}}>🔍</span>
+            <input value={filterSearch} onChange={e=>setFilterSearch(e.target.value)} placeholder="Search person..."
+              style={{width:"100%",background:"#0D1117",border:"1px solid #21262D",borderRadius:8,padding:"7px 10px 7px 30px",color:"white",fontSize:12,outline:"none",boxSizing:"border-box"}}/>
+          </div>
+          {(filterDesig!=="All"||filterDept!=="All"||filterSearch)&&(
+            <button onClick={()=>{setFilterDesig("All");setFilterDept("All");setFilterSearch("");}}
+              style={{padding:"7px 12px",borderRadius:8,border:"1px solid #21262D",background:"transparent",color:"#6b7280",fontSize:11,cursor:"pointer"}}
+              onMouseOver={e=>e.currentTarget.style.color="white"} onMouseOut={e=>e.currentTarget.style.color="#6b7280"}>
+              Clear
+            </button>
+          )}
+        </div>
+      </div>
+
       {/* ── SECTION 1: THRESHOLD FLAGS ── */}
       <div style={{display:"flex",flexDirection:"column",gap:12}}>
         <div style={{display:"flex",alignItems:"center",gap:10,paddingBottom:8,borderBottom:"1px solid #21262D"}}>
@@ -295,7 +353,7 @@ export default function ReReview(){
 
         {thresholdFlags.length===0?(
           <div style={{textAlign:"center",padding:"24px",background:"#161B22",border:"1px solid rgba(34,197,94,0.2)",borderRadius:12,color:"#22c55e",fontSize:13,fontWeight:600}}>
-            ✓ No reviewers below threshold
+{filterDesig!=="All"||filterDept!=="All"||filterSearch?"No matching reviewers below threshold":"✓ No reviewers below threshold"}
           </div>
         ):(
           thresholdFlags.map(({personName,flags})=>{
@@ -384,10 +442,10 @@ export default function ReReview(){
 
         {missingPersons.length===0?(
           <div style={{textAlign:"center",padding:"24px",background:"#161B22",border:"1px solid rgba(139,92,246,0.2)",borderRadius:12,color:"#8B5CF6",fontSize:13,fontWeight:600}}>
-            ✓ No missing submissions
+{filterDesig!=="All"||filterDept!=="All"||filterSearch?"No matching missing submissions":"✓ No missing submissions"}
           </div>
         ):(
-          missingPersons.map(({personName,missingForms})=>{
+          missingPersons.filter(({personName})=>filterPerson(personName)).map(({personName,missingForms})=>{
             const group=getPersonGroup(personName);
             const groupForms=getGroupForms(personName);
             const isExpanded=expandedMissing===personName;
