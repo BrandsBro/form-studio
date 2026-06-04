@@ -261,10 +261,11 @@ export default function ReReview(){
         {editThreshold?(
           <div style={{display:"flex",alignItems:"center",gap:8,background:"#161B22",border:"1px solid rgba(245,158,11,0.4)",borderRadius:9,padding:"6px 14px"}}>
             <span style={{color:"#6b7280",fontSize:12}}>Threshold:</span>
-            <input type="number" defaultValue={threshold} min={1} max={100} autoFocus
-              onChange={e=>setThreshold(Math.min(100,Math.max(1,parseInt(e.target.value)||60)))}
+            <input type="number" value={threshold} min={1} max={100} autoFocus
+              onChange={e=>setThreshold(Math.min(100,Math.max(1,parseInt(e.target.value)||1)))}
               onKeyDown={e=>e.key==="Enter"&&(saveThreshold(threshold),setEditThreshold(false))}
-              style={{width:46,background:"transparent",border:"none",color:"#F59E0B",fontSize:15,fontWeight:700,outline:"none",textAlign:"center"}}/>
+              style={{width:46,background:"transparent",border:"none",color:"#F59E0B",fontSize:15,fontWeight:700,outline:"none",textAlign:"center"}}
+              onFocus={e=>e.target.select()}/>
             <span style={{color:"#6b7280",fontSize:12}}>%</span>
             <button onClick={async()=>{await saveThreshold(threshold);setEditThreshold(false);}} disabled={savingThreshold}
               style={{padding:"4px 10px",borderRadius:6,border:"none",background:"linear-gradient(135deg,#D97706,#F59E0B)",color:"#000",fontSize:11,fontWeight:700,cursor:"pointer",display:"flex",alignItems:"center",gap:4}}>
