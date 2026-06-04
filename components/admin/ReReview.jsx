@@ -220,10 +220,10 @@ export default function ReReview(){
       await saveFlagged({personName,type:"threshold",formId,formName,reviewerEmail,groupId:group?.groupId||""});
       setFlaggedData(prev=>[...prev,{personName,type:"threshold",formId,formName,reviewerEmail,groupId:group?.groupId||""}]);
     } else {
-      // Restore — remove RR config so leaderboard reverts, keep flag visible, reset button
-      await deleteReReview({personName,flaggedFormId:formId});
+      // Restore — remove RR config so leaderboard reverts, keep flag entry, reset button to Invalidate
+      await deleteReReview({personName,type:"threshold"});
       await deleteFlagged({personName,formId,reviewerEmail});
-      setRrData(prev=>prev.filter(r=>!(r.personName===personName&&r.flaggedFormId===formId)));
+      setRrData(prev=>prev.filter(r=>!(r.personName===personName&&r.type==="threshold")));
       setFlaggedData(prev=>prev.filter(f=>!(f.personName===personName&&f.formId===formId&&f.reviewerEmail===reviewerEmail)));
       setInvalidated(prev=>{const n={...prev};delete n[key];return n;});
     }
