@@ -213,19 +213,19 @@ export default function ReReview(){
   async function toggleInvalidate(key,personName,formId,formName,reviewerEmail){
     const isInv=!!invalidated[key];
     setInvalidating(key);
-    setInvalidated(prev=>({...prev,[key]:!isInv}));
     const group=getPersonGroup(personName);
     if(!isInv){
-      // Invalidate — save to flagged sheet
+      // Invalidate — save to flagged sheet, mark as invalidated
+      setInvalidated(prev=>({...prev,[key]:true}));
       await saveFlagged({personName,type:"threshold",formId,formName,reviewerEmail,groupId:group?.groupId||""});
       setFlaggedData(prev=>[...prev,{personName,type:"threshold",formId,formName,reviewerEmail,groupId:group?.groupId||""}]);
     } else {
-      // Restore — keep flag entry but delete RR config so leaderboard goes back to original
+      // Restore — remove RR config so leaderboard reverts, keep flag visible, reset button
       await deleteReReview({personName,flaggedFormId:formId});
+      await deleteFlagged({personName,formId,reviewerEmail});
       setRrData(prev=>prev.filter(r=>!(r.personName===personName&&r.flaggedFormId===formId)));
-      // Reset invalidated key so button shows Invalidate again
-      setInvalidated(prev=>{const n={...prev};delete n[key];return n;});
       setFlaggedData(prev=>prev.filter(f=>!(f.personName===personName&&f.formId===formId&&f.reviewerEmail===reviewerEmail)));
+      setInvalidated(prev=>{const n={...prev};delete n[key];return n;});
     }
     setInvalidating(null);
   }
