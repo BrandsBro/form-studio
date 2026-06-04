@@ -140,8 +140,8 @@ export default function Leaderboard(){
     const scored=groupPeople.map(p=>{
       const rrConfigs=rrData.filter(r=>r.personName===p.name&&r.type!=="config"&&r.personName!=="__THRESHOLD__");
       const isFlagged=flaggedData.some(f=>f.personName===p.name);
-      const score=calcPersonScore(p.name,group.forms||[],forms,allSubs,isFlagged?rrConfig:null,flaggedData);
-      return{...p,score,groupForms:group.forms||[],isFlagged,rrConfig};
+      const score=calcPersonScore(p.name,group.forms||[],forms,allSubs,rrConfigs,flaggedData);
+      return{...p,score,groupForms:group.forms||[],isFlagged,rrConfigs};
     }).sort((a,b)=>{
       if(a.score===null&&b.score===null) return 0;
       if(a.score===null) return 1;
