@@ -77,6 +77,29 @@ function calcPersonScore(personName,groupForms,allForms,allSubs,rrConfigs,flagge
   return hasData?weightedSum:null;
 }
 
+function getAdjustedForms(personName,groupForms,rrConfigs,flaggedEntries){
+  let adjustedForms=groupForms.map(cf=>({...cf,originalWeight:cf.weight,rrApplied:false}));
+  const configs=Array.isArray(rrConfigs)?rrConfigs:[rrConfigs].filter(Boolean);
+  configs.forEach(rrConfig=>{
+    if(!rrConfig) return;
+    const flaggedFormIds=new Set();
+    if(rrConfig.flaggedFormId) flaggedFormIds.add(rrConfig.flaggedFormId);
+    adjustedForms=adjustedForms.filter(cf=>!flaggedFormIds.has(cf.formId));
+    const replacements=[];
+    if(rrConfig.replacements?.length>0){
+      rrConfig.replacements.forEach(r=>{if(r.formId&&r.pct>0) replacements.push({formId:r.formId,pct:Number(r.pct)});});
+    } else {
+      if(rrConfig.replace1Id&&Number(rrConfig.replace1Pct)>0) replacements.push({formId:rrConfig.replace1Id,pct:Number(rrConfig.replace1Pct)});
+      if(rrConfig.replace2Id&&Number(rrConfig.replace2Pct)>0) replacements.push({formId:rrConfig.replace2Id,pct:Number(rrConfig.replace2Pct)});
+    }
+    replacements.forEach(r=>{
+      const idx=adjustedForms.findIndex(cf=>cf.formId===r.formId);
+      if(idx>=0) adjustedForms[idx]={...adjustedForms[idx],weight:adjustedForms[idx].weight+r.pct,rrApplied:true};
+    });
+  });
+  return adjustedForms;
+}
+
 const MEDALS=["🥇","🥈","🥉"];
 
 export default function Leaderboard(){
@@ -229,16 +252,20 @@ export default function Leaderboard(){
                     </div>
                   </div>
                   <div style={{minWidth:200}}><ScoreBar score={person.score}/></div>
-                  <div style={{display:"flex",gap:4,flexShrink:0}}>
-                    {(person.groupForms||[]).map(cf=>{
+                  <div style={{display:"flex",gap:4,flexShrink:0,flexWrap:"wrap",maxWidth:320}}>
+                    {getAdjustedForms(person.name,person.groupForms||[],person.rrConfigs||[],flaggedData).map(cf=>{
                       const form=forms.find(f=>f.id===cf.formId);
                       const excludeEmails=flaggedData.filter(f=>f.personName===person.name&&f.formId===cf.formId&&f.reviewerEmail).map(f=>f.reviewerEmail);
                       const avg=form?getFormAvg(person.name,cf.formId,form.fields||[],allSubs,excludeEmails):null;
-                      const c=avg!==null?(avg>=4?"#22c55e":avg>=3?"#F59E0B":"#ef4444"):"#4b5563";
+                      const scoreColor=avg!==null?(avg>=4?"#22c55e":avg>=3?"#F59E0B":"#ef4444"):"#4b5563";
+                      const contribution=avg!==null?((avg/5)*(cf.weight/100)*5) :null;
                       return(
-                        <div key={cf.formId} title={`${cf.name} (${cf.weight}%): ${avg!==null?avg.toFixed(2):"N/A"}`}
-                          style={{width:28,height:28,borderRadius:6,background:avg!==null?(avg>=4?"rgba(34,197,94,0.15)":avg>=3?"rgba(245,158,11,0.15)":"rgba(239,68,68,0.15)"):"#21262D",display:"flex",alignItems:"center",justifyContent:"center",fontSize:10,fontWeight:700,color:c}}>
-                          {avg!==null?avg.toFixed(1):"—"}
+                        <div key={cf.formId} title={`${cf.name}: ${avg!==null?avg.toFixed(2)+"/5":"N/A"} × ${cf.weight}%${cf.rrApplied?" (RR adjusted)":""}`}
+                          style={{display:"flex",flexDirection:"column",alignItems:"center",background:avg!==null?(avg>=4?"rgba(34,197,94,0.1)":avg>=3?"rgba(245,158,11,0.1)":"rgba(239,68,68,0.1)"):"#161B22",border:"1px solid "+(cf.rrApplied?"rgba(245,158,11,0.4)":avg!==null?(avg>=4?"rgba(34,197,94,0.2)":avg>=3?"rgba(245,158,11,0.2)":"rgba(239,68,68,0.2)"):"#21262D"),borderRadius:8,padding:"4px 8px",minWidth:52,position:"relative"}}>
+                          {cf.rrApplied&&<div style={{position:"absolute",top:-4,right:-4,width:8,height:8,borderRadius:"50%",background:"#F59E0B",border:"1px solid #0D1117"}}/>}
+                          <span style={{fontSize:12,fontWeight:800,color:scoreColor,lineHeight:1.2}}>{avg!==null?avg.toFixed(1):"—"}</span>
+                          <span style={{fontSize:9,color:cf.rrApplied?"#F59E0B":"#6b7280",fontWeight:600}}>{cf.weight}%</span>
+                          {contribution!==null&&<span style={{fontSize:8,color:"#4b5563"}}>{contribution.toFixed(2)}</span>}
                         </div>
                       );
                     })}
@@ -290,16 +317,20 @@ export default function Leaderboard(){
                       </div>
                     </div>
                     <div style={{minWidth:160}}><ScoreBar score={person.score}/></div>
-                    <div style={{display:"flex",gap:4,flexShrink:0}}>
-                      {(person.groupForms||[]).map(cf=>{
+                    <div style={{display:"flex",gap:4,flexShrink:0,flexWrap:"wrap",maxWidth:280}}>
+                      {getAdjustedForms(person.name,person.groupForms||[],person.rrConfigs||[],flaggedData).map(cf=>{
                         const form=forms.find(f=>f.id===cf.formId);
                         const excludeEmails=flaggedData.filter(f=>f.personName===person.name&&f.formId===cf.formId&&f.reviewerEmail).map(f=>f.reviewerEmail);
                         const avg=form?getFormAvg(person.name,cf.formId,form.fields||[],allSubs,excludeEmails):null;
-                        const c=avg!==null?(avg>=4?"#22c55e":avg>=3?"#F59E0B":"#ef4444"):"#4b5563";
+                        const scoreColor=avg!==null?(avg>=4?"#22c55e":avg>=3?"#F59E0B":"#ef4444"):"#4b5563";
+                        const contribution=avg!==null?((avg/5)*(cf.weight/100)*5):null;
                         return(
-                          <div key={cf.formId} title={`${cf.name} (${cf.weight}%): ${avg!==null?avg.toFixed(2):"N/A"}`}
-                            style={{width:28,height:28,borderRadius:6,background:avg!==null?(avg>=4?"rgba(34,197,94,0.15)":avg>=3?"rgba(245,158,11,0.15)":"rgba(239,68,68,0.15)"):"#21262D",display:"flex",alignItems:"center",justifyContent:"center",fontSize:10,fontWeight:700,color:c}}>
-                            {avg!==null?avg.toFixed(1):"—"}
+                          <div key={cf.formId} title={`${cf.name}: ${avg!==null?avg.toFixed(2)+"/5":"N/A"} × ${cf.weight}%${cf.rrApplied?" (RR adjusted)":""}`}
+                            style={{display:"flex",flexDirection:"column",alignItems:"center",background:avg!==null?(avg>=4?"rgba(34,197,94,0.1)":avg>=3?"rgba(245,158,11,0.1)":"rgba(239,68,68,0.1)"):"#161B22",border:"1px solid "+(cf.rrApplied?"rgba(245,158,11,0.4)":avg!==null?(avg>=4?"rgba(34,197,94,0.2)":avg>=3?"rgba(245,158,11,0.2)":"rgba(239,68,68,0.2)"):"#21262D"),borderRadius:8,padding:"4px 8px",minWidth:52,position:"relative"}}>
+                            {cf.rrApplied&&<div style={{position:"absolute",top:-4,right:-4,width:8,height:8,borderRadius:"50%",background:"#F59E0B",border:"1px solid #0D1117"}}/>}
+                            <span style={{fontSize:12,fontWeight:800,color:scoreColor,lineHeight:1.2}}>{avg!==null?avg.toFixed(1):"—"}</span>
+                            <span style={{fontSize:9,color:cf.rrApplied?"#F59E0B":"#6b7280",fontWeight:600}}>{cf.weight}%</span>
+                            {contribution!==null&&<span style={{fontSize:8,color:"#4b5563"}}>{contribution.toFixed(2)}</span>}
                           </div>
                         );
                       })}
