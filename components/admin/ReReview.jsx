@@ -221,6 +221,8 @@ export default function ReReview(){
     } else {
       await deleteFlagged({personName,formId,reviewerEmail});
       setFlaggedData(prev=>prev.filter(f=>!(f.personName===personName&&f.formId===formId&&f.reviewerEmail===reviewerEmail)));
+      // Remove from invalidated so button resets
+      setInvalidated(prev=>{const n={...prev};delete n[key];return n;});
     }
     setInvalidating(null);
   }
@@ -485,7 +487,7 @@ export default function ReReview(){
                 setInvalidating(key);
                 await deleteFlagged({personName:f.personName,formId:f.formId,reviewerEmail:f.reviewerEmail});
                 setFlaggedData(prev=>prev.filter((_,idx)=>idx!==i));
-                setInvalidated(prev=>({...prev,[key]:false}));
+                setInvalidated(prev=>{const n={...prev};delete n[key];return n;});
                 setInvalidating(null);
               }} disabled={invalidating===`${f.reviewerEmail}_${f.personName}_${f.formId}`}
               style={{padding:"6px 12px",borderRadius:8,border:"1px solid #21262D",background:"transparent",color:"#9ca3af",fontSize:12,cursor:"pointer",display:"flex",alignItems:"center",gap:4}}>
