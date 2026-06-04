@@ -28,26 +28,35 @@ function getFormAvg(personName,formId,formFields,allSubs,excludeEmails=[]){
   return reviewerAvgs.reduce((a,b)=>a+b,0)/reviewerAvgs.length;
 }
 
-function calcPersonScore(personName,groupForms,allForms,allSubs,rrConfig,flaggedEntries){
-  // Build adjusted forms based on RR config
+function calcPersonScore(personName,groupForms,allForms,allSubs,rrConfigs,flaggedEntries){
+  // Build adjusted forms based on RR configs (can be multiple)
   let adjustedForms=[...groupForms];
 
-  // Get flagged form IDs for this person (invalidated reviewers)
+  // Get invalidated reviewers per form for this person
   const invalidatedByForm={};
   flaggedEntries.filter(f=>f.personName===personName&&f.reviewerEmail).forEach(f=>{
     if(!invalidatedByForm[f.formId]) invalidatedByForm[f.formId]=[];
-    invalidatedByForm[f.formId].push(f.reviewerEmail);
+    invalidatedByForm[f.formId].push(f.reviewerEmail.toLowerCase());
   });
 
-  // Apply RR config if exists
-  if(rrConfig&&rrConfig.replacements?.length>0){
-    // Remove flagged forms
-    const flaggedFormIds=new Set(flaggedEntries.filter(f=>f.personName===personName&&!f.reviewerEmail).map(f=>f.formId));
-    // Also detect from rrConfig
+  // Apply each RR config (threshold, missing, etc.)
+  const configs=Array.isArray(rrConfigs)?rrConfigs:[rrConfigs].filter(Boolean);
+  configs.forEach(rrConfig=>{
+    if(!rrConfig) return;
+    // Collect flagged form IDs from this config
+    const flaggedFormIds=new Set();
     if(rrConfig.flaggedFormId) flaggedFormIds.add(rrConfig.flaggedFormId);
+    // Remove flagged forms
     adjustedForms=adjustedForms.filter(cf=>!flaggedFormIds.has(cf.formId));
-    // Add replacement weights
-    rrConfig.replacements.forEach(r=>{
+    // Apply replacements — support both new array format and old replace1/replace2 format
+    const replacements=[];
+    if(rrConfig.replacements?.length>0){
+      rrConfig.replacements.forEach(r=>{ if(r.formId&&r.pct>0) replacements.push({formId:r.formId,pct:Number(r.pct)}); });
+    } else {
+      if(rrConfig.replace1Id&&Number(rrConfig.replace1Pct)>0) replacements.push({formId:rrConfig.replace1Id,pct:Number(rrConfig.replace1Pct)});
+      if(rrConfig.replace2Id&&Number(rrConfig.replace2Pct)>0) replacements.push({formId:rrConfig.replace2Id,pct:Number(rrConfig.replace2Pct)});
+    }
+    replacements.forEach(r=>{
       const idx=adjustedForms.findIndex(cf=>cf.formId===r.formId);
       if(idx>=0) adjustedForms[idx]={...adjustedForms[idx],weight:adjustedForms[idx].weight+r.pct};
       else{
@@ -55,16 +64,7 @@ function calcPersonScore(personName,groupForms,allForms,allSubs,rrConfig,flagged
         if(form) adjustedForms.push({formId:r.formId,name:form.name,weight:r.pct});
       }
     });
-  } else if(rrConfig&&rrConfig.replace1Id){
-    // Old format
-    const flaggedFormIds=new Set([rrConfig.flaggedFormId].filter(Boolean));
-    adjustedForms=adjustedForms.filter(cf=>!flaggedFormIds.has(cf.formId));
-    adjustedForms=adjustedForms.map(cf=>{
-      if(cf.formId===rrConfig.replace1Id) return{...cf,weight:cf.weight+Number(rrConfig.replace1Pct||0)};
-      if(cf.formId===rrConfig.replace2Id) return{...cf,weight:cf.weight+Number(rrConfig.replace2Pct||0)};
-      return cf;
-    });
-  }
+  });
 
   let weightedSum=0,hasData=false;
   adjustedForms.forEach(cf=>{
@@ -138,7 +138,7 @@ export default function Leaderboard(){
     const groupMemberNames=markingGroups.filter(mg=>mg.groupId===group.groupId).map(mg=>mg.personName);
     const groupPeople=people.filter(p=>groupMemberNames.includes(p.name));
     const scored=groupPeople.map(p=>{
-      const rrConfig=rrData.find(r=>r.personName===p.name)||null;
+      const rrConfigs=rrData.filter(r=>r.personName===p.name&&r.type!=="config"&&r.personName!=="__THRESHOLD__");
       const isFlagged=flaggedData.some(f=>f.personName===p.name);
       const score=calcPersonScore(p.name,group.forms||[],forms,allSubs,isFlagged?rrConfig:null,flaggedData);
       return{...p,score,groupForms:group.forms||[],isFlagged,rrConfig};
