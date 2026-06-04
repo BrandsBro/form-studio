@@ -78,7 +78,7 @@ function calcPersonScore(personName,groupForms,allForms,allSubs,rrConfigs,flagge
 }
 
 function getAdjustedForms(personName,groupForms,rrConfigs,flaggedEntries){
-  let adjustedForms=groupForms.map(cf=>({...cf,originalWeight:cf.weight,rrApplied:false}));
+  let adjustedForms=groupForms.map(cf=>({...cf,originalWeight:cf.weight,rrApplied:false,rrAdded:0}));
   const configs=Array.isArray(rrConfigs)?rrConfigs:[rrConfigs].filter(Boolean);
   configs.forEach(rrConfig=>{
     if(!rrConfig) return;
@@ -94,7 +94,10 @@ function getAdjustedForms(personName,groupForms,rrConfigs,flaggedEntries){
     }
     replacements.forEach(r=>{
       const idx=adjustedForms.findIndex(cf=>cf.formId===r.formId);
-      if(idx>=0) adjustedForms[idx]={...adjustedForms[idx],weight:adjustedForms[idx].weight+r.pct,rrApplied:true};
+      if(idx>=0){
+        const added=r.pct;
+        adjustedForms[idx]={...adjustedForms[idx],weight:adjustedForms[idx].weight+added,rrApplied:true,rrAdded:adjustedForms[idx].rrAdded+added};
+      }
     });
   });
   return adjustedForms;
@@ -261,11 +264,18 @@ export default function Leaderboard(){
                       const contribution=avg!==null?((avg/5)*(cf.weight/100)*5) :null;
                       return(
                         <div key={cf.formId} title={`${cf.name}: ${avg!==null?avg.toFixed(2)+"/5":"N/A"} × ${cf.weight}%${cf.rrApplied?" (RR adjusted)":""}`}
-                          style={{display:"flex",flexDirection:"column",alignItems:"center",background:avg!==null?(avg>=4?"rgba(34,197,94,0.1)":avg>=3?"rgba(245,158,11,0.1)":"rgba(239,68,68,0.1)"):"#161B22",border:"1px solid "+(cf.rrApplied?"rgba(245,158,11,0.4)":avg!==null?(avg>=4?"rgba(34,197,94,0.2)":avg>=3?"rgba(245,158,11,0.2)":"rgba(239,68,68,0.2)"):"#21262D"),borderRadius:8,padding:"4px 8px",minWidth:52,position:"relative"}}>
-                          {cf.rrApplied&&<div style={{position:"absolute",top:-4,right:-4,width:8,height:8,borderRadius:"50%",background:"#F59E0B",border:"1px solid #0D1117"}}/>}
-                          <span style={{fontSize:12,fontWeight:800,color:scoreColor,lineHeight:1.2}}>{avg!==null?avg.toFixed(1):"—"}</span>
-                          <span style={{fontSize:9,color:cf.rrApplied?"#F59E0B":"#6b7280",fontWeight:600}}>{cf.weight}%</span>
-                          {contribution!==null&&<span style={{fontSize:8,color:"#4b5563"}}>{contribution.toFixed(2)}</span>}
+                          style={{display:"flex",flexDirection:"column",alignItems:"center",background:avg!==null?(avg>=4?"rgba(34,197,94,0.1)":avg>=3?"rgba(245,158,11,0.1)":"rgba(239,68,68,0.1)"):"#161B22",border:"1px solid "+(cf.rrApplied?"rgba(245,158,11,0.5)":avg!==null?(avg>=4?"rgba(34,197,94,0.2)":avg>=3?"rgba(245,158,11,0.2)":"rgba(239,68,68,0.2)"):"#21262D"),borderRadius:8,padding:"5px 8px",minWidth:56,position:"relative"}}>
+                          {cf.rrApplied&&<div style={{position:"absolute",top:-5,right:-5,width:10,height:10,borderRadius:"50%",background:"#F59E0B",border:"2px solid #0D1117",display:"flex",alignItems:"center",justifyContent:"center",fontSize:6,color:"#000",fontWeight:900}}>R</div>}
+                          <span style={{fontSize:13,fontWeight:800,color:scoreColor,lineHeight:1.2}}>{avg!==null?avg.toFixed(1):"—"}</span>
+                          {cf.rrApplied?(
+                            <div style={{display:"flex",alignItems:"center",gap:2,marginTop:1}}>
+                              <span style={{fontSize:8,color:"#6b7280",textDecoration:"line-through"}}>{cf.originalWeight}%</span>
+                              <span style={{fontSize:8,color:"#F59E0B"}}>→</span>
+                              <span style={{fontSize:9,color:"#F59E0B",fontWeight:700}}>{cf.weight}%</span>
+                            </div>
+                          ):(
+                            <span style={{fontSize:9,color:"#6b7280",fontWeight:600,marginTop:1}}>{cf.weight}%</span>
+                          )}
                         </div>
                       );
                     })}
@@ -326,11 +336,18 @@ export default function Leaderboard(){
                         const contribution=avg!==null?((avg/5)*(cf.weight/100)*5):null;
                         return(
                           <div key={cf.formId} title={`${cf.name}: ${avg!==null?avg.toFixed(2)+"/5":"N/A"} × ${cf.weight}%${cf.rrApplied?" (RR adjusted)":""}`}
-                            style={{display:"flex",flexDirection:"column",alignItems:"center",background:avg!==null?(avg>=4?"rgba(34,197,94,0.1)":avg>=3?"rgba(245,158,11,0.1)":"rgba(239,68,68,0.1)"):"#161B22",border:"1px solid "+(cf.rrApplied?"rgba(245,158,11,0.4)":avg!==null?(avg>=4?"rgba(34,197,94,0.2)":avg>=3?"rgba(245,158,11,0.2)":"rgba(239,68,68,0.2)"):"#21262D"),borderRadius:8,padding:"4px 8px",minWidth:52,position:"relative"}}>
-                            {cf.rrApplied&&<div style={{position:"absolute",top:-4,right:-4,width:8,height:8,borderRadius:"50%",background:"#F59E0B",border:"1px solid #0D1117"}}/>}
-                            <span style={{fontSize:12,fontWeight:800,color:scoreColor,lineHeight:1.2}}>{avg!==null?avg.toFixed(1):"—"}</span>
-                            <span style={{fontSize:9,color:cf.rrApplied?"#F59E0B":"#6b7280",fontWeight:600}}>{cf.weight}%</span>
-                            {contribution!==null&&<span style={{fontSize:8,color:"#4b5563"}}>{contribution.toFixed(2)}</span>}
+                            style={{display:"flex",flexDirection:"column",alignItems:"center",background:avg!==null?(avg>=4?"rgba(34,197,94,0.1)":avg>=3?"rgba(245,158,11,0.1)":"rgba(239,68,68,0.1)"):"#161B22",border:"1px solid "+(cf.rrApplied?"rgba(245,158,11,0.5)":avg!==null?(avg>=4?"rgba(34,197,94,0.2)":avg>=3?"rgba(245,158,11,0.2)":"rgba(239,68,68,0.2)"):"#21262D"),borderRadius:8,padding:"5px 8px",minWidth:56,position:"relative"}}>
+                            {cf.rrApplied&&<div style={{position:"absolute",top:-5,right:-5,width:10,height:10,borderRadius:"50%",background:"#F59E0B",border:"2px solid #0D1117",display:"flex",alignItems:"center",justifyContent:"center",fontSize:6,color:"#000",fontWeight:900}}>R</div>}
+                            <span style={{fontSize:13,fontWeight:800,color:scoreColor,lineHeight:1.2}}>{avg!==null?avg.toFixed(1):"—"}</span>
+                            {cf.rrApplied?(
+                              <div style={{display:"flex",alignItems:"center",gap:2,marginTop:1}}>
+                                <span style={{fontSize:8,color:"#6b7280",textDecoration:"line-through"}}>{cf.originalWeight}%</span>
+                                <span style={{fontSize:8,color:"#F59E0B"}}>→</span>
+                                <span style={{fontSize:9,color:"#F59E0B",fontWeight:700}}>{cf.weight}%</span>
+                              </div>
+                            ):(
+                              <span style={{fontSize:9,color:"#6b7280",fontWeight:600,marginTop:1}}>{cf.weight}%</span>
+                            )}
                           </div>
                         );
                       })}
