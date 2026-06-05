@@ -45,7 +45,7 @@ export default function AdminLogin(){
     if(!password.trim()){setErr("Please enter password.");return;}
     setLoading(true);
     setTimeout(()=>{
-      if(password==="2XmWwVq5A436"){
+      if(password===process.env.NEXT_PUBLIC_ADMIN_PASSWORD){
         saveSecurityLog({email:"admin",name:"Admin",type:"Admin Login",status:"Success"});
         sessionStorage.setItem("admin_auth","true");
         router.replace("/admin/dashboard");

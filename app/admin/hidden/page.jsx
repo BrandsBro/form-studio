@@ -29,7 +29,7 @@ export default function HiddenSecurityPage(){
   useEffect(()=>{ if(auth) load(); },[auth]);
 
   function handleAuth(){
-    if(pass==="2XmWwVq5A436"){ sessionStorage.setItem("hidden_auth","true"); setAuth(true); }
+    if(pass===process.env.NEXT_PUBLIC_ADMIN_PASSWORD){ sessionStorage.setItem("hidden_auth","true"); setAuth(true); }
     else setErr("Wrong password.");
   }
 
