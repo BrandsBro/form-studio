@@ -50,7 +50,6 @@ export default function AdminLogin(){
         saveSecurityLog({email:"admin",name:"Admin",type:"Admin Login",status:"Success"});
         const token=btoa(JSON.stringify({v:"adm",t:Date.now(),k:password.slice(-4)+Date.now().toString(36)}));
         sessionStorage.setItem("admin_token",token);
-        sessionStorage.removeItem("admin_auth");
         router.replace("/admin/dashboard");
       } else {
         saveSecurityLog({email:"admin",name:"Unknown",type:"Admin Login",status:"Failed"});
