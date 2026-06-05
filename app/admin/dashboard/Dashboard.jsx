@@ -102,7 +102,10 @@ export default function AdminDashboard() {
   const [leaderFilter, setLeaderFilter] = useState("All");
 
   useEffect(() => {
-    if (sessionStorage.getItem("admin_auth") !== "true") router.replace("/admin");
+    const t=sessionStorage.getItem("admin_token");
+    let valid=false;
+    if(t){try{const d=JSON.parse(atob(t));if(d.v==="adm"&&Date.now()-d.t<28800000) valid=true;}catch{}}
+    if(!valid){sessionStorage.removeItem("admin_token");router.replace("/admin");return;}
     const sf = localStorage.getItem("forms_list");
     if (sf) { try { const fl=JSON.parse(sf); setForms(fl); if(fl.length) setSelectedFormId(fl[0].id); } catch {} }
   }, []);
@@ -129,7 +132,7 @@ export default function AdminDashboard() {
       return sortDir==="asc"?(av>bv?1:-1):(av<bv?1:-1);
     });
 
-  function logout() { sessionStorage.removeItem("admin_auth"); router.replace("/admin"); }
+  function logout() { sessionStorage.removeItem("admin_token"); router.replace("/admin"); }
   function toggleSort(key) { if(sortKey===key)setSortDir(d=>d==="asc"?"desc":"asc"); else{setSortKey(key);setSortDir("desc");} }
 
   const overallAvg = submissions.length&&ratingFields.length
