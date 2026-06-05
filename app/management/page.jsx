@@ -1,5 +1,5 @@
 "use client";
-import { getPeople } from "@/lib/sheets";
+import { getPeople, saveSecurityLog } from "@/lib/sheets";
 import { useState, useEffect } from "react";
 import { ChevronRight } from "lucide-react";
 
@@ -23,9 +23,11 @@ export default function ManagementLogin(){
       const person=people.find(p=>p.email.toLowerCase().trim()===email.toLowerCase().trim());
       if(!person){
         setErr("Email not found. Please check and try again.");
+        saveSecurityLog({email:email.trim(),name:"",type:"Management Login",status:"Failed"});
         setLoading(false);
         return;
       }
+      saveSecurityLog({email:person.email,name:person.name,type:"Management Login",status:"Success"});
       sessionStorage.setItem("reviewer_email",person.email.toLowerCase().trim());
       sessionStorage.setItem("reviewer_name",person.name);
       window.location.href="/forms";

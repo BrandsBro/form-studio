@@ -1,6 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { saveSecurityLog } from "@/lib/sheets";
 import { Eye, EyeOff, ChevronRight } from "lucide-react";
 
 export default function AdminLogin(){
@@ -19,9 +20,11 @@ export default function AdminLogin(){
     setLoading(true);
     setTimeout(()=>{
       if(password==="2XmWwVq5A436"){
+        saveSecurityLog({email:"admin",name:"Admin",type:"Admin Login",status:"Success"});
         sessionStorage.setItem("admin_auth","true");
         router.replace("/admin/dashboard");
       } else {
+        saveSecurityLog({email:"admin",name:"Unknown",type:"Admin Login",status:"Failed"});
         setErr("Incorrect password.");
         setLoading(false);
       }

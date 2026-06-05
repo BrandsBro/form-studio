@@ -1,5 +1,5 @@
 "use client";
-import { getPeople } from "@/lib/sheets";
+import { getPeople, saveSecurityLog } from "@/lib/sheets";
 import { useState, useEffect } from "react";
 import { ChevronRight, Eye, EyeOff } from "lucide-react";
 
@@ -28,9 +28,11 @@ export default function Login(){
       );
       if(!person){
         setErr("Invalid email or password.");
+        saveSecurityLog({email:email.trim(),name:"",type:"User Login",status:"Failed"});
         setLoading(false);
         return;
       }
+      saveSecurityLog({email:person.email,name:person.name,type:"User Login",status:"Success"});
       sessionStorage.setItem("reviewer_email",person.email.toLowerCase().trim());
       sessionStorage.setItem("reviewer_name",person.name);
       window.location.href="/forms";
