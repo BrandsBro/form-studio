@@ -591,8 +591,14 @@ export default function FormPage(){
 
   const t=getTheme(form);
   return(
-    <div style={{background:"#0D1117",minHeight:"100vh"}}>
-      <style>{"@keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}"}</style>
+    <div style={{background:"#0D1117",minHeight:"100vh",position:"relative",overflow:"hidden"}}>
+      <style>{"@keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}@keyframes twinkle{0%,100%{opacity:0.1}50%{opacity:0.5}}@keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}"}</style>
+      {/* Subtle grid */}
+      <div style={{position:"fixed",inset:0,backgroundImage:"linear-gradient(rgba(255,255,255,0.01) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,0.01) 1px,transparent 1px)",backgroundSize:"50px 50px",pointerEvents:"none",zIndex:0}}/>
+      {/* Static stars */}
+      {[...Array(12)].map((_,i)=>(
+        <div key={i} style={{position:"fixed",left:(8+i*8)+"%",top:(5+i*7)%90+"%",width:i%3===0?2:1,height:i%3===0?2:1,borderRadius:"50%",background:"white",opacity:0.15,pointerEvents:"none",animation:`twinkle ${2+i*0.4}s ease-in-out ${i*0.3}s infinite`,zIndex:0}}/>
+      ))}
       <div style={{position:"fixed",top:0,left:"50%",transform:"translateX(-50%)",width:600,height:280,background:"radial-gradient(ellipse,"+t.glow+" 0%,transparent 70%)",pointerEvents:"none",zIndex:0}}/>
       <div style={{position:"relative",zIndex:1}}>
         {step==="email"&&<StepEmail form={form} onNext={handleEmailNext}/>}
