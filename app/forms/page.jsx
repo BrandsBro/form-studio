@@ -13,6 +13,8 @@ export default function MyForms(){
   const [formProgress,setFormProgress]=useState({});
   const [err,setErr]=useState("");
   const [name,setName]=useState("");
+  const [particles,setParticles]=useState([]);
+  const [stars]=useState(()=>Array.from({length:15},(_,i)=>({id:i,x:Math.random()*100,y:Math.random()*100,size:1+Math.random()*2,delay:Math.random()*3,dur:2+Math.random()*3})));
 
   async function loadForms(e){
     setFinding(true);setErr("");setMyForms(null);
@@ -46,6 +48,9 @@ export default function MyForms(){
   }
 
   useEffect(()=>{
+    const interval=setInterval(()=>{
+      setParticles(prev=>[...prev.slice(-4),{id:Date.now(),x:Math.random()*100,y:Math.random()*100,color:["#F59E0B","#3B82F6","#10B981","#8B5CF6"][Math.floor(Math.random()*4)]}]);
+    },3000);
     const e=sessionStorage.getItem("reviewer_email");
     const n=sessionStorage.getItem("reviewer_name");
     if(!e){ window.location.href="/"; return; }
@@ -67,8 +72,11 @@ export default function MyForms(){
   const doneForms=myForms?myForms.filter(f=>formProgress[f.id]?.done):[];
 
   return(
-    <div style={{minHeight:"100vh",background:"#0D1117",display:"flex",flexDirection:"column",alignItems:"center",padding:"24px 20px",fontFamily:"var(--font-dm-sans)"}}>
-      <style>{"@keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}@keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}"}</style>
+    <div style={{minHeight:"100vh",background:"#0D1117",display:"flex",flexDirection:"column",alignItems:"center",padding:"24px 20px",fontFamily:"var(--font-dm-sans)",position:"relative",overflow:"hidden"}}>
+      <style>{"@keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}@keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}@keyframes twinkle{0%,100%{opacity:0.2}50%{opacity:0.8}}@keyframes particleFade{0%{opacity:0.6}100%{opacity:0;transform:translateY(-40px)}}"}</style>
+      <div style={{position:"fixed",inset:0,backgroundImage:"linear-gradient(rgba(245,158,11,0.02) 1px,transparent 1px),linear-gradient(90deg,rgba(245,158,11,0.02) 1px,transparent 1px)",backgroundSize:"40px 40px",pointerEvents:"none",zIndex:0}}/>
+      {stars.map(s=><div key={s.id} style={{position:"fixed",left:s.x+"%",top:s.y+"%",width:s.size,height:s.size,borderRadius:"50%",background:"white",opacity:0.2,pointerEvents:"none",animation:`twinkle ${s.dur}s ease-in-out ${s.delay}s infinite`,zIndex:0}}/>)}
+      {particles.map(p=><div key={p.id} style={{position:"fixed",left:p.x+"%",top:p.y+"%",width:4,height:4,borderRadius:"50%",background:p.color,pointerEvents:"none",animation:"particleFade 3s ease-out forwards",zIndex:0}}/>)}
 
       {/* Header */}
       <div style={{width:"min(540px,100%)",display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:32}}>
