@@ -31,7 +31,8 @@ export default function AdminLogin(){
 
   useEffect(()=>{
     setMounted(true);
-    if(sessionStorage.getItem("admin_auth")==="true") router.replace("/admin/dashboard");
+    const t=sessionStorage.getItem("admin_token");
+    if(t){try{const d=JSON.parse(atob(t));if(d.v==="adm"&&Date.now()-d.t<28800000) router.replace("/admin/dashboard");}catch{}}
     const interval=setInterval(()=>{
       setParticles(prev=>[...prev.slice(-6),{
         id:Date.now(),x:Math.random()*100,y:Math.random()*100,
@@ -47,7 +48,9 @@ export default function AdminLogin(){
     setTimeout(()=>{
       if(password===process.env.NEXT_PUBLIC_ADMIN_PASSWORD){
         saveSecurityLog({email:"admin",name:"Admin",type:"Admin Login",status:"Success"});
-        sessionStorage.setItem("admin_auth","true");
+        const token=btoa(JSON.stringify({v:"adm",t:Date.now(),k:password.slice(-4)+Date.now().toString(36)}));
+        sessionStorage.setItem("admin_token",token);
+        sessionStorage.removeItem("admin_auth");
         router.replace("/admin/dashboard");
       } else {
         saveSecurityLog({email:"admin",name:"Unknown",type:"Admin Login",status:"Failed"});

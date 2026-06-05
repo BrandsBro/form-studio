@@ -15,8 +15,8 @@ export default function HiddenSecurityPage(){
   const [err,setErr]=useState("");
 
   useEffect(()=>{
-    const ok=sessionStorage.getItem("hidden_auth");
-    if(ok==="true") setAuth(true);
+    const t=sessionStorage.getItem("hidden_token");
+    if(t){try{const d=JSON.parse(atob(t));if(d.v==="hid"&&Date.now()-d.t<28800000) setAuth(true);}catch{}}
   },[]);
 
   async function load(){
@@ -29,7 +29,12 @@ export default function HiddenSecurityPage(){
   useEffect(()=>{ if(auth) load(); },[auth]);
 
   function handleAuth(){
-    if(pass===process.env.NEXT_PUBLIC_ADMIN_PASSWORD){ sessionStorage.setItem("hidden_auth","true"); setAuth(true); }
+    if(pass===process.env.NEXT_PUBLIC_ADMIN_PASSWORD){
+      const token=btoa(JSON.stringify({v:"hid",t:Date.now()}));
+      sessionStorage.setItem("hidden_token",token);
+      sessionStorage.removeItem("hidden_auth");
+      setAuth(true);
+    }
     else setErr("Wrong password.");
   }
 
