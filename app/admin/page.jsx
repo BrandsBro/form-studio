@@ -18,7 +18,7 @@ export default function AdminLogin(){
     if(!password.trim()){setErr("Please enter password.");return;}
     setLoading(true);
     setTimeout(()=>{
-      if(password==="admin1234"){
+      if(password==="2XmWwVq5A436"){
         sessionStorage.setItem("admin_auth","true");
         router.replace("/admin/dashboard");
       } else {
