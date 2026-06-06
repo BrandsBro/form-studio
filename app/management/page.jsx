@@ -41,7 +41,7 @@ export default function ManagementLogin(){
   }
 
   return(
-    <div style={{minHeight:"100vh",background:"#0D1117",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"space-between",minHeight:"100vh",padding:20,fontFamily:"var(--font-dm-sans)",overflow:"hidden",position:"relative"}}>
+    <div style={{minHeight:"100vh",background:"#0D1117",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",minHeight:"100vh",padding:20,fontFamily:"var(--font-dm-sans)",overflow:"hidden",position:"relative"}}>
       <style>{`
         @keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
         @keyframes float{0%,100%{transform:translateY(0px)}50%{transform:translateY(-12px)}}
@@ -86,7 +86,7 @@ export default function ManagementLogin(){
         <p style={{textAlign:"center",color:"#374151",fontSize:11,marginTop:16,fontFamily:"monospace"}}>FormStudio · Management Access</p>
       </div>
       {/* Footer */}
-      <div style={{textAlign:"center",padding:"24px 20px 16px",marginTop:"auto"}}>
+      <div style={{textAlign:"center",padding:"12px 20px",position:"fixed",bottom:0,left:0,right:0,zIndex:10,background:"linear-gradient(transparent,rgba(13,17,23,0.95))"}}>
         <p style={{color:"#374151",fontSize:16,margin:0,lineHeight:1.8}}>
           © 2026 <a href="https://brandsbro.com/" target="_blank" rel="noopener" style={{color:"#F59E0B",textDecoration:"none",fontWeight:600}}>Brands Bro</a>. All rights reserved.
         </p>
