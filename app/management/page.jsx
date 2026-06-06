@@ -87,7 +87,7 @@ export default function ManagementLogin(){
       </div>
       {/* Footer */}
       <div style={{textAlign:"center",padding:"24px 20px 16px",marginTop:"auto"}}>
-        <p style={{color:"#374151",fontSize:11,margin:0,lineHeight:1.8}}>
+        <p style={{color:"#374151",fontSize:16,margin:0,lineHeight:1.8}}>
           © 2026 <a href="https://brandsbro.com/" target="_blank" rel="noopener" style={{color:"#F59E0B",textDecoration:"none",fontWeight:600}}>Brands Bro</a>. All rights reserved.
         </p>
         <p style={{color:"#2d3748",fontSize:10,margin:"2px 0 0"}}>
