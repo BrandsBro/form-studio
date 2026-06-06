@@ -41,7 +41,7 @@ export default function ManagementLogin(){
   }
 
   return(
-    <div style={{minHeight:"100vh",background:"#0D1117",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:20,fontFamily:"var(--font-dm-sans)",overflow:"hidden",position:"relative"}}>
+    <div style={{minHeight:"100vh",background:"#0D1117",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"space-between",minHeight:"100vh",padding:20,fontFamily:"var(--font-dm-sans)",overflow:"hidden",position:"relative"}}>
       <style>{`
         @keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
         @keyframes float{0%,100%{transform:translateY(0px)}50%{transform:translateY(-12px)}}

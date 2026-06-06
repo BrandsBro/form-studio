@@ -60,7 +60,7 @@ export default function AdminLogin(){
   }
 
   return(
-    <div style={{minHeight:"100vh",background:"#0D1117",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:20,fontFamily:"var(--font-dm-sans)",overflow:"hidden",position:"relative"}}>
+    <div style={{minHeight:"100vh",background:"#0D1117",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"space-between",minHeight:"100vh",padding:20,fontFamily:"var(--font-dm-sans)",overflow:"hidden",position:"relative"}}>
       <style>{STYLES}</style>
 
       {/* Grid */}
