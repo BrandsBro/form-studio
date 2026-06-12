@@ -205,7 +205,7 @@ function FormDetail({form,onUpdate,onBack,employees,executives}){
           <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",flexWrap:"wrap",gap:10}}>
             <div>
               <p style={{color:"white",fontWeight:600,fontSize:14,margin:0}}>Connections for this form</p>
-              <p style={{color:"#6b7280",fontSize:12,margin:"3px 0 0"}}>Both employees and executives can be assigned as reviewees.</p>
+              <p style={{color:"#6b7280",fontSize:12,margin:"3px 0 0"}}>Both employees and executives can be assigned as reviewes. </p>
             </div>
             <button onClick={()=>setShowConn(true)} style={{display:"flex",alignItems:"center",gap:6,padding:"8px 16px",borderRadius:9,border:"none",background:"linear-gradient(135deg,#D97706,#F59E0B)",color:"#000",fontSize:12,fontWeight:700,cursor:"pointer"}}>
               + Add Connection
